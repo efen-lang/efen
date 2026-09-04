@@ -17,8 +17,7 @@ layout HashMap<Key: Hashable, Value> {
     type Mask    extends Size { v is 2^n - 1 }
 
     set Entries: Entry {
-        every e: e.home == bucketOf(e.hash)       // an entry knows its bucket
-        every e: e in buckets[e.home].next*       // and hangs in exactly that one
+        every e: e in buckets[e.home].next*       // an entry hangs in its own bucket
     }
 
     struct Entry {
@@ -26,7 +25,10 @@ layout HashMap<Key: Hashable, Value> {
         var hash:  UInt64 { hash == key.hash() }
         var value: Value
         var next:  own other Entries.pointer?
-        var home:  buckets.index
+
+        // Derived, not stored: a wrong bucket number cannot be written, and a
+        // new mask re-homes every entry at once.
+        var home:  buckets.index { get { return bucketOf(hash) } }
     }
 
     var mask: Mask
@@ -69,7 +71,7 @@ layout HashMap<Key: Hashable, Value> {
             }
         }
 
-        var fresh = Entries.create(key: key, hash: h, value: value, home: i)
+        var fresh = Entries.create(key: key, hash: h, value: value)
         fresh.next = buckets[i]            // the cell gives its ownership away
         buckets[i] = fresh                 // and takes the new owner
 
@@ -97,9 +99,8 @@ layout HashMap<Key: Hashable, Value> {
         return null
     }
 
-    // Every `buckets.index` is invalidated by the new array, the `home` field of
-    // every block included. Both are restored before the function returns, which
-    // is where the invariants are checked.
+    // Only the links are rewritten: `home` follows the new mask on its own,
+    // because it is derived rather than stored.
     fn resize(capacity: Buckets) {
         var old = buckets
 
@@ -109,7 +110,6 @@ layout HashMap<Key: Hashable, Value> {
         for cell in old.slots {
             while read cell.target != null {
                 var e = cell.take()
-                e.home = bucketOf(e.hash)
                 e.next = buckets[e.home]
                 buckets[e.home] = e
             }
