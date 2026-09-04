@@ -1,0 +1,62 @@
+// The same list, parameterised by the element type.
+//
+// The parameter changes one field and nothing else: the address types are
+// built from `Nodes`, which is a member of the layout, so they follow the
+// instantiation on their own.
+
+layout List<T: Equatable> {
+
+    set Nodes: Node {
+        every n: n in head.next*
+    }
+
+    struct Node {
+        var value: T
+        var next:  own other Nodes.pointer?
+    }
+
+    var head: own Nodes.pointer?
+
+    fn prepend(value: T) {
+        var node = Nodes.create(value: value, next: null)
+        node.next = head
+        head = node
+    }
+
+    fn contains(value: T) -> Bool {
+        for node in head along next {
+            if node.value == value {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    fn removeFirst(value: T) -> Bool {
+        for cell in head.slot along next {
+            let node = cell.target
+
+            if node.value == value {
+                var victim = cell.take()          // the cell empties, we own the block
+                cell.target = victim.next         // the tail moves into the cell
+                Nodes.remove(victim)              // the block leaves the population here
+
+                return true
+            }
+        }
+
+        return false
+    }
+}
+
+// Usage.
+
+var numbers = List<Int>()
+numbers.prepend(1)
+
+var names = List<String>()
+names.prepend("Ada")
+
+// The population belongs to the instance, so `numbers.Nodes` and `names.Nodes`
+// are different populations and their pointers are not interchangeable.

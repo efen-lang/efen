@@ -1,0 +1,72 @@
+// Singly linked list of Int, written without generics.
+//
+// The layout owns everything the structure is made of: the population of
+// nodes, the head of the chain and the operations over them. No address here
+// is a machine pointer by declaration — each one names the population it comes
+// from, and the compiler picks the form.
+
+layout IntList {
+
+    // A logical declaration of the population: no memory of its own, and the
+    // invariant that makes the walk below provably finite.
+    set Nodes: Node {
+        every n: n in head.next*        // every node hangs on the one chain
+    }
+
+    struct Node {
+        var value: Int
+        var next:  own other Nodes.pointer?
+    }
+
+    var head: own Nodes.pointer?
+
+    // The population's invariant holds again by the time the function returns,
+    // which is where it is checked.
+    fn prepend(value: Int) {
+        var node = Nodes.create(value: value, next: null)
+        node.next = head              // the head field gives its ownership away
+        head = node                   // and the new owner is the head field
+    }
+
+    fn contains(value: Int) -> Bool {
+        for node in head along next {
+            if node.value == value {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    // Removal walks the cells that hold owning pointers rather than the nodes:
+    // the first cell is `head`, every further one is a `next` field.
+    fn removeFirst(value: Int) -> Bool {
+        for cell in head.slot along next {
+            let node = cell.target
+
+            if node.value == value {
+                var victim = cell.take()          // the cell empties, we own the block
+                cell.target = victim.next         // the tail moves into the cell
+                Nodes.remove(victim)              // the block leaves the population here
+
+                return true
+            }
+        }
+
+        return false
+    }
+}
+
+// Usage.
+
+var list = IntList()
+
+list.prepend(3)
+list.prepend(2)
+list.prepend(1)
+
+for node in list.head along next {
+    echo node.value          // 1 2 3
+}
+
+echo list.Nodes.count        // 3

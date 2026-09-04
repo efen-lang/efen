@@ -1,0 +1,91 @@
+// Doubly linked list.
+//
+// The back link is not written by hand: `inverse prev of next` declares it, so
+// `x.next.prev == x` is maintained by the compiler and one assignment updates
+// both directions. That is what makes `remove` short — and what makes it O(1),
+// because the cell that owns a node is reachable from the node itself.
+
+layout Deque<T> {
+
+    set Nodes: Node {
+        every n: n in head.next*
+    }
+
+    struct Node {
+        var value: T
+        var next:  own other Nodes.pointer?
+    }
+
+    inverse prev of next          // declares the field `prev`, kept in step with `next`
+
+    var head: own Nodes.pointer?
+    var tail: read Nodes.pointer? { tail == null || tail.next == null }
+
+    fn pushFront(value: T) {
+        var node = Nodes.create(value: value, next: null)
+        let fresh: read Nodes.pointer = node   // borrowed before ownership moves
+
+        let wasEmpty = head == null            // comparison neither moves nor borrows
+
+        node.next = head                       // sets head.prev with it
+        head = node
+
+        if wasEmpty {
+            tail = fresh
+        }
+    }
+
+    fn pushBack(value: T) {
+        var node = Nodes.create(value: value, next: null)
+        let fresh: read Nodes.pointer = node
+
+        if tail == null {
+            head = node
+        } else {
+            tail.next = node                   // sets node.prev with it
+        }
+
+        tail = fresh
+    }
+
+    // O(1): the owning cell of the node is either `head` or the `next` field of
+    // its predecessor, and the predecessor is one load away.
+    fn remove(node: read Nodes.pointer) -> T {
+        let before = node.prev
+        var cell = before == null ? head.slot : before.next.slot
+
+        cell.target = node.next                // prev of the new occupant follows
+
+        if read cell.target == null {
+            tail = before
+        }
+
+        return Nodes.take(node).value          // the value leaves with the block
+    }
+
+    fn popBack() -> T? {
+        if tail == null {
+            return null
+        }
+
+        return remove(tail)
+    }
+}
+
+// Usage.
+
+var queue = Deque<Int>()
+
+queue.pushBack(1)
+queue.pushBack(2)
+queue.pushFront(0)
+
+for node in queue.head along next {
+    echo node.value      // 0 1 2
+}
+
+// Backwards along the inverse field: it needs no explicit end, because the
+// inverse of an owning chain inherits its proof of finiteness.
+for node in queue.tail along prev {
+    echo node.value      // 2 1 0
+}

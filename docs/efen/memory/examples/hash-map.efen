@@ -1,0 +1,129 @@
+// Hash map with separate chaining.
+//
+// The example that exercises the whole model: a population with its own
+// invariants, a container whose size is tied to another field, a derived index
+// type that removes bounds checks, and cell walks for removal.
+//
+// No machine size is named anywhere. Whether `next` is stored as an eight-byte
+// address, a four-byte index or a two-byte offset is the compiler's choice.
+//
+// An invariant holds at observation points — a call out, a return, a throw —
+// and not after every statement. Every operation here is straight-line, so each
+// one restores what it breaks before the next observation point.
+
+layout HashMap<Key: Hashable, Value> {
+
+    type Buckets extends Size { v is 2^n }
+    type Mask    extends Size { v is 2^n - 1 }
+
+    set Entries: Entry {
+        every e: e.home == bucketOf(e.hash)       // an entry knows its bucket
+        every e: e in buckets[e.home].next*       // and hangs in exactly that one
+    }
+
+    struct Entry {
+        var key:   Key
+        var hash:  UInt64 { hash == key.hash() }
+        var value: Value
+        var next:  own other Entries.pointer?
+        var home:  buckets.index
+    }
+
+    var mask: Mask
+    var buckets: [own Entries.pointer?] { .size == mask + 1 }
+
+    constructor(capacity: Buckets = 1024) {
+        mask = capacity - 1
+        buckets = [own Entries.pointer?](size: capacity)
+    }
+
+    // The single derivation that carries the obligation. Its result type is what
+    // makes every `buckets[...]` below free of a bounds check: `h & mask` is at
+    // most `mask`, and the array holds `mask + 1` cells.
+    fn bucketOf(h: UInt64) -> buckets.index {
+        return h & mask
+    }
+
+    // The walk variable is a borrow with write rights over the block: it never
+    // owns, so iterating a bucket cannot carry the chain out of the map.
+    fn find(key: Key) -> Value? {
+        let h = key.hash()
+
+        for e in buckets[bucketOf(h)] along next {
+            if e.hash == h && e.key == key {
+                return e.value
+            }
+        }
+
+        return null
+    }
+
+    fn insert(key: Key, value: Value) {
+        let h = key.hash()
+        let i = bucketOf(h)
+
+        for e in buckets[i] along next {
+            if e.hash == h && e.key == key {
+                e.value = value            // replacing a value touches no invariant
+                return
+            }
+        }
+
+        var fresh = Entries.create(key: key, hash: h, value: value, home: i)
+        fresh.next = buckets[i]            // the cell gives its ownership away
+        buckets[i] = fresh                 // and takes the new owner
+
+        if Entries.count > (mask + 1) * 3 / 4 {
+            resize(capacity: (mask + 1) * 2)
+        }
+    }
+
+    // `read cell.target` borrows: without the word the cell would be emptied on
+    // every non-matching step. `take` moves the block out of the cell, and
+    // `Entries.take` moves it out of the population together with its value.
+    fn remove(key: Key) -> Value? {
+        let h = key.hash()
+
+        for cell in buckets[bucketOf(h)].slot along next {
+            let e = read cell.target
+
+            if e.hash == h && e.key == key {
+                var victim = cell.take()
+                cell.target = victim.next
+                return Entries.take(victim).value
+            }
+        }
+
+        return null
+    }
+
+    // Every `buckets.index` is invalidated by the new array, the `home` field of
+    // every block included. Both are restored before the function returns, which
+    // is where the invariants are checked.
+    fn resize(capacity: Buckets) {
+        var old = buckets
+
+        mask = capacity - 1
+        buckets = [own Entries.pointer?](size: capacity)
+
+        for cell in old.slots {
+            while read cell.target != null {
+                var e = cell.take()
+                e.home = bucketOf(e.hash)
+                e.next = buckets[e.home]
+                buckets[e.home] = e
+            }
+        }
+    }
+}
+
+// Usage.
+
+var index = HashMap<String, Int>(capacity: 1024)
+
+index.insert("Ada", 1)
+index.insert("Grace", 2)
+
+echo index.find("Ada")        // 1
+echo index.remove("Grace")    // 2
+echo index.find("Grace")      // null
