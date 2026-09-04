@@ -35,7 +35,7 @@ layout List<T: Equatable> {
 
     fn removeFirst(value: T) -> Bool {
         for cell in head.slot along next {
-            let node = cell.target
+            let node = read cell.target
 
             if node.value == value {
                 var victim = cell.take()          // the cell empties, we own the block

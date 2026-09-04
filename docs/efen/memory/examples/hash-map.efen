@@ -39,11 +39,12 @@ layout HashMap<Key: Hashable, Value> {
         buckets = [own Entries.pointer?](size: capacity)
     }
 
-    // The single derivation that carries the obligation. Its result type is what
-    // makes every `buckets[...]` below free of a bounds check: `h & mask` is at
-    // most `mask`, and the array holds `mask + 1` cells.
+    // The single derivation that carries the obligation. The conversion is where
+    // the bound is established: `h & mask` is at most `mask` and the array holds
+    // `mask + 1` cells, so a solver that reasons about bit vectors removes the
+    // check. Until the predicate language admits `&`, the check stays.
     fn bucketOf(h: UInt64) -> buckets.index {
-        return h & mask
+        return buckets.index(h & mask)
     }
 
     // The walk variable is a borrow with write rights over the block: it never

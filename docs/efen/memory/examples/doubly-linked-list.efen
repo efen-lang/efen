@@ -19,7 +19,9 @@ layout Deque<T> {
     inverse prev of next          // declares the field `prev`, kept in step with `next`
 
     var head: own Nodes.pointer?
-    var tail: read Nodes.pointer? { tail == null || tail.next == null }
+    var tail: read Nodes.pointer? {
+        (head == null) == (tail == null) && (tail == null || tail.next == null)
+    }
 
     fn pushFront(value: T) {
         var node = Nodes.create(value: value, next: null)
