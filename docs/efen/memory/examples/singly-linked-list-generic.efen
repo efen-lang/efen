@@ -7,7 +7,9 @@
 layout List<T: Equatable> {
 
     set Nodes: Node {
-        every n: n in head.next*
+        invariant reachable(n) {
+            n in head.next*
+        }
     }
 
     struct Node {

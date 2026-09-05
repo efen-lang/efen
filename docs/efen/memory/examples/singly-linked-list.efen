@@ -10,7 +10,9 @@ layout IntList {
     // A logical declaration of the population: no memory of its own, and the
     // invariant that makes the walk below provably finite.
     set Nodes: Node {
-        every n: n in head.next*        // every node hangs on the one chain
+        invariant reachable(n) {
+            n in head.next*             // each node hangs on the one chain
+        }
     }
 
     struct Node {

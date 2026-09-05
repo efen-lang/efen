@@ -57,7 +57,7 @@ Frontend отвечает за правила самого Efen: происхо�
 - чтение и запись полей;
 - `if`, `while`, ограниченный `for`;
 - `create`, `remove` и `take`;
-- предикаты `every`;
+- именованные инварианты населения `invariant name(item)`;
 - `inverse`;
 - контракты `requires`, `ensures`, `reads`, `modifies`, `creates`, `removes`;
 - `region suspend` без выхода в непроверенный внешний код.
@@ -318,7 +318,6 @@ exhale acc(victim.value) && acc(victim.next) && acc(victim.prev)
 fn compact(victim: read Nodes.pointer)
     modifies Links.target
     removes victim from Nodes
-    ensures every link: link.target != victim
 {
     for link in Links {
         if link.target == victim {
@@ -333,6 +332,20 @@ fn compact(victim: read Nodes.pointer)
 Контракт задаёт доказываемый результат, но не генерирует обход. `Links` должен
 быть перечислимым в реализации. Для двусвязного списка `inverse` уже является
 локальным индексом входящего ребра, поэтому полного прохода нет.
+
+Условие отсутствия ссылки на изъятый блок объявляется один раз при населении:
+
+```efen
+set Links: Link {
+    invariant targetIsLive(link) {
+        link.target == null || link.target in Nodes
+    }
+}
+```
+
+После `Nodes.remove(victim)` восстановление `targetIsLive` само требует доказать,
+что обработан каждый `link`. Квантор появляется только в VIR и Viper, но не в
+исходном Efen.
 
 ### 9. Перевести циклы
 
@@ -513,7 +526,7 @@ Backend не должен использовать `assume` для факта, �
 ### Этап 2. Населения и произвольные алиасы
 
 - quantified permissions;
-- `every` над перечислимым населением;
+- именованные инварианты над перечислимым населением;
 - циклы с явными инвариантами;
 - операция, очищающая произвольное число входящих ссылок;
 - проверка `modifies` и frame conditions.

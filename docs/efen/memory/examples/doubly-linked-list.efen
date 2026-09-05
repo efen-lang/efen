@@ -8,7 +8,9 @@
 layout Deque<T> {
 
     set Nodes: Node {
-        every n: n in head.next*
+        invariant reachable(n) {
+            n in head.next*
+        }
     }
 
     struct Node {

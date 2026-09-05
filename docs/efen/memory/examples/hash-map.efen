@@ -17,7 +17,9 @@ layout HashMap<Key: Hashable, Value> {
     type Mask    extends Size { v is 2^n - 1 }
 
     set Entries: Entry {
-        every e: e in buckets[e.home].next*       // an entry hangs in its own bucket
+        invariant reachable(e) {
+            e in buckets[e.home].next*            // an entry hangs in its own bucket
+        }
     }
 
     struct Entry {
