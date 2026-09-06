@@ -58,13 +58,14 @@ layout Deque<T> {
         let before = node.prev
         var cell = before == null ? head.slot : before.next.slot
 
-        cell.target = node.next                // prev of the new occupant follows
+        var victim = cell.take()               // acquire the owning reference
+        cell.target = victim.next              // prev of the new occupant follows
 
         if read cell.target == null {
             tail = before
         }
 
-        return Nodes.take(node).value          // the value leaves with the block
+        return Nodes.take(victim).value        // consume ownership and move the value
     }
 
     fn popBack() -> T? {
@@ -88,8 +89,8 @@ for node in queue.head along next {
     echo node.value      // 0 1 2
 }
 
-// Backwards along the inverse field: it needs no explicit end, because the
-// inverse of an owning chain inherits its proof of finiteness.
+// Backwards along the inverse field. Safety is checked independently;
+// termination additionally requires a proven finite forward chain.
 for node in queue.tail along prev {
     echo node.value      // 2 1 0
 }

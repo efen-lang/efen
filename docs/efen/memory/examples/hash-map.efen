@@ -7,9 +7,9 @@
 // No machine size is named anywhere. Whether `next` is stored as an eight-byte
 // address, a four-byte index or a two-byte offset is the compiler's choice.
 //
-// An invariant holds at observation points — a call out, a return, a throw —
-// and not after every statement. Every operation here is straight-line, so each
-// one restores what it breaks before the next observation point.
+// Memory safety is mandatory. Structural invariants are optional proof goals.
+// These sketches do not yet provide the pure Hashable contracts or helper
+// contracts needed to verify all structural properties and exception paths.
 
 layout HashMap<Key: Hashable, Value> {
 
@@ -105,14 +105,17 @@ layout HashMap<Key: Hashable, Value> {
     // Only the links are rewritten: `home` follows the new mask on its own,
     // because it is derived rather than stored.
     fn resize(capacity: Buckets) {
+        // Allocate before moving the old storage: allocation may fail.
+        var replacement = [own Entries.pointer?](size: capacity)
         var old = buckets
 
         mask = capacity - 1
-        buckets = [own Entries.pointer?](size: capacity)
+        buckets = replacement
 
         for cell in old.slots {
             while read cell.target != null {
                 var e = cell.take()
+                cell.target = e.next          // preserve the remaining old chain
                 e.next = buckets[e.home]
                 buckets[e.home] = e
             }

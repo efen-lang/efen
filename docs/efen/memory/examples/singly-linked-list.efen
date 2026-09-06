@@ -8,7 +8,7 @@
 layout IntList {
 
     // A logical declaration of the population: no memory of its own, and the
-    // invariant that makes the walk below provably finite.
+    // optional reachability invariant; termination is a separate proof goal.
     set Nodes: Node {
         invariant reachable(n) {
             n in head.next*             // each node hangs on the one chain
