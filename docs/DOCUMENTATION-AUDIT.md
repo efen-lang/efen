@@ -560,6 +560,32 @@ deallocate(pointer: Pointer, layout: Layout)
   владеемых типов (`types/ownership.md`, `read Nodes.pointer` в примерах памяти)
   копия может быть запрещена или обязана быть перемещением. Не решено.
 
+### Замечено при правке, не исправлено
+
+Список исполнителя правок от 2026-09-06; ни один пункт не входил в задание.
+
+- `blocks/loops.md:291`, `types/tuples.md:658` — `arr.reduce(0, +)` передаёт голый
+  оператор как функцию; такой формы ни один документ не описывает.
+- `types/built-in-contracts.md:12`, `compile-time/index.md:373`,
+  `types/constants.md:262,268` — варианты enum с заглавной буквы, против
+  решения 16.
+- `types/enum.md:385` — `func` вместо `fn`.
+- `comments.md:7,22,39` — примеры Efen в блоках с меткой ```php.
+- `flow.md:3` — «монархических» вместо «монадических».
+- `functions.md:152` — `impliments` вместо `implements`.
+- `functions.md:265` — `test "my test" { … }` передаёт пробельному вызову строку
+  и блок, тогда как вызов принимает ровно один аргумент.
+- `types/strings.md:322` — `String::format("Name: {name}", …)` с `{name}`:
+  библиотечное форматирование, не интерполяция; оставлено.
+- `types/dictionaries.md:391` — деструктуризация словаря `["id": id, ...rest] = user`;
+  ни одно решение эту форму не описывает.
+- `types/tuples.md:351,353,572` — «EFEN» вразнобой с «Efen».
+- `closure.md:19-21` — `return => return param1 + param2` ссылается на
+  необъявленные имена.
+- `types/optional.md:267` — ветка `0?:`: `?` образца и `:` ветки стоят подряд.
+- `memory/classes-internal.md:33` — `projection Raw as None`: слово `None` занято
+  под вид проекции.
+
 ### Правки, которые следуют из решений
 
 - `functions.md:78,159,175` — `items.map -> …` и `numbers.for -> …` заменить на
