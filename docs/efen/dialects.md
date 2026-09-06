@@ -77,7 +77,7 @@ class MyDialect implements DialectCompiler {
 ## Inline диалекты (Inline Dialects)
 
 Inline диалекты — это встроенный синтаксис, который ограничен областью выражений и может быть использован
-внутри кода `Efen`. Примером такого диалекта является строка "with {name}" с возможностью интерполяции.
+внутри кода `Efen`. Примером такого диалекта является строка "with ${name}" с возможностью интерполяции.
 
 ### Встроенные inline диалекты
 
@@ -252,7 +252,7 @@ with dialect ReactiveExtension {
     let signal count = 0
 
     effect {
-        println("Count changed: {count}")
+        println("Count changed: ${count}")
     }
 
     count += 1  // Автоматически триггерит effect
@@ -352,7 +352,7 @@ dialect MatrixDialect {
     fn parse(source: String) -> Matrix {
         // Парсинг матричного синтаксиса
         let rows = source.lines()
-        let values = rows.map(|row| row.split().map(parseFloat))
+        let values = rows.map => $0.split().map(parseFloat)
         return Matrix::new(values)
     }
 }
@@ -377,9 +377,9 @@ dialect CronDialect {
     fn validate(expr: CronExpression) -> Result<(), Error> {
         // Валидация во время компиляции
         if !expr.isValid() {
-            return Err("Invalid cron expression")
+            return .err(error: "Invalid cron expression")
         }
-        return Ok(())
+        return .ok(value: ())
     }
 }
 

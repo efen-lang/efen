@@ -38,9 +38,17 @@ struct Rectangle {
 }
 
 // Использование
-let rect = Rectangle(width: 100, height: 50)
+var rect = Rectangle(width: 100, height: 50)
 // rect.width = 200  // Ошибка: width неизменяемое
-rect.color = "red"   // OK: color изменяемое
+rect.color = "red"   // OK: color изменяемое, переменная объявлена через var
+```
+
+`let` замораживает значение целиком: у переменной, объявленной через `let`,
+нельзя изменить даже поле, объявленное как `var`.
+
+```efen
+let frozen = Rectangle(width: 100, height: 50)
+// frozen.color = "red"  // Ошибка: frozen объявлена через let
 ```
 
 ### Поля с значениями по умолчанию

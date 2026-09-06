@@ -12,7 +12,7 @@
 
 ```efen
 fn saveUser(name: String) {
-    Logger.log("Saving user: $name")
+    Logger.log("Saving user: ${name}")
     // Логика сохранения пользователя
 }
 ```
@@ -27,7 +27,7 @@ effect LoggerEffect {
 }
 
 fn saveUser(name: String) in LoggerEffect {
-    LoggerEffect.log("Saving user: $name")
+    LoggerEffect.log("Saving user: ${name}")
     // Логика сохранения пользователя
 }
 
@@ -192,7 +192,7 @@ contract Logger {
 }
 
 fn fetchData(query: String) {
-    %Logger.log("Fetching data with query: $query")
+    %Logger.log("Fetching data with query: ${query}")
     // Логика получения данных
 }
 ```
@@ -217,7 +217,7 @@ fn fetchData(query: String) {
     in logger: Logger
 
     let results = %db.execute(query)
-    logger.log("Query executed: $query")
+    logger.log("Query executed: ${query}")
     return results
 }
 ```
@@ -243,13 +243,13 @@ class DataService {
 
     fn getData(query: String) {
         let results = %db.execute(query)
-        %logger.log("Data fetched for query: \(query)")
+        %logger.log("Data fetched for query: ${query}")
         return results
     }
 
     fn cacheData(key: String, data: Any) {
         %cache.store(key, data)
-        %logger.log("Data cached with key: \(key)")
+        %logger.log("Data cached with key: ${key}")
     }
     
     fn withoutContextMethod() {

@@ -35,7 +35,7 @@ class Circle : Drawable {
     var radius: Float
 
     fn draw() {
-        print("Drawing circle with radius \(radius)")
+        print("Drawing circle with radius ${radius}")
     }
 }
 
@@ -82,7 +82,7 @@ strategy Validation for User {
 
 strategy Logging for User {
     fn logActivity(action: String) {
-        print("User \(name): \(action)")
+        print("User ${name}: ${action}")
     }
 }
 
@@ -203,7 +203,7 @@ fn processInModuleB() {
 ```efen
 strategy Logging for DataStorage {
     fn log(message: String) {
-        print("[LOG] \(message)")
+        print("[LOG] ${message}")
     }
 }
 
@@ -249,7 +249,7 @@ strategy CircleDrawing for Drawable {
     }
 
     fn resize(scale: Float) {
-        print("Resizing circle by \(scale)")
+        print("Resizing circle by ${scale}")
     }
 }
 
@@ -259,7 +259,7 @@ strategy SquareDrawing for Drawable {
     }
 
     fn resize(scale: Float) {
-        print("Resizing square by \(scale)")
+        print("Resizing square by ${scale}")
     }
 }
 
@@ -331,7 +331,7 @@ interface Logger {
 
 strategy ConsoleLogger for Logger {
     fn log(message: String) {
-        print("[CONSOLE] \(message)")
+        print("[CONSOLE] ${message}")
     }
 }
 
@@ -351,11 +351,11 @@ strategy NetworkLogger for Logger {
 
 // Выбор стратегии на основе конфигурации
 fn createLogger(config: Config) -> Logger {
-    switch config.logType {
-        case "console": return ConsoleLogger
-        case "file": return FileLogger
-        case "network": return NetworkLogger
-        default: return ConsoleLogger
+    match config.logType {
+        "console": return ConsoleLogger
+        "file": return FileLogger
+        "network": return NetworkLogger
+        _: return ConsoleLogger
     }
 }
 

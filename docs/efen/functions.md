@@ -75,7 +75,7 @@ fn wrap: Wrapper<T> {
 
 ```efen
 fn map<T, U>(items: [T], transform: (T) -> U) -> [U] {
-    return items.map -> transform($item)
+    return items.map => transform($item)
 }
 
 let numbers = [1, 2, 3]
@@ -101,7 +101,7 @@ let doubled = map([1, 2, 3], fn(x) { return x * 2 })
 Параметры могут иметь значения по умолчанию, которые используются, если аргумент не был передан при вызове функции:
 ```efen
 fn greet(name: String = "Guest") {
-    print("Hello, {name}!")
+    print("Hello, ${name}!")
 }
 ```
 
@@ -121,6 +121,18 @@ fn multiply -> Int {
 **Важно:** круглые скобки `()` после имени функции определяют, где будут параметры:
 - **С скобками** `fn foo(a: Int)` или `fn foo()` - параметры ТОЛЬКО в сигнатуре (пустые скобки = нет параметров)
 - **Без скобок** `fn foo { param a: Int }` - параметры ТОЛЬКО в теле через `param`
+
+Все объявления `param` идут подряд в начале тела, до первой инструкции.
+Объявление `param` после первой инструкции — ошибка компиляции:
+
+```efen
+fn multiply -> Int {
+    param a: Int
+    let factor = 2     // первая инструкция
+    param b: Int = 10  // ошибка компиляции: param после инструкции
+    return a * b * factor
+}
+```
 
 Второй синтаксис особенно полезен для функций с большим количеством параметров
 или когда требуется более подробное описание параметров. Он так же делает код читаемее,
@@ -156,7 +168,7 @@ class SimpleCalculator {
 ```efen
 fn sum(numbers: ...Int) -> Int {
     var total: Int = 0
-    numbers.for -> total += $number
+    numbers.for => total += $number
     return total
 }
 ```
@@ -173,7 +185,7 @@ let result = sum(1, 2, 3, 4, 5)
 fn sum -> Int {
     param numbers: ...Int
     var total: Int = 0
-    numbers.for -> total += $number
+    numbers.for => total += $number
     return total
 }
 ```
@@ -191,7 +203,7 @@ let result = sum(...nums)
 которые используются, если аргумент не был передан при вызове функции:
 ```efen
 fn greet(name: String = "Guest") {
-    print("Hello, {name}!")
+    print("Hello, ${name}!")
 }
 ```
 
@@ -201,22 +213,38 @@ fn greet(name: String = "Guest") {
 
 ### Основные правила
 
-**Вызов без скобок разрешён только на уровне statement** (отдельной инструкции). Это означает, что функция должна вызываться как самостоятельная инструкция, а не как часть выражения.
+Вызов без скобок разрешён в начале инструкции и после знака: `=`, оператора,
+открывающей круглой скобки, запятой. После ключевого слова он запрещён, и
+вызываемое выражение не может стоять сразу после другого идентификатора.
 
 ```efen
-// ✅ Правильно - вызов на уровне statement
+// ✅ В начале инструкции
 println "Hello, World!"
 log "Debug message"
-test "should work" { assert true }
 
-// ❌ Неправильно - вызов внутри выражения
-let result = myFun x + 5  // Ошибка компиляции!
-if isValid x { }           // Ошибка компиляции!
+// ✅ После знака
+let result = myFun x
+let total = base + myFun x
+process(myFun x)
 
-// ✅ Правильно - используйте скобки в выражениях
-let result = myFun(x) + 5
-if isValid(x) { }
+// ❌ После ключевого слова
+return myFun x     // ошибка компиляции
+if isValid x { }   // ошибка компиляции
+throw make "boom"  // ошибка компиляции
+
+// ❌ Вызов сразу после идентификатора: цепочка пробельных вызовов
+save load path     // ошибка компиляции
+
+// ✅ Вложенный вызов обозначается скобками или явной цепочкой `<|`
+save load(path)
+save <| load <| path
 ```
+
+Аргументом становится всё следующее выражение целиком, поэтому
+`let result = myFun x + 5` разбирается как `let result = myFun(x + 5)`.
+
+Полные правила разбора и форма `<|` описаны в
+[Синтаксис вызова функций](function-call-syntax.md).
 
 ### Вызов функции с одним аргументом
 
@@ -240,14 +268,14 @@ test "my test" {
 
 describe "feature" {
     it "should work" {
-        expect result toBe true
+        assert result == true
     }
 }
 ```
 
 ### Вызов методов без скобок
 
-Синтаксис также работает для методов, включая цепочки вызовов:
+Синтаксис также работает для методов, включая обращения через точку:
 
 ```efen
 // Простые методы
@@ -284,14 +312,14 @@ println "Done!"
 
 **НЕ рекомендуется использовать** для:
 - Функций с несколькими аргументами
-- Вызовов внутри выражений
+- Вложенных вызовов
 - Сложной бизнес-логики
 
 ```efen
-// ❌ Плохо - для нескольких аргументов используйте скобки
+// Для нескольких аргументов нужны скобки
 myFun(a, b, c)
 
-// ❌ Плохо - в выражениях используйте скобки
+// Вложенный вызов обозначается скобками
 let result = calculate(x) + calculate(y)
 ```
 
@@ -320,7 +348,7 @@ let result = getValue + 5  // Ошибка компиляции!
 Функции в `Efen` поддерживают именованные параметры, что позволяет явно указывать имена параметров при вызове функции.
 ```efen
 fn greet(firstName: String, lastName: String) {
-    print("Hello, $firstName $lastName!")
+    print("Hello, ${firstName} ${lastName}!")
 }
 greet(firstName: "John", lastName: "Doe")
 ```
@@ -361,7 +389,7 @@ fn add: Adder {
 Синтаксис:
 ```efen
 fn saveUser(name: String) in LoggerEffect {
-    LoggerEffect.log("Saving user: $name")
+    LoggerEffect.log("Saving user: ${name}")
 }
 ```
 

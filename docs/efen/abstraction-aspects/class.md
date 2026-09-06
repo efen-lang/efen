@@ -223,9 +223,9 @@ class ArrayList<T> implements Container<T> {
 
     fn get(index: Int) -> Option<T> {
         if index >= 0 && index < this.items.count() {
-            return Some(this.items[index])
+            return .some(value: this.items[index])
         }
-        return None
+        return .none
     }
 
     fn size() -> Int {
@@ -354,9 +354,9 @@ fn processDrawable(obj: any) {
 // Или с использованием pattern matching
 fn process(obj: any) {
     match obj {
-        drawable as Drawable => drawable.draw(),
-        movable as Movable => movable.move(0, 0),
-        _ => println("Unknown type")
+        let drawable as Drawable: drawable.draw()
+        let movable as Movable: movable.move(0, 0)
+        _: println("Unknown type")
     }
 }
 ```

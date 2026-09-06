@@ -100,10 +100,10 @@ processLogs(logger: consoleLogger, messages: ["Debug info"])
    ```efen
    // Тип определяется во время выполнения
    fn createLogger(type: String) -> Logger {
-       return switch type {
-       case "file": FileLogger()
-       case "console": ConsoleLogger()
-       default: NullLogger()
+       return match type {
+           "file": FileLogger()
+           "console": ConsoleLogger()
+           _: NullLogger()
        }
    }
    ```

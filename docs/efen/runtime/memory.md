@@ -215,7 +215,7 @@ class Pool implements PoolContract {
 
     fn allocate(size: Size) -> Pointer {
         if size != self.objectSize {
-            error("Pool can only allocate objects of size \(objectSize)")
+            error("Pool can only allocate objects of size ${objectSize}")
         }
         return acquire()
     }
@@ -388,16 +388,16 @@ class TrackingAllocator implements AllocatorContract {
     fn allocate(size: Size) -> Pointer {
         let ptr = inner.allocate(size)
         allocations[ptr] = size
-        print("Allocated \(size) bytes at \(ptr)")
+        print("Allocated ${size} bytes at ${ptr}")
         return ptr
     }
 
     fn deallocate(ptr: Pointer) {
         if let size = allocations[ptr] {
-            print("Deallocated \(size) bytes at \(ptr)")
+            print("Deallocated ${size} bytes at ${ptr}")
             allocations.removeValue(forKey: ptr)
         } else {
-            error("Double free or invalid pointer: \(ptr)")
+            error("Double free or invalid pointer: ${ptr}")
         }
         inner.deallocate(ptr)
     }
@@ -408,7 +408,7 @@ class TrackingAllocator implements AllocatorContract {
         } else {
             print("Memory leaks detected:")
             for (ptr, size) in allocations {
-                print("  \(size) bytes at \(ptr)")
+                print("  ${size} bytes at ${ptr}")
             }
         }
     }

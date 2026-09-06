@@ -32,11 +32,11 @@ print(typeInfo.size)           // Размер в байтах
 print(typeInfo.alignment)      // Выравнивание
 
 for property in typeInfo.properties {
-    print("\(property.name): \(property.type)")
+    print("${property.name}: ${property.type}")
 }
 
 for method in typeInfo.methods {
-    print("\(method.signature)")
+    print("${method.signature}")
 }
 ```
 
@@ -176,16 +176,16 @@ import runtime.exceptions
 
 // Получить текущее исключение
 if let exception = getCurrentException() {
-    print("Exception: \(exception.message)")
-    print("Stack trace: \(exception.stackTrace)")
+    print("Exception: ${exception.message}")
+    print("Stack trace: ${exception.stackTrace}")
 }
 
 // Пробросить исключение дальше
 rethrow(exception)
 
 // Установить обработчик необработанных исключений
-setUnhandledExceptionHandler { exception in
-    logError(exception)
+setUnhandledExceptionHandler => {
+    logError($exception)
     terminate()
 }
 ```
@@ -330,8 +330,8 @@ counter.start()
 performHeavyComputation()
 
 counter.stop()
-print("Elapsed: \(counter.elapsedNanoseconds) ns")
-print("CPU cycles: \(counter.cpuCycles)")
+print("Elapsed: ${counter.elapsedNanoseconds} ns")
+print("CPU cycles: ${counter.cpuCycles}")
 ```
 
 ## Memory Barriers

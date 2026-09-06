@@ -41,7 +41,7 @@ strategy SVGDrawing for Drawable {
     }
 
     func resize(scale: Float) {
-        print("Resizing SVG by \(scale)")
+        print("Resizing SVG by ${scale}")
     }
 }
 
@@ -51,7 +51,7 @@ strategy CanvasDrawing for Drawable {
     }
 
     func resize(scale: Float) {
-        print("Resizing Canvas by \(scale)")
+        print("Resizing Canvas by ${scale}")
     }
 }
 

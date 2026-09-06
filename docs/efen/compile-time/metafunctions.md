@@ -97,13 +97,13 @@ inline (param1: Type1, param2: Type2) -> ReturnType {
 
 **Ключевая возможность:** Внутри `inline closure` можно использовать **statement placeholders** для динамической вставки кода.
 
-**Синтаксис:** `$statement` или `${statement}`
+**Синтаксис:** `${statement}`
 
 ```efen
 meta fn withLogging(code: InlineClosure) -> InlineClosure {
     return inline {
         println("Starting...")
-        $code  // Вставка InlineClosure
+        ${code}  // Вставка InlineClosure
         println("Finished")
     }
 }
@@ -121,6 +121,13 @@ withLogging => {
 // println("Finished")
 ```
 
+Два правила разделяют вставку кода и интерполяцию строк:
+
+1. Внутри строкового литерала `${...}` — всегда интерполяция во время выполнения.
+   Вставка кода в строки не заходит.
+2. Вставка кода пишется только со скобками — `${code}`. Голое `$name` —
+   плейсхолдер замыкания, а не вставка.
+
 **Важно:** Placeholders работают **только внутри inline closure**. Это безопасно, потому что:
 - ✅ Код встраивается в изолированную область видимости closure
 - ✅ Нет риска загрязнения окружения вызова
@@ -135,7 +142,7 @@ withLogging => {
 meta fn benchmark(name: String, body: Statement) -> InlineClosure {
     return inline {
         let start = Timer.now()
-        $body  // Вставка statements
+        ${body}  // Вставка statements
         let duration = Timer.now() - start
         println("${name}: ${duration}ms")
     }
@@ -159,10 +166,10 @@ meta fn square(expr: Expression) -> InlineClosure {
 meta fn tryCatch(tryBody: Statement, catchBody: Statement) -> InlineClosure {
     return inline {
         try {
-            $tryBody
+            ${tryBody}
         } catch e: Error {
             println("Error caught: ${e}")
-            $catchBody
+            ${catchBody}
         }
     }
 }
@@ -191,11 +198,11 @@ meta fn transform(code: Statement) -> InlineClosure {
     // Можем анализировать и модифицировать
     let wrapped = efen::code {
         println("Before")
-        $code  // Вставка Statement
+        ${code}  // Вставка Statement
         println("After")
     }
 
-    return inline { $wrapped }
+    return inline { ${wrapped} }
 }
 
 // Передача через именованный параметр
@@ -207,8 +214,8 @@ transform(code: {
 
 **InlineClosure** - это **дескриптор замыкания (неизменяемый)**:
 - ❌ НЕ можем модифицировать код внутри
-- ✅ Можем вставить через `$closure`
-- ✅ Можем вызвать с параметрами `$closure(arg1, arg2)`
+- ✅ Можем вставить через `${closure}`
+- ✅ Можем вызвать с параметрами `${closure}(arg1, arg2)`
 - ✅ Создаётся через `inline { }` или передаётся через `=>`
 - ✅ Передаётся через **trailing closure syntax `=>`**
 
@@ -218,7 +225,7 @@ meta fn wrapper(closure: InlineClosure) -> InlineClosure {
     // Можем только вставить как есть
     return inline {
         println("Before")
-        $closure  // Вставка InlineClosure
+        ${closure}  // Вставка InlineClosure
         println("After")
     }
 }
@@ -236,7 +243,7 @@ wrapper => {
 meta fn forEach(items: comptime Array, body: InlineClosure) -> InlineClosure {
     return inline {
         for i in 0..<items.length {
-            $body(items[i], i)  // Вызов с параметрами!
+            ${body}(items[i], i)  // Вызов с параметрами!
         }
     }
 }
@@ -263,10 +270,10 @@ forEach([1, 2, 3], (value, index) {
 meta fn tryCatch(tryBody: Statement, catchBody: Statement) -> InlineClosure {
     return inline {
         try {
-            $tryBody
+            ${tryBody}
         } catch e: Error {
             println("Error caught: ${e}")
-            $catchBody
+            ${catchBody}
         }
     }
 }
@@ -290,9 +297,9 @@ tryCatch(
 meta fn ifElse(condition: Bool, thenBody: Statement, elseBody: Statement) -> InlineClosure {
     return inline {
         if condition {
-            $thenBody
+            ${thenBody}
         } else {
-            $elseBody
+            ${elseBody}
         }
     }
 }
@@ -314,7 +321,7 @@ ifElse(x > 0,
 meta fn withLogging(code: InlineClosure) -> InlineClosure {
     return inline {
         println("Starting...")
-        $code
+        ${code}
         println("Finished")
     }
 }
@@ -371,7 +378,7 @@ meta fn measure(name: String, body: InlineClosure) -> InlineClosure {
         println("Running: ${name}")
         let start = Timer.now()
         try {
-            $body
+            ${body}
             let duration = Timer.now() - start
             println("✓ Success: ${duration}ms")
         } catch e: Error {
@@ -396,11 +403,11 @@ meta fn benchmark(
     teardown: Statement
 ) -> InlineClosure {
     return inline {
-        $setup
+        ${setup}
         let start = Timer.now()
-        $measure
+        ${measure}
         let duration = Timer.now() - start
-        $teardown
+        ${teardown}
         println("Time: ${duration}ms")
     }
 }
@@ -426,7 +433,7 @@ meta fn retry(times: Int, code: InlineClosure) -> InlineClosure {
         var attempts = 0
         while attempts < times {
             try {
-                $code
+                ${code}
                 break
             } catch {
                 attempts++
@@ -468,7 +475,7 @@ retry(3) => { doSomething() }
 
 2. **Внутри блока можно использовать placeholders**
    - Expression placeholders: `${expr}`
-   - Statement placeholders: `$stmt` (только в inline closures)
+   - Statement placeholders: `${stmt}` (только в inline closures)
 
 **Базовый пример:**
 
@@ -479,7 +486,7 @@ meta fn createLogger(level: String) -> InlineClosure {
     }
 
     return inline {
-        $logStatement
+        ${logStatement}
     }
 }
 ```
@@ -497,7 +504,7 @@ meta fn conditionalCheck(enableCheck: Bool, varName: Identifier) -> InlineClosur
                 throw Error("Value must be non-negative")
             }
         }
-        return inline { $checkCode }
+        return inline { ${checkCode} }
     } else {
         return inline { }
     }
@@ -530,7 +537,7 @@ meta fn generateGetters(fields: comptime Identifier[]) -> InlineClosure {
 
     return inline {
         for stmt in statements {
-            $stmt
+            ${stmt}
         }
     }
 }
@@ -579,8 +586,8 @@ meta fn wrapWithCheck(varName: Expression, code: Statement) -> InlineClosure {
     }
 
     return inline {
-        $checkStatement
-        $code
+        ${checkStatement}
+        ${code}
     }
 }
 
@@ -770,11 +777,11 @@ meta fn withTransaction(setup: Statement, body: Statement, cleanup: Statement) -
         let transaction = beginTransaction()
 
         // Вставка setup
-        $setup
+        ${setup}
 
         try {
             // Вставка основного тела
-            $body
+            ${body}
 
             transaction.commit()
         } catch e: Error {
@@ -782,7 +789,7 @@ meta fn withTransaction(setup: Statement, body: Statement, cleanup: Statement) -
             throw e
         } finally {
             // Вставка cleanup
-            $cleanup
+            ${cleanup}
         }
     }
 }
@@ -814,14 +821,14 @@ withTransaction(
 ```efen
 // ❌ ОШИБКА - placeholder вне inline closure
 meta fn bad(code: Statement) -> InlineClosure {
-    $code  // ОШИБКА КОМПИЛЯЦИИ - вне inline closure
+    ${code}  // ОШИБКА КОМПИЛЯЦИИ - вне inline closure
     return inline { ... }
 }
 
 // ✅ ПРАВИЛЬНО - placeholder внутри inline closure
 meta fn good(code: Statement) -> InlineClosure {
     return inline {
-        $code  // ✅ OK - внутри inline closure
+        ${code}  // ✅ OK - внутри inline closure
     }
 }
 ```
@@ -838,7 +845,7 @@ meta fn retry(maxAttempts: Int, body: InlineClosure) -> InlineClosure {
 
         while attempts < maxAttempts && !success {
             try {
-                $body
+                ${body}
                 success = true
             } catch e: Error {
                 attempts++
@@ -864,7 +871,7 @@ retry(3, body {
 meta fn measureMemory(name: String, body: InlineClosure) -> InlineClosure {
     return inline {
         let memBefore = Runtime.getMemoryUsage()
-        $body
+        ${body}
         let memAfter = Runtime.getMemoryUsage()
         println("${name} used ${memAfter - memBefore} bytes")
     }
@@ -885,7 +892,7 @@ use project::*
 meta fn onlyIf(condition: comptime Bool, body: InlineClosure) -> InlineClosure {
     if condition {
         return inline {
-            $body
+            ${body}
         }
     } else {
         return inline { }  // Пустое - код не выполняется
@@ -904,13 +911,13 @@ onlyIf(project.isDebug(), body {
 ```efen
 meta fn scopeGuard(onEnter: Statement, body: Statement, onExit: Statement) -> InlineClosure {
     return inline {
-        $onEnter
+        ${onEnter}
 
         defer {
-            $onExit
+            ${onExit}
         }
 
-        $body
+        ${body}
     }
 }
 
@@ -932,7 +939,7 @@ scopeGuard(
 meta fn safe(code: InlineClosure) -> InlineClosure {
     return inline {
         let temp = 42  // Локальная переменная closure
-        $code
+        ${code}
     }
 }
 
@@ -949,7 +956,7 @@ meta fn smartRetry(body: Statement) -> InlineClosure {
         var delay = 100
         for attempt in 0..<5 {
             try {
-                $body
+                ${body}
                 break
             } catch e: NetworkError {
                 sleep(delay)
@@ -967,7 +974,7 @@ meta fn logAndMeasure(name: String, body: InlineClosure) -> InlineClosure {
     return inline {
         log("INFO", "Starting ${name}")
         measureMemory(name, body {
-            $body
+            ${body}
         })
         log("INFO", "Finished ${name}")
     }
@@ -1684,7 +1691,7 @@ use project::*
 meta fn testOnly(code: InlineClosure) -> InlineClosure {
     // Компилируем только если вызвано из тестового файла
     if location.file.endsWith("_test.efen") {
-        return inline { $code }
+        return inline { ${code} }
     } else {
         return inline { }
     }
@@ -1698,7 +1705,7 @@ meta fn profile(code: InlineClosure) -> InlineClosure {
 
     return inline {
         let start = Timer.now()
-        $code
+        ${code}
         let duration = Timer.now() - start
         Profiler.record(loc, duration)
     }
@@ -1730,7 +1737,7 @@ use project::*
 meta fn debugOnly(code: InlineClosure) -> InlineClosure {
     if project.isDebug() {
         return inline {
-            $code
+            ${code}
         }
     } else {
         return inline { }
@@ -1816,7 +1823,7 @@ meta fn profile(name: String, code: InlineClosure) -> InlineClosure {
             let startTime = Timer.now()
             let startMem = Runtime.getMemoryUsage()
 
-            $code
+            ${code}
 
             let duration = Timer.now() - startTime
             let memUsed = Runtime.getMemoryUsage() - startMem
@@ -1825,7 +1832,7 @@ meta fn profile(name: String, code: InlineClosure) -> InlineClosure {
     } else {
         // В release - просто выполняем код без профилирования
         return inline {
-            $code
+            ${code}
         }
     }
 }
@@ -1844,7 +1851,7 @@ use project::*
 meta fn withFeature(featureName: comptime String, code: InlineClosure) -> InlineClosure {
     if project.hasFeature(featureName) {
         return inline {
-            $code
+            ${code}
         }
     } else {
         return inline { }
@@ -1915,12 +1922,12 @@ meta fn optimizedLoop(body: Statement) -> InlineClosure {
         return inline {
             @vectorize
             @unroll(4)
-            $body
+            ${body}
         }
     } else {
         // Обычное выполнение
         return inline {
-            $body
+            ${body}
         }
     }
 }
@@ -2116,7 +2123,7 @@ WITH_LOGGING(doWork());  // Вставляется сырой код
 meta fn withLogging(code: InlineClosure) -> InlineClosure {
     return inline {
         println("Start")
-        $code  // Вставка ВНУТРИ closure
+        ${code}  // Вставка ВНУТРИ closure
         println("End")
     }
 }
@@ -2318,14 +2325,14 @@ contract Validated {
 ```efen
 meta fn createOption<T>(hasValue: Bool, value: T?) -> InlineClosure {
     if hasValue && value == null {
-        compileError("Cannot create Some with null value")
+        compileError("Cannot create .some with null value")
     }
 
     return inline {
         if hasValue {
-            Option.Some(value!)
+            Option.some(value: value!)
         } else {
-            Option.None<T>()
+            Option.none
         }
     }
 }
@@ -2547,7 +2554,7 @@ meta fn divideByPowerOfTwo(value: Int, exponent: comptime Int) -> InlineClosure 
 - **Простоту** — работают как обычные функции и замыкания
 - **Мощность** — полный доступ к compile-time API и контексту
 
-**Ключевая инновация:** Statement placeholders (`$code`) работают **только внутри inline closure**, что даёт:
+**Ключевая инновация:** Statement placeholders (`${code}`) работают **только внутри inline closure**, что даёт:
 - ✅ Возможность динамической генерации кода
 - ✅ Полную изоляцию от окружения вызова
 - ✅ Безопасность на уровне компиляции

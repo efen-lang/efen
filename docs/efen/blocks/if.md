@@ -279,4 +279,4 @@ if value > 0 {
 ## См. также
 
 - [guard.md](guard.md) — Guard и defer для раннего выхода
-- [switch.md](switch.md) — Switch и pattern matching
+- [match.md](match.md) — Match и сопоставление с образцом

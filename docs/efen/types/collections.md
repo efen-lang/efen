@@ -228,7 +228,7 @@ fn sum<T, I>(iterable: I) -> Int
     var total = 0
     let iter = iterable.iterator()
 
-    while let Some(value) = iter.next() {
+    while let .some.{ value } = iter.next() {
         total += value
     }
 
@@ -269,7 +269,7 @@ interface Iterable<T> {
 fn printAll(iterable: Iterable<String>) {
     let iter = iterable.iterator()
 
-    while let Some(value) = iter.next() {
+    while let .some.{ value } = iter.next() {
         println(value)  // DYNAMIC DISPATCH через VTBL
     }
 }
@@ -307,11 +307,11 @@ class MyIterator<T> {
 
     fn next() -> Option<T> {
         if this.index >= this.items.count() {
-            return None
+            return .none
         }
         let value = this.items[this.index]
         this.index += 1
-        return Some(value)
+        return .some(value: value)
     }
 }
 
@@ -355,7 +355,7 @@ for number in numbers {
 
 // Эквивалентно:
 let iter = numbers.iterator()
-while let Some(number) = iter.next() {
+while let .some.{ value: number } = iter.next() {
     println(number)
 }
 ```
@@ -370,14 +370,14 @@ while let Some(number) = iter.next() {
 let numbers = [1, 2, 3, 4, 5]
 
 // map - преобразование каждого элемента
-let doubled = numbers.map(|x| x * 2)  // [2, 4, 6, 8, 10]
+let doubled = numbers.map => $0 * 2  // [2, 4, 6, 8, 10]
 
 // filter - фильтрация элементов
-let evens = numbers.filter(|x| x % 2 == 0)  // [2, 4]
+let evens = numbers.filter => $0 % 2 == 0  // [2, 4]
 
 // flatMap - преобразование с развёртыванием
 let nested = [[1, 2], [3, 4], [5]]
-let flattened = nested.flatMap(|x| x)  // [1, 2, 3, 4, 5]
+let flattened = nested.flatMap => $0  // [1, 2, 3, 4, 5]
 ```
 
 #### Агрегация
@@ -386,10 +386,10 @@ let flattened = nested.flatMap(|x| x)  // [1, 2, 3, 4, 5]
 let numbers = [1, 2, 3, 4, 5]
 
 // reduce - свёртка коллекции
-let sum = numbers.reduce(0, |acc, x| acc + x)  // 15
+let sum = numbers.reduce(0, (acc, x) => acc + x)  // 15
 
 // fold - алиас для reduce
-let product = numbers.fold(1, |acc, x| acc * x)  // 120
+let product = numbers.fold(1, (acc, x) => acc * x)  // 120
 
 // count - подсчёт элементов
 let count = numbers.count()  // 5
@@ -404,13 +404,13 @@ let total = numbers.sum()  // 15
 let numbers = [1, 2, 3, 4, 5]
 
 // find - поиск первого подходящего элемента
-let found = numbers.find(|x| x > 3)  // Some(4)
+let found = numbers.find => $0 > 3  // .some(value: 4)
 
 // any - проверка существования элемента
-let hasEven = numbers.any(|x| x % 2 == 0)  // true
+let hasEven = numbers.any => $0 % 2 == 0  // true
 
 // all - проверка всех элементов
-let allPositive = numbers.all(|x| x > 0)  // true
+let allPositive = numbers.all => $0 > 0  // true
 
 // contains - проверка наличия элемента
 let hasThree = numbers.contains(3)  // true
@@ -428,16 +428,16 @@ let first3 = numbers.take(3)  // [1, 2, 3]
 let last2 = numbers.skip(3)  // [4, 5]
 
 // takeWhile - брать элементы пока условие истинно
-let taken = numbers.takeWhile(|x| x < 4)  // [1, 2, 3]
+let taken = numbers.takeWhile => $0 < 4  // [1, 2, 3]
 
 // skipWhile - пропускать элементы пока условие истинно
-let skipped = numbers.skipWhile(|x| x < 4)  // [4, 5]
+let skipped = numbers.skipWhile => $0 < 4  // [4, 5]
 
 // first - первый элемент
-let first = numbers.first()  // Some(1)
+let first = numbers.first()  // .some(value: 1)
 
 // last - последний элемент
-let last = numbers.last()  // Some(5)
+let last = numbers.last()  // .some(value: 5)
 ```
 
 #### Комбинирование
@@ -466,18 +466,18 @@ let numbers = [1, 2, 3, 4, 5]
 
 // Цепочка операций не выполняется сразу
 let lazyResult = numbers
-    .map(|x| {
-        println("Mapping: {x}")
-        x * 2
-    })
-    .filter(|x| {
-        println("Filtering: {x}")
-        x > 5
-    })
+    .map => {
+        println("Mapping: ${$0}")
+        $0 * 2
+    }
+    .filter => {
+        println("Filtering: ${$0}")
+        $0 > 5
+    }
 
 // Вычисление начнётся только здесь
 for value in lazyResult {
-    println("Result: {value}")
+    println("Result: ${value}")
 }
 
 // Вывод:
@@ -495,10 +495,10 @@ for value in lazyResult {
 
 ```efen
 // collect - собрать результат в коллекцию
-let result = numbers.map(|x| x * 2).collect()  // [2, 4, 6, 8, 10]
+let result = numbers.map => { $0 * 2 }.collect()  // [2, 4, 6, 8, 10]
 
 // toArray - преобразовать в массив
-let arr = numbers.filter(|x| x > 2).toArray()  // [3, 4, 5]
+let arr = numbers.filter => { $0 > 2 }.toArray()  // [3, 4, 5]
 
 // toSet - преобразовать в множество
 let set = numbers.toSet()
@@ -522,19 +522,19 @@ class RangeIterator implements Iterator<Int> {
 
     fn next() -> Option<Int> {
         if this.current >= this.end {
-            return None
+            return .none
         }
 
         let value = this.current
         this.current += 1
-        return Some(value)
+        return .some(value: value)
     }
 }
 
 // Использование
 let iter = RangeIterator::new(1, 5)
 
-while let Some(value) = iter.next() {
+while let .some.{ value } = iter.next() {
     println(value)  // 1, 2, 3, 4
 }
 ```
@@ -566,12 +566,12 @@ class IntListIterator implements Iterator<Int> {
 
     fn next() -> Option<Int> {
         if this.index >= this.items.count() {
-            return None
+            return .none
         }
 
         let value = this.items[this.index]
         this.index += 1
-        return Some(value)
+        return .some(value: value)
     }
 }
 
@@ -597,7 +597,7 @@ class InfiniteCounter implements Iterator<Int> {
     fn next() -> Option<Int> {
         let value = this.current
         this.current += 1
-        return Some(value)
+        return .some(value: value)
     }
 }
 
@@ -615,7 +615,7 @@ let dict = ["one": 1, "two": 2, "three": 3]
 
 // Итерация по парам ключ-значение
 for (key, value) in dict {
-    println("{key}: {value}")
+    println("${key}: ${value}")
 }
 
 // Итерация только по ключам
@@ -636,8 +636,8 @@ for value in dict.values() {
 ```efen
 // Ленивые операции не создают промежуточных коллекций
 let result = numbers
-    .map(|x| x * 2)      // Не создаёт массив
-    .filter(|x| x > 5)   // Не создаёт массив
+    .map => $0 * 2       // Не создаёт массив
+    .filter => $0 > 5    // Не создаёт массив
     .take(3)             // Не создаёт массив
     .collect()           // Создаёт финальный массив
 
@@ -661,16 +661,16 @@ for x in numbers {
 1. **Используйте ленивые вычисления** для больших коллекций:
    ```efen
    // Хорошо: обрабатывает только нужные элементы
-   let found = largeList.find(|x| x > 100)
+   let found = largeList.find => $0 > 100
 
    // Плохо: фильтрует всю коллекцию
-   let found = largeList.filter(|x| x > 100).first()
+   let found = largeList.filter => { $0 > 100 }.first()
    ```
 
 2. **Предпочитайте методы итераторов императивным циклам**:
    ```efen
    // Хорошо
-   let sum = numbers.filter(|x| x > 0).sum()
+   let sum = numbers.filter => { $0 > 0 }.sum()
 
    // Хуже
    let sum = 0
@@ -684,8 +684,8 @@ for x in numbers {
 3. **Комбинируйте операции в цепочки**:
    ```efen
    let result = users
-       .filter(|u| u.active)
-       .map(|u| u.email)
+       .filter => $0.active
+       .map => $0.email
        .sorted()
        .collect()
    ```
@@ -703,12 +703,12 @@ for x in numbers {
 let numbers = [1, 2, 3, 4, 5]
 
 // partition - разделение на две коллекции
-let (evens, odds) = numbers.partition(|x| x % 2 == 0)
+let (evens, odds) = numbers.partition => $0 % 2 == 0
 // evens: [2, 4], odds: [1, 3, 5]
 
 // groupBy - группировка по ключу
 let items = ["apple", "banana", "apricot", "blueberry"]
-let grouped = items.groupBy(|s| s[0])
+let grouped = items.groupBy => $0[0]
 // { 'a': ["apple", "apricot"], 'b': ["banana", "blueberry"] }
 
 // sorted - сортировка
@@ -716,7 +716,7 @@ let sorted = numbers.sorted()  // [1, 2, 3, 4, 5]
 
 // sortedBy - сортировка по ключу
 let words = ["zebra", "apple", "banana"]
-let sorted = words.sortedBy(|s| s.length())  // ["apple", "zebra", "banana"]
+let sorted = words.sortedBy => $0.length()  // ["apple", "zebra", "banana"]
 
 // reversed - переворот
 let reversed = numbers.reversed()  // [5, 4, 3, 2, 1]

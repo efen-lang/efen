@@ -251,7 +251,7 @@ type ValidUrl extends string where { is_valid_url(v) }
 fn renderLink(url: string, text: string): SafeHtml {
     let safeUrl: ValidUrl = url.refine();
     let safeText: SafeHtml = htmlspecialchars(text).refine();
-    return "<a href=\"{$safeUrl}\">{$safeText}</a>".refine();
+    return "<a href=\"${safeUrl}\">${safeText}</a>".refine();
 }
 ```
 

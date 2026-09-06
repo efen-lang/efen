@@ -47,41 +47,41 @@ class File {
 
 ## Состояние в сигнатуре функции
 
-Typestate указывается после двоеточия. Одно состояние означает, что метод требует
+Typestate указывается словом `state`. Одно состояние означает, что метод требует
 это состояние и сохраняет его:
 
 ```efen
-fn flush() -> :Open
-fn read() -> String: Open
+fn flush() state Open
+fn read() -> String state Open
 ```
 
 - `flush` ничего не возвращает, требует `Open` и оставляет объект в `Open`;
 - `read` возвращает `String`, требует `Open` и оставляет объект в `Open`.
 
-Пустое место между `->` и `:` означает отсутствие возвращаемого значения.
+Отсутствие части `-> тип` означает, что метод не возвращает значения.
 
 ## Переход состояния
 
 Оператор `>>` обозначает переход из исходного состояния в новое:
 
 ```efen
-fn open() -> :Closed >> Open
-fn close() -> :Open >> Closed
+fn open() state Closed >> Open
+fn close() state Open >> Closed
 ```
 
 Метод с результатом записывается так:
 
 ```efen
-fn connect() -> Connection: Disconnected >> Connected
+fn connect() -> Connection state Disconnected >> Connected
 ```
 
 Общие формы сигнатуры:
 
 ```text
-fn name(parameters) -> ReturnType: Before >> After
-fn name(parameters) -> :Before >> After
-fn name(parameters) -> ReturnType: State
-fn name(parameters) -> :State
+fn name(parameters) -> ReturnType state Before >> After
+fn name(parameters) state Before >> After
+fn name(parameters) -> ReturnType state State
+fn name(parameters) state State
 ```
 
 - `ReturnType` — возвращаемый тип;
@@ -101,15 +101,15 @@ class File {
         let descriptor: Int
     }
 
-    fn open() -> :Closed >> Open throws IOError {
+    fn open() state Closed >> Open throws IOError {
         descriptor = os.open(path)
     }
 
-    fn read(count: Int) -> [Byte]: Open {
+    fn read(count: Int) -> [Byte] state Open {
         return os.read(descriptor, count)
     }
 
-    fn close() -> :Open >> Closed {
+    fn close() state Open >> Closed {
         os.close(descriptor)
     }
 }
@@ -127,7 +127,7 @@ file.close()                      // теперь Closed
 выбрасывает исключение, объект сохраняет исходное состояние:
 
 ```efen
-fn open() -> :Closed >> Open throws IOError
+fn open() state Closed >> Open throws IOError
 ```
 
 - успешный возврат: `Closed` становится `Open`;
@@ -140,14 +140,17 @@ fn open() -> :Closed >> Open throws IOError
 Typestate отделён от контекстных эффектов `in` и исключений `throws`:
 
 ```efen
-fn open() -> :Closed >> Open in FileSystem, Logger throws IOError
+fn open() state Closed >> Open in FileSystem, Logger throws IOError
 ```
 
 Порядок частей сигнатуры:
 
 ```text
-параметры -> результат: typestate in контексты throws исключения
+параметры -> результат state состояние in контексты throws исключения
 ```
+
+Хвост сигнатуры идёт строго в этом порядке: `-> тип`, `state`, `in`,
+`throws | throws only | nothrows`. Любая из частей может отсутствовать.
 
 Typestate описывает изменение самого объекта. `in` описывает внешние зависимости,
 а `throws` — возможные исключения.
@@ -170,25 +173,22 @@ if shouldClose {
 До уточнения состояния доступны только операции, допустимые одновременно для
 `Open` и `Closed`.
 
-Состояние уточняется через `is` или `switch`:
+Состояние уточняется через `is` или `match`:
 
 ```efen
 if file is Open {
     file.read(64)
 }
 
-switch file {
-    case Open:
-        file.read(64)
-    case Closed:
-        file.open()
-    case Failed:
-        echo file.error
+match file {
+    Open: file.read(64)
+    Closed: file.open()
+    Failed: echo file.error
 }
 ```
 
 Разбор публичных состояний должен быть исчерпывающим. Для совместимости с
-будущими состояниями разрешена ветка `@unknown default`.
+будущими состояниями разрешена ветка `@unknown _`.
 
 ## Владение и псевдонимы
 
@@ -213,9 +213,9 @@ interface Connection {
     initial state Disconnected
     state Connected
 
-    fn connect() -> :Disconnected >> Connected
-    fn send(data: [Byte]) -> Int: Connected
-    fn disconnect() -> :Connected >> Disconnected
+    fn connect() state Disconnected >> Connected
+    fn send(data: [Byte]) -> Int state Connected
+    fn disconnect() state Connected >> Disconnected
 }
 ```
 
@@ -237,16 +237,16 @@ error[typestate.invalid-call]: `read` requires state `Open`
 Для реализации потребуется:
 
 1. добавить объявления `state` и `initial state` в классы, структуры и интерфейсы;
-2. добавить необязательную typestate-часть после возвращаемого типа;
-3. разрешить форму `-> :State`, где возвращаемый тип отсутствует;
+2. добавить необязательную часть `state` после возвращаемого типа;
+3. разрешить форму `state State` без части `-> тип`;
 4. разбирать `>>` как переход в сигнатуре, сохранив битовый сдвиг в выражениях;
 5. добавить typestate в сигнатуры методов интерфейсов и контрактов;
 6. реализовать flow-sensitive проверку совместно с ownership-анализом.
 
-Двоеточие не конфликтует с union-типами:
+Слово `state` не конфликтует с union-типами:
 
 ```efen
-fn parse() -> Bool | String: Ready
+fn parse() -> Bool | String state Ready
 ```
 
 Здесь `Bool | String` — возвращаемый union-тип, а `Ready` — состояние объекта.

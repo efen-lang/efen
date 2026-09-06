@@ -308,7 +308,7 @@ fn useResource() {
     try {
         processResource(resource)
     } catch (e: Error) {
-        println("Ошибка обработки: {e}")
+        println("Ошибка обработки: ${e}")
     }
     // Если dispose() выбросит ошибку, она будет распространена
 }
@@ -320,7 +320,7 @@ Disposable можно использовать в коллекциях:
 
 ```efen
 fn processMultipleFiles(paths: [String]) {
-    let disposable files = paths.map(|path| File::open(path))
+    let disposable files = paths.map => File::open($0)
 
     for file in files {
         processFile(file)
@@ -369,7 +369,7 @@ fn processMultipleFiles(paths: [String]) {
            try {
                this.connection.close()
            } catch (e: Error) {
-               logError("Failed to dispose: {e}")
+               logError("Failed to dispose: ${e}")
            }
        }
    }
@@ -475,12 +475,12 @@ fn processFile() {
 ```efen
 fn processFile(result: Result<File, Error>) {
     match result {
-        Ok(file) => {
+        .ok.{ value: let file }: {
             let disposable f = file
             processData(f)
             // f.dispose() вызывается здесь
-        },
-        Err(e) => println("Error: {e}")
+        }
+        .err.{ let error }: println("Error: ${error}")
     }
 }
 ```
@@ -494,7 +494,7 @@ fn withFile<T>(path: String, action: fn(File) -> T) -> T {
     // file.dispose() вызывается после action
 }
 
-let content = withFile("data.txt", |file| file.read())
+let content = withFile("data.txt", (file) => file.read())
 ```
 
 ### С generics

@@ -22,7 +22,7 @@ for number in numbers {
 
 ```efen
 // Диапазон от 1 до 5 включительно
-for i in 1...5 {
+for i in 1..5 {
     print(i) // 1, 2, 3, 4, 5
 }
 
@@ -52,13 +52,17 @@ for (key, value) in dict {
 }
 ```
 
+Образец между `for` и `in` — позиция объявления: голые имена в нём связывают, и
+`let` внутри образца не пишется. Это отличает его от образца в `match` и `is`, где
+связывает только `let`.
+
 ### Игнорирование значения с underscore
 
 Если значение итерации не нужно, используйте `_`:
 
 ```efen
 // Повторить действие 5 раз
-for _ in 1...5 {
+for _ in 1..5 {
     print("Привет!")
 }
 ```
@@ -182,7 +186,7 @@ repeat {
 Оператор `break` прерывает выполнение цикла:
 
 ```efen
-for i in 1...10 {
+for i in 1..10 {
     if i == 5 {
         break
     }
@@ -196,7 +200,7 @@ for i in 1...10 {
 Оператор `continue` пропускает текущую итерацию и переходит к следующей:
 
 ```efen
-for i in 1...5 {
+for i in 1..5 {
     if i == 3 {
         continue
     }
@@ -210,8 +214,8 @@ for i in 1...5 {
 Для управления вложенными циклами можно использовать метки:
 
 ```efen
-outerLoop: for i in 1...3 {
-    for j in 1...3 {
+outerLoop: for i in 1..3 {
+    for j in 1..3 {
         if i == 2 && j == 2 {
             break outerLoop
         }
@@ -225,8 +229,8 @@ outerLoop: for i in 1...3 {
 ```
 
 ```efen
-outerLoop: for i in 1...3 {
-    for j in 1...3 {
+outerLoop: for i in 1..3 {
+    for j in 1..3 {
         if j == 2 {
             continue outerLoop
         }
@@ -268,7 +272,7 @@ for row in matrix {
 
 ```efen
 let numbers = [1, 2, 3, 4, 5]
-let doubled = numbers.map { $0 * 2 }
+let doubled = numbers.map => $0 * 2
 print(doubled) // [2, 4, 6, 8, 10]
 ```
 
@@ -276,7 +280,7 @@ print(doubled) // [2, 4, 6, 8, 10]
 
 ```efen
 let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-let evenNumbers = numbers.filter { $0 % 2 == 0 }
+let evenNumbers = numbers.filter => $0 % 2 == 0
 print(evenNumbers) // [2, 4, 6, 8, 10]
 ```
 
@@ -293,8 +297,8 @@ print(sum) // 15
 ```efen
 let numbers = [1, 2, 3, 4, 5]
 
-numbers.forEach { number in
-    print(number)
+numbers.forEach => {
+    print($0)
 }
 ```
 
@@ -305,13 +309,13 @@ numbers.forEach { number in
 Для эффективной работы с большими коллекциями используйте ленивые вычисления:
 
 ```efen
-let numbers = 1...1000000
+let numbers = 1..1000000
 
 // Без ленивых вычислений создаются промежуточные массивы
-let result1 = numbers.map { $0 * 2 }.filter { $0 % 3 == 0 }.prefix(5)
+let result1 = numbers.map => { $0 * 2 }.filter => { $0 % 3 == 0 }.prefix(5)
 
 // С ленивыми вычислениями вычисляются только нужные элементы
-let result2 = numbers.lazy.map { $0 * 2 }.filter { $0 % 3 == 0 }.prefix(5)
+let result2 = numbers.lazy.map => { $0 * 2 }.filter => { $0 % 3 == 0 }.prefix(5)
 ```
 
 ## Производительность
@@ -363,7 +367,7 @@ var numbers = [1, 2, 3, 4, 5]
 // }
 
 // ✅ Правильно — создаём новую коллекцию
-numbers = numbers.filter { $0 % 2 != 0 }
+numbers = numbers.filter => $0 % 2 != 0
 
 // ✅ Правильно — итерация в обратном порядке для удаления
 for i in (0..<numbers.count).reversed() {
@@ -387,5 +391,5 @@ for i in (0..<numbers.count).reversed() {
 ## См. также
 
 - [if.md](if.md) — Условные конструкции
-- [switch.md](switch.md) — Switch и pattern matching
+- [match.md](match.md) — Match и сопоставление с образцом
 - [../types/collections.md](../types/collections.md) — Коллекции в Efen

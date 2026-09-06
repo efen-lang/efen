@@ -45,7 +45,7 @@ print(g.next())  // 3
 generator echo() {
     msg = yield "ready"
     while msg != "stop" {
-        msg = yield "echo: {msg}"
+        msg = yield "echo: ${msg}"
     }
 }
 ```

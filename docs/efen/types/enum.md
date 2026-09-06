@@ -37,25 +37,26 @@ turn(to: .east)  // Тип известен из сигнатуры
 
 ## Ассоциированные значения
 
-Enum может хранить дополнительные данные для каждого варианта:
+Enum может хранить дополнительные данные для каждого варианта. Поля варианта
+перечисляются в фигурных скобках и всегда именованы:
 
 ```efen
 enum Barcode {
-    upc: Int, Int, Int, Int
-    qrCode: String
+    upc { system: Int, manufacturer: Int, product: Int, check: Int }
+    qrCode { code: String }
 }
 
-let productBarcode = Barcode.upc(8, 85909, 51226, 3)
-let websiteQR = Barcode.qrCode("https://example.com")
+let productBarcode = Barcode.upc(system: 8, manufacturer: 85909, product: 51226, check: 3)
+let websiteQR = Barcode.qrCode(code: "https://example.com")
 ```
 
-Именованные ассоциированные значения:
+Вариант создаётся вызовом с метками полей:
 
 ```efen
 enum ServerResponse {
-    success: data: String
-    failure: code: Int, message: String
-    redirect: url: String, permanent: Bool
+    success { data: String }
+    failure { code: Int, message: String }
+    redirect { url: String, permanent: Bool }
 }
 
 let response = ServerResponse.failure(code: 404, message: "Not Found")
@@ -63,35 +64,31 @@ let response = ServerResponse.failure(code: 404, message: "Not Found")
 
 ## Pattern Matching
 
-Извлечение ассоциированных значений через switch:
+Извлечение ассоциированных значений через `match`. Образец перечисляет поля
+[оператором проекции `.{ }`](projection.md) после имени варианта; связывает
+только `let`, а ненужные поля можно опустить:
 
 ```efen
-let productCode = Barcode.upc(8, 85909, 51226, 3)
+let productCode = Barcode.upc(system: 8, manufacturer: 85909, product: 51226, check: 3)
 
-switch productCode {
-case .upc(numberSystem, manufacturer, product, check):
-    print("UPC: \(numberSystem), \(manufacturer), \(product), \(check)")
-case .qrCode(code):
-    print("QR код: \(code)")
+match productCode {
+    .upc.{ let system, let manufacturer, let product, let check }:
+        print("UPC: ${system}, ${manufacturer}, ${product}, ${check}")
+    .qrCode.{ let code }:
+        print("QR код: ${code}")
 }
 ```
 
 С условиями where:
 
 ```efen
-switch response {
-case .success(data) where data.length > 0:
-    print("Получены данные: \(data)")
-case .success:
-    print("Успешно, но данных нет")
-case .failure(code, message) where code >= 500:
-    print("Ошибка сервера: \(message)")
-case .failure(code, message):
-    print("Ошибка клиента (\(code)): \(message)")
-case .redirect(url, permanent: true):
-    print("Постоянный редирект на \(url)")
-case .redirect(url, permanent: false):
-    print("Временный редирект на \(url)")
+match response {
+    .success.{ let data } where data.length > 0: print("Получены данные: ${data}")
+    .success: print("Успешно, но данных нет")
+    .failure.{ let code, let message } where code >= 500: print("Ошибка сервера: ${message}")
+    .failure.{ let code, let message }: print("Ошибка клиента (${code}): ${message}")
+    .redirect.{ let url, permanent: true }: print("Постоянный редирект на ${url}")
+    .redirect.{ let url, permanent: false }: print("Временный редирект на ${url}")
 }
 ```
 
@@ -154,7 +151,7 @@ enum HttpMethod: String {
 let method = HttpMethod(rawValue: "POST")  // Optional<HttpMethod>
 
 if let method = HttpMethod(rawValue: "POST") {
-    print("Метод: \(method)")  // "Метод: post"
+    print("Метод: ${method}")  // "Метод: post"
 }
 
 let invalid = HttpMethod(rawValue: "INVALID")  // null
@@ -172,20 +169,20 @@ enum Direction {
     west
 
     fn opposite() -> Direction {
-        return switch self {
-        case .north: .south
-        case .south: .north
-        case .east: .west
-        case .west: .east
+        return match self {
+            .north: .south
+            .south: .north
+            .east: .west
+            .west: .east
         }
     }
 
     var description: String {
-        return switch self {
-        case .north: "Север"
-        case .south: "Юг"
-        case .east: "Восток"
-        case .west: "Запад"
+        return match self {
+            .north: "Север"
+            .south: "Юг"
+            .east: "Восток"
+            .west: "Запад"
         }
     }
 }
@@ -201,22 +198,22 @@ print(heading.opposite())       // Direction.south
 
 ```efen
 indirect enum Expression {
-    number: Int
-    addition: Expression, Expression
-    multiplication: Expression, Expression
+    number { value: Int }
+    addition { left: Expression, right: Expression }
+    multiplication { left: Expression, right: Expression }
 }
 
 // Или для конкретных вариантов
 enum Expression {
-    number: Int
-    indirect addition: Expression, Expression
-    indirect multiplication: Expression, Expression
+    number { value: Int }
+    indirect addition { left: Expression, right: Expression }
+    indirect multiplication { left: Expression, right: Expression }
 }
 
 // (5 + 4) * 2
 let expr = Expression.multiplication(
-    .addition(.number(5), .number(4)),
-    .number(2)
+    left: .addition(left: .number(value: 5), right: .number(value: 4)),
+    right: .number(value: 2)
 )
 ```
 
@@ -224,13 +221,10 @@ let expr = Expression.multiplication(
 
 ```efen
 fn evaluate(expr: Expression) -> Int {
-    return switch expr {
-    case .number(value):
-        value
-    case .addition(left, right):
-        evaluate(left) + evaluate(right)
-    case .multiplication(left, right):
-        evaluate(left) * evaluate(right)
+    return match expr {
+        .number.{ let value }: value
+        .addition.{ let left, let right }: evaluate(left) + evaluate(right)
+        .multiplication.{ let left, let right }: evaluate(left) * evaluate(right)
     }
 }
 
@@ -243,23 +237,21 @@ print(evaluate(expr))  // 18
 
 ```efen
 enum Result<T, E> {
-    ok: T
-    err: E
+    ok { value: T }
+    err { error: E }
 }
 
 fn divide(a: Int, b: Int) -> Result<Float, String> {
     if b == 0 {
-        return .err("Division by zero")
+        return .err(error: "Division by zero")
     }
-    return .ok(Float(a) / Float(b))
+    return .ok(value: Float(a) / Float(b))
 }
 
 let result = divide(a: 10, b: 2)
-switch result {
-case .ok(value):
-    print("Результат: \(value)")
-case .err(message):
-    print("Ошибка: \(message)")
+match result {
+    .ok.{ let value }: print("Результат: ${value}")
+    .err.{ let error }: print("Ошибка: ${error}")
 }
 ```
 
@@ -267,14 +259,14 @@ Option (альтернатива optional):
 
 ```efen
 enum Option<T> {
-    some: T
+    some { value: T }
     none
 }
 
 fn find(array: [Int], target: Int) -> Option<Int> {
     for (index, value) in array.enumerated() {
         if value == target {
-            return .some(index)
+            return .some(value: index)
         }
     }
     return .none
@@ -323,13 +315,13 @@ print(d1 == d3)  // false
 
 ```efen
 enum Message: Equatable {
-    text: String
-    image: url: String, width: Int, height: Int
+    text { content: String }
+    image { url: String, width: Int, height: Int }
 }
 
-let msg1 = Message.text("Hello")
-let msg2 = Message.text("Hello")
-let msg3 = Message.text("World")
+let msg1 = Message.text(content: "Hello")
+let msg2 = Message.text(content: "Hello")
+let msg3 = Message.text(content: "World")
 
 print(msg1 == msg2)  // true
 print(msg1 == msg3)  // false
@@ -369,9 +361,9 @@ enum Character {
         heavy
     }
 
-    warrior: weapon: Weapon, armor: Armor
-    mage: weapon: Weapon
-    archer: weapon: Weapon
+    warrior { weapon: Weapon, armor: Armor }
+    mage { weapon: Weapon }
+    archer { weapon: Weapon }
 }
 
 let hero = Character.warrior(
@@ -380,7 +372,7 @@ let hero = Character.warrior(
 )
 ```
 
-## @unknown default
+## @unknown _
 
 Для библиотек, которые могут добавить новые варианты:
 
@@ -392,14 +384,13 @@ enum NetworkStatus {
 }
 
 func handleStatus(status: NetworkStatus) {
-    switch status {
-    case .connected:
-        print("Подключено")
-    case .disconnected:
-        print("Отключено")
-    @unknown default:
-        // Компилятор предупредит, если появятся новые варианты
-        print("Неизвестный статус")
+    match status {
+        .connected: print("Подключено")
+        .disconnected: print("Отключено")
+        @unknown _: {
+            // Компилятор предупредит, если появятся новые варианты
+            print("Неизвестный статус")
+        }
     }
 }
 ```
@@ -448,8 +439,8 @@ var errorMessage: String? = null  // Отдельная переменная
 ```efen
 enum State {
     loading
-    success: data: String
-    error: message: String
+    success { data: String }
+    error { message: String }
 }
 
 let currentState = State.error(message: "Network failure")
@@ -461,23 +452,23 @@ let currentState = State.error(message: "Network failure")
 enum OrderStatus {
     pending
     confirmed
-    shipped: trackingNumber: String
+    shipped { trackingNumber: String }
     delivered
     cancelled
 
     var canBeCancelled: Bool {
-        return switch self {
-        case .pending, .confirmed: true
-        default: false
+        return match self {
+            .pending | .confirmed: true
+            _: false
         }
     }
 
     fn nextStatus() -> OrderStatus? {
-        return switch self {
-        case .pending: .confirmed
-        case .confirmed: null  // Нужен внешний триггер (отгрузка)
-        case .shipped: .delivered
-        case .delivered, .cancelled: null
+        return match self {
+            .pending: .confirmed
+            .confirmed: null  // Нужен внешний триггер (отгрузка)
+            .shipped: .delivered
+            .delivered | .cancelled: null
         }
     }
 }
@@ -488,8 +479,8 @@ enum OrderStatus {
 ```efen
 // ✅ Рекурсивная структура - нужен indirect
 indirect enum Tree<T> {
-    leaf: T
-    node: left: Tree<T>, right: Tree<T>
+    leaf { value: T }
+    node { left: Tree<T>, right: Tree<T> }
 }
 
 // ❌ Не нужен indirect
@@ -521,8 +512,8 @@ let env = Environment.fromConfig(value: config.env) ?? .development
    ```efen
    // ❌ Ошибка
    enum Mixed: Int {
-       case1 = 1
-       case2: String  // Нельзя!
+       first = 1
+       second { value: String }  // Нельзя!
    }
    ```
 
@@ -530,7 +521,7 @@ let env = Environment.fromConfig(value: config.env) ?? .development
    ```efen
    // ❌ Ошибка
    enum Result<T>: CaseIterable {
-       ok: T
+       ok { value: T }
        error
    }
    ```
@@ -562,7 +553,7 @@ let env = Environment.fromConfig(value: config.env) ?? .development
 
 ## См. также
 
-- [switch.md](../blocks/switch.md) — Pattern matching с enum
+- [match.md](../blocks/match.md) — Сопоставление с образцом и enum
 - [generics.md](../generics.md) — Generic enum (Result, Option)
 - [type.md](type.md) — Система типов
 - [constants.md](constants.md) — Константы

@@ -206,17 +206,27 @@ echo name  // "Alice"
 echo age   // 30
 ```
 
-### Деструктуризация с типами
+### Деструктуризация по именам элементов
 
-В EFEN используется синтаксис `Type -> pattern` для явной деструктуризации:
+Именованный кортеж можно разобрать не по позиции, а по именам элементов —
+[оператором проекции `.{ }`](projection.md):
 
 ```efen
-let (Int, Int) -> x, y = getCoordinates()
-let (String, Int) -> name, age = getPerson()
-
-// С именованными типами
 type Point = (x: Int, y: Int)
-let Point -> x, y = getPoint()
+
+let point = getPoint()
+let .{ x, y } = point
+
+// Элемент можно связать с другим именем
+let .{ x: px, y: py } = point
+```
+
+Имена внутри `.{ }` совпадают с именами элементов кортежа. Позиционный
+разбор круглыми скобками остаётся доступным:
+
+```efen
+let (x, y) = getCoordinates()
+let (name, age) = getPerson()
 ```
 
 ### Игнорирование элементов
@@ -298,20 +308,16 @@ echo distance(origin, point)  // 5.0
 
 Кортежи можно использовать в pattern matching:
 
-### Switch с кортежами
+### Match с кортежами
 
 ```efen
 let point = (10, 20)
 
-switch point {
-    case (0, 0):
-        echo "Origin"
-    case (x, 0):
-        echo "On X-axis at ${x}"
-    case (0, y):
-        echo "On Y-axis at ${y}"
-    case (x, y):
-        echo "Point at (${x}, ${y})"
+match point {
+    (0, 0): echo "Origin"
+    (let x, 0): echo "On X-axis at ${x}"
+    (0, let y): echo "On Y-axis at ${y}"
+    let (x, y): echo "Point at (${x}, ${y})"
 }
 ```
 
@@ -320,15 +326,11 @@ switch point {
 ```efen
 let response = (status: 200, body: "OK")
 
-switch response {
-    case (status: 200, body: body):
-        echo "Success: ${body}"
-    case (status: 404, body: _):
-        echo "Not found"
-    case (status: status, body: _) where status >= 500:
-        echo "Server error: ${status}"
-    case (status: status, body: body):
-        echo "Response ${status}: ${body}"
+match response {
+    (status: 200, body: let body): echo "Success: ${body}"
+    (status: 404, body: _): echo "Not found"
+    (status: let status, body: _) where status >= 500: echo "Server error: ${status}"
+    (status: let status, body: let body): echo "Response ${status}: ${body}"
 }
 ```
 
@@ -337,13 +339,10 @@ switch response {
 ```efen
 let data = (result: (x: 10, y: 20), status: "ok")
 
-switch data {
-    case (result: (x: 0, y: 0), status: _):
-        echo "Origin"
-    case (result: (x: x, y: y), status: "ok"):
-        echo "Valid point: (${x}, ${y})"
-    case (result: _, status: "error"):
-        echo "Error occurred"
+match data {
+    (result: (x: 0, y: 0), status: _): echo "Origin"
+    (result: (x: let x, y: let y), status: "ok"): echo "Valid point: (${x}, ${y})"
+    (result: _, status: "error"): echo "Error occurred"
 }
 ```
 
@@ -564,8 +563,8 @@ let (username, userAge) = person
 echo username  // "Alice"
 echo userAge   // 30
 
-// Но явный синтаксис требует совпадения типа
-let (name: String, age: Int) -> n, a = person
+// Разбор по именам требует совпадения с именами элементов кортежа
+let .{ name, age } = person
 ```
 
 ## Иммутабельность

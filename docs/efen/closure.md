@@ -13,6 +13,10 @@
 var closure = (param1: Int, param2: Int) -> Int { return param1 + param2 }
 ```
 
+Литерал замыкания с блоком пишется без `=>`; `->` здесь задаёт тип результата.
+Знак `=>` обязателен в двух случаях: когда телом замыкания служит голое выражение
+и когда замыкание передаётся хвостовым аргументом после вызова.
+
 Замыкание как возвращаемый тип функции:
 
 ```efen
@@ -73,6 +77,38 @@ numbers.map => { $0 * 2 }
 var result = data.filter => $0 > 0
             .map => $0 * 2
             .reduce(0) => $0 + $1
+```
+
+### Перенос строк
+
+Тело замыкания после `=>` без фигурных скобок кончается на конце строки;
+многострочное тело записывается только в `{ }`. Тело в `{ }` кончается на своей
+закрывающей скобке, поэтому постфикс после `}` относится к вызову, а не к телу:
+в `numbers.map => { $0 * 2 }.collect()` метод `collect` вызывается у результата
+`map`.
+
+Строка, начинающаяся с `.` или с бинарного оператора, продолжает выражение
+предыдущей строки — и присоединяется к нему целиком, а не к последнему операнду:
+
+```efen
+let x = a + b
+    .foo()
+// разбирается как (a + b).foo()
+```
+
+Поэтому цепочка выше разбирается как одно выражение, а каждое `=>` захватывает
+ровно свою строку:
+
+```efen
+var result = data.filter => $0 > 0   // тело замыкания кончается здесь
+            .map => $0 * 2           // строка начинается с `.` — продолжение
+            .reduce(0) => $0 + $1
+
+// Многострочное тело требует скобок
+var filtered = data.filter => {
+    let normalized = normalize($0)
+    normalized > 0
+}
 ```
 
 ### Placeholder-параметры
@@ -146,7 +182,7 @@ let result = add(5, 3)  // 8
 Замыкание с блоком кода:
 ```efen
 let greet = (name: String) -> String {
-    let greeting = "Hello, {name}!"
+    let greeting = "Hello, ${name}!"
     print(greeting)
     return greeting
 }
@@ -290,12 +326,12 @@ fn executeCallbacks(value: Int) {
     }
 }
 
-registerCallback { value in
-    print("Callback 1: \(value)")
+registerCallback => {
+    print("Callback 1: ${$0}")
 }
 
-registerCallback { value in
-    print("Callback 2: \(value)")
+registerCallback => {
+    print("Callback 2: ${$0}")
 }
 
 executeCallbacks(value: 42)
@@ -310,7 +346,7 @@ executeCallbacks(value: 42)
 ```efen
 fn assert(_ condition: @autoclosure () -> Bool, message: String) {
     if !condition() {
-        print("Assertion failed: \(message)")
+        print("Assertion failed: ${message}")
     }
 }
 
@@ -367,7 +403,7 @@ print(sorted)  // ["Алексей", "Анна", "Иван", "Мария"]
 ```efen
 let numbers = [1, 2, 3, 4, 5]
 numbers.forEach => {
-    print("Number: \($0)")
+    print("Number: ${$0}")
 }
 ```
 
@@ -375,12 +411,12 @@ numbers.forEach => {
 
 ```efen
 let combine = (a: Int, b: Int, operation: String) -> Int {
-    return switch operation {
-        case "+": a + b
-        case "-": a - b
-        case "*": a * b
-        case "/": a / b
-        default: 0
+    return match operation {
+        "+": a + b
+        "-": a - b
+        "*": a * b
+        "/": a / b
+        _: 0
     }
 }
 
@@ -437,9 +473,9 @@ func loadData(onSuccess: (Data) -> Void, onError: (Error) -> Void) {
 
 // Trailing closure для последнего параметра
 loadData(onSuccess: (data) => {
-    print("Success: \(data)")
+    print("Success: ${data}")
 }) => {
-    print("Error: \($0)")
+    print("Error: ${$0}")
 }
 ```
 
@@ -449,7 +485,7 @@ loadData(onSuccess: (data) => {
 
 ```efen
 var factorial: (Int) -> Int
-factorial = { n in
+factorial = (n: Int) -> Int {
     if n <= 1 {
         return 1
     }
@@ -523,7 +559,7 @@ fn log(_ message: @autoclosure () -> String, level: LogLevel) {
 }
 
 // Дорогое вычисление message() выполнится только если уровень логирования подходит
-log("User data: \(fetchExpensiveUserData())", level: .debug)
+log("User data: ${fetchExpensiveUserData()}", level: .debug)
 ```
 
 ### 6. Предпочитайте non-escaping когда возможно
@@ -616,12 +652,12 @@ let processed = numbers.map((value) => {
 
 ```efen
 // ❌ Захватывает весь массив
-var largeArray = [1...1000000]
-let closure = { largeArray.count }
+var largeArray = [1..1000000]
+let closure = () => largeArray.count
 
 // ✅ Захватывает только нужное значение
 let count = largeArray.count
-let closure = { count }
+let closure = () => count
 ```
 
 ## См. также

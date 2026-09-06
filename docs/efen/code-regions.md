@@ -184,8 +184,8 @@ region isolated preserve file: Open {
 Метод описывает локальный переход:
 
 ```efen
-fn close() -> :Open >> Closed
-fn open() -> :Closed >> Open
+fn close() state Open >> Closed
+fn open() state Closed >> Open
 ```
 
 Регион описывает композиционную гарантию для последовательности переходов:

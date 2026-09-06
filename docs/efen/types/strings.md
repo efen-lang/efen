@@ -437,7 +437,7 @@ text.replaceRegex(pattern, "X")          // "Phone: XXX-XXX-XXXX"
 let pattern = Regex::new(r"(\d{4})-(\d{2})-(\d{2})")
 let date = "2024-03-15"
 
-if let Some(captures) = pattern.captures(date) {
+if let .some.{ value: captures } = pattern.captures(date) {
     let year = captures[1]               // "2024"
     let month = captures[2]              // "03"
     let day = captures[3]                // "15"

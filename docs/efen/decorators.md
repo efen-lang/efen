@@ -159,9 +159,9 @@ fn calculateSum(a: Int, b: Int) -> Int {
 
 // Декоратор @Trace добавляет логирование входа/выхода:
 // fn calculateSum(a: Int, b: Int) -> Int {
-//     log("Entering calculateSum with a=$a, b=$b")
+//     log("Entering calculateSum with a=${a}, b=${b}")
 //     let result = a + b
-//     log("Exiting calculateSum with result=$result")
+//     log("Exiting calculateSum with result=${result}")
 //     return result
 // }
 ```

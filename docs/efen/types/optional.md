@@ -101,7 +101,7 @@ let invalid = parseInt("abc")  // Int? = null
 let optionalName: String? = "Иван"
 
 if let name = optionalName {
-    print("Привет, \(name)!")  // name имеет тип String
+    print("Привет, ${name}!")  // name имеет тип String
 } else {
     print("Имя не указано")
 }
@@ -114,7 +114,7 @@ let optionalName: String? = "Иван"
 let optionalAge: Int? = 25
 
 if let name = optionalName, let age = optionalAge {
-    print("\(name), возраст: \(age)")
+    print("${name}, возраст: ${age}")
 } else {
     print("Недостаточно данных")
 }
@@ -124,7 +124,7 @@ if let name = optionalName, let age = optionalAge {
 
 ```efen
 if let age = optionalAge, age >= 18 {
-    print("Совершеннолетний: \(age) лет")
+    print("Совершеннолетний: ${age} лет")
 }
 ```
 
@@ -140,7 +140,7 @@ fn greet(name: String?) {
     }
 
     // name доступен во всей оставшейся функции
-    print("Привет, \(name)!")
+    print("Привет, ${name}!")
 }
 ```
 
@@ -244,35 +244,28 @@ if optionalValue != null {
 
 **Примечание:** Предпочитайте `if let` вместо явной проверки!
 
-## Optional в switch
+## Optional в match
 
 Pattern matching с optional:
 
 ```efen
 let optionalNumber: Int? = 42
 
-switch optionalNumber {
-case null:
-    print("Значение отсутствует")
-case let value?:
-    print("Значение: \(value)")
+match optionalNumber {
+    null: print("Значение отсутствует")
+    let value?: print("Значение: ${value}")
 }
 ```
 
 С дополнительными условиями:
 
 ```efen
-switch optionalNumber {
-case null:
-    print("Нет значения")
-case let value? where value > 0:
-    print("Положительное: \(value)")
-case let value? where value < 0:
-    print("Отрицательное: \(value)")
-case 0?:
-    print("Ноль")
-default:
-    print("Другое")
+match optionalNumber {
+    null: print("Нет значения")
+    let value? where value > 0: print("Положительное: ${value}")
+    let value? where value < 0: print("Отрицательное: ${value}")
+    0?: print("Ноль")
+    _: print("Другое")
 }
 ```
 
@@ -285,7 +278,7 @@ let numbers: [Int?] = [1, 2, null, 4, null, 6]
 
 for number in numbers {
     if let value = number {
-        print("Значение: \(value)")
+        print("Значение: ${value}")
     } else {
         print("Пропуск null")
     }
@@ -296,7 +289,7 @@ for number in numbers {
 
 ```efen
 let numbers: [Int?] = [1, 2, null, 4, null, 6]
-let validNumbers = numbers.compactMap { $0 }  // [1, 2, 4, 6]
+let validNumbers = numbers.compactMap => $0  // [1, 2, 4, 6]
 ```
 
 ### Optional массив
@@ -322,7 +315,7 @@ var userAges: [String: Int?] = [
 
 if let age = userAges["Alice"] {
     if let value = age {
-        print("Alice: \(value) лет")
+        print("Alice: ${value} лет")
     } else {
         print("Возраст Alice неизвестен")
     }
@@ -337,9 +330,9 @@ if let age = userAges["Alice"] {
 fn greet(name: String?, title: String? = null) {
     let actualName = name ?? "Гость"
     if let title = title {
-        print("Здравствуйте, \(title) \(actualName)")
+        print("Здравствуйте, ${title} ${actualName}")
     } else {
-        print("Здравствуйте, \(actualName)")
+        print("Здравствуйте, ${actualName}")
     }
 }
 
@@ -361,8 +354,8 @@ fn findFirst<T>(array: [T], predicate: (T) -> Bool) -> T? {
 }
 
 let numbers = [1, 2, 3, 4, 5]
-let firstEven = findFirst(array: numbers) { $0 % 2 == 0 }  // Int? = 2
-let firstNegative = findFirst(array: numbers) { $0 < 0 }   // Int? = null
+let firstEven = findFirst(array: numbers) => $0 % 2 == 0  // Int? = 2
+let firstNegative = findFirst(array: numbers) => $0 < 0   // Int? = null
 ```
 
 ## Implicitly Unwrapped Optional (!)
@@ -409,10 +402,10 @@ class ViewController {
 
 ```efen
 let optionalNumber: Int? = 42
-let doubled = optionalNumber.map { $0 * 2 }  // Int? = 84
+let doubled = optionalNumber.map => $0 * 2  // Int? = 84
 
 let empty: Int? = null
-let result = empty.map { $0 * 2 }  // Int? = null
+let result = empty.map => $0 * 2  // Int? = null
 ```
 
 ### FlatMap
@@ -421,10 +414,10 @@ let result = empty.map { $0 * 2 }  // Int? = null
 
 ```efen
 let optionalString: String? = "42"
-let number = optionalString.flatMap { parseInt($0) }  // Int?
+let number = optionalString.flatMap => parseInt($0)  // Int?
 
 // Без flatMap получили бы Int??
-let nested = optionalString.map { parseInt($0) }  // Int?? (nested optional!)
+let nested = optionalString.map => parseInt($0)  // Int?? (nested optional!)
 ```
 
 ## Лучшие практики
@@ -549,7 +542,7 @@ Optional — это enum с двумя вариантами:
 
 ```efen
 enum Optional<T> {
-    some: T
+    some { value: T }
     none
 }
 ```
@@ -558,7 +551,7 @@ enum Optional<T> {
 
 ```efen
 let value1: Int? = 42
-let value2: Optional<Int> = .some(42)  // Эквивалентно
+let value2: Optional<Int> = .some(value: 42)  // Эквивалентно
 
 let empty1: Int? = null
 let empty2: Optional<Int> = .none  // Эквивалентно
@@ -634,5 +627,5 @@ fn loadUser(id: Int) throws -> User {
 - [enum.md](enum.md) — Optional реализован как enum
 - [../blocks/if.md](../blocks/if.md) — Optional binding с if let
 - [../blocks/guard.md](../blocks/guard.md) — Guard let для optional
-- [../blocks/switch.md](../blocks/switch.md) — Pattern matching с optional
+- [../blocks/match.md](../blocks/match.md) — Сопоставление с образцом и optional
 - [../throws.md](../throws.md) — Обработка ошибок

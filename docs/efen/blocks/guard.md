@@ -294,7 +294,7 @@ example()
 ### Defer с циклами
 
 ```efen
-for i in 1...3 {
+for i in 1..3 {
     defer { print("Завершение итерации ${i}") }
     print("Итерация ${i}")
 }
@@ -497,6 +497,6 @@ with open("file.txt") as file:
 ## См. также
 
 - [if.md](if.md) — Условные конструкции
-- [switch.md](switch.md) — Switch и pattern matching
+- [match.md](match.md) — Match и сопоставление с образцом
 - [loops.md](loops.md) — Циклы
 - [../memory.md](../memory.md) — Управление памятью

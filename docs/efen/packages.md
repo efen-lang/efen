@@ -87,7 +87,7 @@ MyPackage.dependencies = [
 Пример:
 ```efen
 // Файл: MyPackage/src/MyModule.efen
-pub module
+public module
 ```
 
 Объявление модуля публичным делает все его абстракции (классы, интерфейсы, контракты, функции, переменные)

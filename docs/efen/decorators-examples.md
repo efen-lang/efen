@@ -64,7 +64,7 @@ class Post {
 ### Кэширование
 
 ```efen
-@Cached(ttl: 3600, key: "user_config_{userId}")
+@Cached(ttl: 3600, key: "user_config_${userId}")
 fn getUserConfig(@Inject userId: Int) -> Config {
     return database.loadConfig(userId)
 }
@@ -148,7 +148,7 @@ class UserController {
     var logger: Logger
 
     fn getUser(id: Int) -> User {
-        logger.info("Fetching user: $id")
+        logger.info("Fetching user: ${id}")
         return userService.find(id)
     }
 }
@@ -282,7 +282,7 @@ fn createAdminUser(
     @NotNull @Strong password: String,
     @Inject logger: Logger
 ) -> User {
-    logger.info("Creating admin user: $email")
+    logger.info("Creating admin user: ${email}")
     return userService.createAdmin(email, password)
 }
 ```

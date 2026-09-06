@@ -15,12 +15,12 @@ class Person {
     var age: Int
 
     fn greet() {
-        print("Hello, my name is $name")
+        print("Hello, my name is ${name}")
     }
 
     fn haveBirthday() {
         age += 1
-        print("$name is now $age years old")
+        print("${name} is now ${age} years old")
     }
 }
 ```
@@ -77,7 +77,7 @@ class Dog : Animal {
     }
 
     fn fetch() {
-        print("\(name) is fetching the ball")
+        print("${name} is fetching the ball")
     }
 }
 
@@ -104,7 +104,7 @@ class Circle : Drawable, Resizable {
     var position: Point
 
     fn draw() {
-        print("Drawing circle at \(position) with radius \(radius)")
+        print("Drawing circle at ${position} with radius ${radius}")
     }
 
     fn resize(scale: Float) {
@@ -130,7 +130,7 @@ class User {
     var email: String
 
     fn serialize() -> String {
-        return "\(name);\(email)"
+        return "${name};${email}"
     }
 
     fn deserialize(data: String) {
@@ -171,7 +171,7 @@ class Product : Entity, Storable {
     }
 
     fn save() {
-        print("Saving product \(name)")
+        print("Saving product ${name}")
     }
 
     fn load() {
@@ -222,10 +222,10 @@ print(rect.perimeter)  // Выведет: 30.0
 class Temperature {
     var celsius: Float {
         didSet {
-            print("Temperature changed from \(oldValue) to \(celsius)")
+            print("Temperature changed from ${oldValue} to ${celsius}")
         }
         willSet {
-            print("Temperature will change to \(newValue)")
+            print("Temperature will change to ${newValue}")
         }
     }
 }
