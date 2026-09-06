@@ -655,7 +655,7 @@ for (index, item) in indexed {
 
 ```efen
 fn analyzeArray(arr: [Int]) -> (sum: Int, avg: Float, min: Int, max: Int) {
-    let sum = arr.reduce(0, +)
+    let sum = arr.reduce(0) => $0 + $1
     let avg = Float(sum) / Float(arr.count)
     let min = arr.min()!
     let max = arr.max()!

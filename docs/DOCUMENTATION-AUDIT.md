@@ -564,8 +564,6 @@ deallocate(pointer: Pointer, layout: Layout)
 
 Список исполнителя правок от 2026-09-06; ни один пункт не входил в задание.
 
-- `blocks/loops.md:291`, `types/tuples.md:658` — `arr.reduce(0, +)` передаёт голый
-  оператор как функцию; такой формы ни один документ не описывает.
 - `types/built-in-contracts.md:12`, `compile-time/index.md:373`,
   `types/constants.md:262,268` — варианты enum с заглавной буквы, против
   решения 16.
