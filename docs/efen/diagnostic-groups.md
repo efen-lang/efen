@@ -67,6 +67,7 @@ efenc -print-diagnostic-groups main.efen
 - `DeprecatedFeature` - устаревшие возможности
 - `StyleIssue` - стиль кода
 - `Performance` - производительность
+- `Layer` - нарушения границ слоёв: `uses`, `exposes`, `provides`
 
 ## Примеры
 

@@ -109,6 +109,10 @@ responsibility DatabaseLayer handles DatabaseError {
 }
 ```
 
+`responsibility X handles E` и `region handles E` решают одну задачу на разных
+масштабах: зона — это объявление, границей которого служат её функции с
+`nothrows`, а регион — блок, который проверяется на каждом выходе из него.
+
 ## Сравнение режимов
 
 | Режим               | Точка ответственности | Наследование | Добавление | Обработка требуется |
@@ -128,24 +132,30 @@ isolated fn isolatedFunc() {
 }
 ```
 
-### without throws блок
+### region nothrows
+
+Блок `without throws` из языка убран; его место занял регион `nothrows`
+([`code-regions.md`](code-regions.md)):
 
 ```efen
 fn process() {
     validate()  // ValidationError
-    
-    without throws {
+
+    region nothrows {
         try {
             saveData()  // DatabaseError - обработан здесь
-        } catch (e: DatabaseError) {
+        } catch e: DatabaseError {
             logError(e)
         }
     }
-    
+
     notify()  // NotificationError
 }
 // process может бросить: ValidationError, NotificationError (но НЕ DatabaseError)
 ```
+
+Выход по `return` и `break` проверяется так же, как конец блока: до него не
+должно быть непойманного выброса.
 
 ## Контракты на обработку исключений
 
@@ -200,6 +210,10 @@ class CancellationException extends Exception {
     
 }
 ```
+
+Если исключение объявляет `MustHandle` вместе с `CatchRestriction`, оба
+требования действуют сразу: поймать обязан непосредственный вызывающий, и он же
+обязан быть помечен `@conforms` контракта-обработчика.
 
 ## Примеры
 
@@ -317,11 +331,65 @@ class BrokenService implements Service {
 
 ## Must-handle исключения
 
+Обязанность поймать исключение объявляется на трёх уровнях: у типа, у функции и
+у области.
+
+У типа она записывается контрактом `MustHandle` в объявлении класса исключения —
+той же формой, что `CatchRestriction` выше. Обязанность действует везде, где это
+исключение возникает, независимо от сигнатуры функции:
+
+```efen
+class CriticalError extends Exception {
+    conforms MustHandle
+}
+```
+
+У функции обязанность записывается знаком `!` после `throws` и относится к
+перечисленным исключениям:
+
 ```efen
 fn critical() throws! CriticalError {
     throw CriticalError()
 }
+```
 
+У области обязанность задаёт свойство региона `handles`, а запрет исключений
+целиком — свойство `nothrows`; оба описаны в разделе «Гарантии по исключениям»
+документа [«Области кода»](code-regions.md):
+
+```efen
+region handles CriticalError {
+    try {
+        critical()
+    } catch e: CriticalError {
+        handleCritical(e)
+    }
+}
+```
+
+### Что значит «немедленно»
+
+Поймать — значит не выпустить исключение за пределы функции. `catch`, который
+пробрасывает пойманное дальше, требование не выполняет:
+
+```efen
+fn rethrowing() throws! CriticalError {
+    try {
+        critical()
+    } catch e: CriticalError {
+        logError(e)
+        throw e   // исключение покидает функцию — нужен `throws!` в сигнатуре
+    }
+}
+```
+
+Функция, которая пробрасывает такое исключение, объявляет `throws! E` сама, и
+обязанность переходит к её вызывающему.
+
+Немедленно — значит в той же функции, где лексически написан вызов. Пропустить
+такое исключение дальше по стеку молча нельзя:
+
+```efen
 fn caller() {
     // ❌ Ошибка: CriticalError должен быть обработан немедленно
     critical()
@@ -330,12 +398,89 @@ fn caller() {
 fn correctCaller() {
     try {
         critical()
-    } catch (e: CriticalError) {
+    } catch e: CriticalError {
         handleCritical(e)
     }
     // CriticalError НЕ распространяется дальше
 }
 ```
+
+Замыкание, которое не покидает функцию, для этого правила прозрачно: оно
+выполняется внутри вызова, поэтому `try` вокруг вызова требование выполняет.
+
+```efen
+fn correctInClosure(items: [Item]) {
+    try {
+        items.forEach => critical($0)
+    } catch e: CriticalError {
+        handleCritical(e)
+    }
+}
+```
+
+Тело `defer` выполняется на выходе из функции, а не на месте инструкции, поэтому
+`try` вокруг самой инструкции его не покрывает. `catch` пишется внутри тела
+`defer`:
+
+```efen
+fn withDefer(path: String) {
+    defer {
+        try {
+            critical()
+        } catch e: CriticalError {
+            handleCritical(e)
+        }
+    }
+
+    process(path)
+}
+```
+
+Блок `flow { }` для этого правила считается отдельной функцией, а его оператор
+`catch Err` — обработчиком. Выбор по типу в `catch Err` определяет раздел
+«Оператор catch» в [`flow.md`](flow.md).
+
+Тело `flow generator` выполняется на вызове `next()`, то есть после того, как
+вызов генератора вернул управление. Поэтому оно тоже считается отдельной
+функцией — так же, как `@escaping`-замыкание.
+
+`@escaping`-замыкание переживает вызов и выполняется отдельно, поэтому `try`
+вокруг его регистрации ничего не ловит. Обработчик пишется внутри самого
+замыкания:
+
+```efen
+fn wrongInEscaping(register: (@escaping () -> Void) -> Void) {
+    try {
+        // ❌ Ошибка: вызов уйдёт за пределы try
+        register(() => critical())
+    } catch e: CriticalError {
+        handleCritical(e)
+    }
+}
+
+fn correctInEscaping(register: (@escaping () -> Void) -> Void) {
+    register(() => {
+        try {
+            critical()
+        } catch e: CriticalError {
+            handleCritical(e)
+        }
+    })
+}
+```
+
+### Сложение требований
+
+`throws! E` на типе, который уже `conforms MustHandle`, разрешён и ничего не
+добавляет: обязанность и так есть.
+
+Требования складываются. `throws!`, `MustHandle`, `required catch` контракта и
+`region handles` должны быть выполнены все; старшинства между ними нет, и
+выполнение одного не снимает остальные.
+
+`throws only E` и `throws E` называют must-handle исключение `E` только тогда,
+когда в этой же функции написан `throw E`. Унаследованное must-handle исключение
+через сигнатуру не проходит: его ловит тот, кто вызвал.
 
 ## Диагностика
 
@@ -372,5 +517,6 @@ fn handler() nothrows {
 ## См. также
 
 - [Контексты](context-and-effects.md) — похожая модель распространения
+- [Области кода](code-regions.md) — `region handles` и `region nothrows`
 - [Контракты](contracts.md)
 - [Интерфейсы](interfaces.md)
