@@ -385,4 +385,4 @@ releaseBarrier()
 - [memory.md](memory.md) — Управление памятью
 - [../types/ownership.md](../types/ownership.md) — Система владения
 - [../compile-time/index.md](../compile-time/index.md) — Compile-time API
-- [../meta/metadata.md](../meta/metadata.md) — Метаданные
+- [../meta/metadata.md](../aspects/metadata.md) — Метаданные

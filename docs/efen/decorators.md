@@ -243,5 +243,5 @@ fn MyDecorator(target: ASTNode, args: DecoratorArgs) {
 ## См. также
 
 - [Compile-time функции](compile-time/index.md)
-- [Метаданные](meta/metadata.md)
-- [Аспектно-ориентированное программирование](abstraction-aspects/abstraction-aspects.md)
+- [Метаданные](aspects/metadata.md)
+- [Аспектно-ориентированное программирование](aspects/compile-time/index.md)

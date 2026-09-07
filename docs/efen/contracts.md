@@ -226,3 +226,25 @@ interface MyInterface : ParentInterface, AnotherParentInterface {
     var anotherProperty: String { get set }
 }
 ```
+
+## Шаблоны структур в контрактах
+
+Контракты во многом похожи на generic в том смысле, что некоторые структуры данных в них могут быть 
+определены как шаблоны. При этом полезна возможность задать некие правила или ограничения на эти шаблоны.
+Например, ARC-объект может быть представлен как структура данных, которая содержит счетчик ссылок и данные объекта.
+
+```efen
+contract RefCountedContract {
+
+    requires struct: struct<T>
+
+    @base struct <T> {
+        var refCount: Int
+        T
+    }
+
+    fn retain(self: Self)
+    fn release(self: Self)
+}
+```
+

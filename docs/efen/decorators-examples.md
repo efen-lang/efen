@@ -291,4 +291,4 @@ fn createAdminUser(
 
 - [Основная документация по декораторам](decorators.md)
 - [Compile-time функции](compile-time/index.md)
-- [Метапрограммирование](meta/metadata.md)
+- [Метапрограммирование](aspects/metadata.md)

@@ -30,7 +30,7 @@
 
 ### C1. `abstraction-aspects/class.md` описывает другой язык
 
-Файл: `docs/efen/abstraction-aspects/class.md:1-12` и далее по всему документу.
+Файл: `efen/aspects/compile-time` и далее по всему документу.
 
 Документ называет interface «контрактом» и использует `func`, `void`, `this`,
 `property`, `extends`, `implements`, `Some/None`, `::new` и точки с запятой.
@@ -126,7 +126,7 @@ capture semantics.
     реализации и построения VTBL.
 14. `docs/efen/contracts.md:8-12,147-170,190-207`: `func` смешан с `fn`, а
     `{ get set }` не определён как часть грамматики properties.
-15. `docs/efen/abstraction-aspects/abstraction-aspects.md:34-52`:
+15. `efen/aspects/compile-time`:
     `Allocator::deallocate(Self)` передаёт тип вместо экземпляра; обращения
     `Self.refCount` должны быть `self.refCount`.
 16. `docs/efen/compilation-modes.md:92-102`: проверка overflow через
@@ -221,7 +221,7 @@ capture semantics.
    как internal IR либо переписать.
 10. `docs/efen/strategies.md:233-270`: vtable «без объекта» не определяет
     receiver для `draw/resize`; нужен ABI и constraint целевого типа.
-11. `docs/efen/meta/metadata.md:5-33`: упомянуты неописанные traits, а API и
+11. `efen/aspects`: упомянуты неописанные traits, а API и
     атрибуты одновременно представлены как возможность и оставлены `TODO`.
 12. `docs/efen/decorators.md:103-132`: top-level `param oldConfig` не определён,
     а `this` конфликтует с каноническим `self`.
@@ -241,7 +241,7 @@ capture semantics.
     взаимодействие с бесскобочным вызовом не определены.
 19. `docs/efen/closure.md:13-42`: одновременно используются `->` и `=>`;
     «без параметров» использует `x`, а «Сокращённая формат» содержит ошибку.
-20. `docs/efen/meta/aspect.md:16-84`: кроме сломанного fence, примеры используют
+20. `efen/aspects`: кроме сломанного fence, примеры используют
     неопределённые `method`, `array` и `;` вместо канонического синтаксиса.
 21. `docs/efen/сonditional_compilation.md`: имя начинается кириллической `с`,
     что создаёт невидимую файловую ловушку; документа нет в оглавлении.
@@ -267,7 +267,7 @@ capture semantics.
 ### Несбалансированные code fences
 
 - `docs/efen/сonditional_compilation.md:45`: открытый блок не закрыт до EOF;
-- `docs/efen/meta/aspect.md:58`: блок применения аспекта не закрыт перед
+- `efen/aspects`: блок применения аспекта не закрыт перед
   следующим разделом;
 - `docs/efen/runtime/memory.md:6`: лишний открывающий ` ```efen ` помещает
   заголовок и последующий fence внутрь кода.
@@ -286,7 +286,7 @@ capture semantics.
 - `docs/efen/context-and-effects.md:509,518` содержит два `TODO` о различии
   интерфейсов/контрактов и экспорте эффектов;
 - `docs/efen/destructuring.md:38` содержит `TODO: доделать` внутри примера;
-- `docs/efen/meta/metadata.md:26,33` оставляет API и синтаксис атрибутов
+- `efen/aspects` оставляет API и синтаксис атрибутов
   неспроектированными, хотя окружающий текст звучит нормативно.
 
 ## Язык и редактура
@@ -311,7 +311,7 @@ capture semantics.
 - `docs/efen/functions.md:285-296` помечает корректные скобочные вызовы как
   «плохо», хотя пояснение рекомендует именно их;
 - `docs/efen/packages.md:105`: `use` сопровождается ошибочной конструкцией `.:`;
-- `docs/efen/meta/members-resolving.md:4`: требование получить именно assembler
+- `efen/aspects`: требование получить именно assembler
   code исключает LLVM IR, bytecode и JIT; корректнее «IR или машинный код
   выбранного backend».
 
