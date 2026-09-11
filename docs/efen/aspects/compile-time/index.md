@@ -1,61 +1,57 @@
-# Аспекты времени компиляции в Efen
+# Аспекты времени компиляции
 
-В `Efen` аспекты времени компиляции позволяют определять логику работы абстракций.
-Аспекты времени компиляции напрямую влияют на работу компилятора.
+Аспект может содержать `meta`-код, который выполняется во время компиляции и
+участвует в построении HIR. Исполняемая compile-time часть должна быть
+скомпилирована до вызова; runtime-методы того же аспекта компилируются по
+обычным правилам и сами по себе не образуют compile-time зависимость.
 
-## Аспекты класса уровня компиляции
+## Определение класса
 
-Аспекты класса уровня компиляции позволяют определять логику работы абстракций на уровне компиляции.
+Аспект, реализующий `ClassDefinition`, определяет построение корневого класса и
+его иерархии. Компилятор создаёт план, аспекты регистрируют шаги и обработчики,
+после чего основной аспект ограничивает структурную сборку вызовами
+`primaryClassDefinition` и `finallyClassDefinition`.
+
+Подробный контракт, правило единственности и граница изменения HIR описаны в
+[построении класса аспектами](class.md).
+
+## Управление памятью
+
+Аспект определения класса может выбрать представление объекта и предоставить
+реализации операций жизненного цикла. Следующий код показывает идею, но не
+является утверждённой сигнатурой стандартной библиотеки:
 
 ```efen
 aspect RefCountClassCompiler {
+    conforms ClassDefinition
+    conforms RefCounted
 
-    conforms lang::abstractions::ClassAspect
-    conforms lang::abstractions::RefCountedAspect
-
-    // Структура данных, которая будет использоваться для хранения данных класса
-    @classStruct struct <T> {
-        var refCount: Int
-        T
+    struct Header {
+        var refCount: UInt
     }
 
-    /// Вызывается во время компиляции после определения класса
-    @compileTime
-    fn definition(class: lang::Class) {
-        
+    meta fn primaryClassDefinition(class: lang::Class) in compiler {
+        // Добавить выбранное представление и реализации операций.
     }
 
-    // Вызывается при создании нового экземпляра класса
-    @compileTime
-    fn newInstance(ctx: pxh::compiler::context) -> lang::Reference {
-        
-    }
-    
-    fn allocate() -> Self {        
-        let obj = Allocator::allocate(Self)
-        return obj
-    }
-    
-    fn deallocate(self: Self) {
-        Allocator::deallocate(Self)
-    }
-    
     fn retain(self: Self) {
-        Self.refCount     += 1  
+        self.refCount += 1
     }
-    
+
     fn release(self: Self) {
-        if Self.refCount == 0 {
-            throw lang::errors::RuntimeError("Release called on object with refCount 0")
-        }
-        
-        Self.refCount     -= 1
-                     
-        if Self.refCount == 0 {
-            Self.deinit()
-            Allocator::deallocate(self)
+        self.refCount -= 1
+        if self.refCount == 0 {
+            self.deinit()
         }
     }
 }
 ```
-    
+
+Аспект предоставляет устройство и реализацию операций, но не выполняет
+ownership-анализ пользовательских методов. Сначала аспекты, метафункции и
+resolver-ы порождают код тела. Затем компилятор анализирует владение и сам
+расставляет необходимые вызовы поддерживаемых операций, включая `retain` и
+`release` для ARC.
+
+Схема не определяет конкретный заголовок Limelight, атомарность счётчика,
+обработку циклов или точные контракты стандартных операций.
