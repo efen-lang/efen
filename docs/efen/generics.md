@@ -15,6 +15,20 @@
 ## Дженерик-функции
 
 Функции могут объявлять параметры типа в угловых скобках после имени функции.
+Параметр типа является compile-time параметром со значением типа `Type`.
+Угловые скобки — короткая запись; полная форма использует уже существующее
+ключевое слово `param` в начале тела объявления:
+
+```efen
+class Box {
+    param T: Type
+
+    var value: T
+}
+```
+
+Эта форма эквивалентна `class Box<T>`. Как и у функции без круглых скобок,
+объявления `param` идут подряд до остальных членов.
 
 ### Базовый синтаксис
 
@@ -233,9 +247,43 @@ fn processData<T>(handler: Handler<T>) {
 
 ## Compile-time значения
 
-Generic-параметр может быть compile-time значением. Первая нормативная форма —
-значение enum, объявленного владельцем generic-типа. Она позволяет типу выбрать
-одну из собственных реализаций без создания отдельной глобальной конструкции:
+Generic-параметр может быть любым compile-time значением. `Type` является одним
+из допустимых типов параметра, а не отдельным видом generic. Параметрами также
+могут быть enum-константы, числа, строки, логические значения, origin,
+атрибуты, contracts, interfaces, strategies, функции и другие декларации или
+значения, доступные compile-time коду.
+
+Категория параметра задаётся его типом:
+
+```efen
+param T: Type
+param Requirement: Contract
+param RuntimeAPI: Interface
+param Annotation: Attribute
+param Policy: Strategy
+param Source: Origin
+param Size: Int
+```
+
+Один символ interface может участвовать в двух разных ролях. При
+`param T: Type` передаётся его runtime-тип; при `param I: Interface` передаётся
+compile-time объект декларации interface, доступный reflection и генерации.
+Contract не является runtime-типом, но является допустимым compile-time
+значением для `param C: Contract`.
+
+```efen
+class Adapter {
+    param Requirement: Contract
+    param RuntimeAPI: Interface
+
+    #if Self conforms Requirement {
+        // compile-time формирование реализации RuntimeAPI
+    }
+}
+```
+
+Enum, объявленный владельцем generic-типа, позволяет выбрать одну из его
+реализаций без отдельной глобальной конструкции:
 
 ```efen
 type ParticleColumns: Array<Particle, SoA>
@@ -244,6 +292,135 @@ type ParticleColumns: Array<Particle, SoA>
 Здесь `Particle` — параметр типа, а `SoA` — enum-константа внутри `Array`.
 Конкретная инстанциация имеет одну определённую representation.
 Запись `[T]` сокращает `Array<T, default>`.
+
+Полная форма позволяет явно указать тип параметра и значение по умолчанию:
+
+```efen
+class Array {
+    param Element: Type
+    param Form: Representation = default
+}
+```
+
+Атрибут можно передать отдельным параметром:
+
+```efen
+class AnnotatedStorage {
+    param Element: Type
+    param Annotation: Attribute
+}
+
+let values = new AnnotatedStorage<Int, @myattr>
+```
+
+Это отличается от атрибута внутри типового аргумента:
+
+```efen
+Array<@myattr Int>                 // T является аннотированным типом
+AnnotatedStorage<Int, @myattr>    // @myattr является отдельным param
+```
+
+Параметры любого допустимого compile-time типа можно передавать позиционно и по
+имени:
+
+```efen
+Array<Particle, SoA>
+Array<Element: Particle, Form: SoA>
+```
+
+Любой `param` можно опустить в месте применения, если компилятор однозначно
+выводит его значение из остальных аргументов, ограничений и сигнатур. Вывод не
+является отдельным видом параметра. Если решений нет или их несколько,
+компилятор требует именованный аргумент:
+
+```efen
+Iterable<Item: Int> // Cursor выводится из iterator()
+Iterable            // Item и Cursor выводятся, если решение однозначно
+```
+
+Выведенные параметры являются частью полной инстанциации и сохраняются в её
+ключе так же, как явно написанные.
+
+Значением `param T: Type` является полное типовое выражение. Оно сохраняет
+базовый тип, ссылочную форму, права и metadata употребления:
+
+```efen
+Array<User>
+Array<&read User>
+Array<ref read User>
+Array<User shared read>
+Array<@myattr Int>
+Array<@cached &read User>
+```
+
+`ref` — полная словесная форма ссылки, а `&` — её сокращение, поэтому
+`Array<&read User>` и `Array<ref read User>` обозначают одну инстанциацию.
+
+Эти аргументы образуют разные инстанциации generic. Код может получить базовый
+тип отдельно, но `T` по умолчанию не стирает его модификаторы и metadata.
+Metadata является дополнительными опциями типа и сама по себе не меняет
+совместимость значений: `@myattr Int` совместим с `Int`. Разные инстанциации
+нужны потому, что generic-код может наблюдать опции и породить разный код.
+
+Metadata проверяется оператором `has`. Оператор допустим и в обычном выражении,
+и в compile-time директиве. `#if` выбирает код при построении инстанциации:
+
+```efen
+#if T has @myattr {
+    // Код существует только для типового аргумента с @myattr.
+}
+
+if value has @myattr {
+    // Runtime-проверка metadata значения там, где она сохраняется в runtime.
+}
+```
+
+Поскольку compile-time код может наблюдать metadata, она входит в ключ
+инстанциации и в зависимости её результата.
+
+## Условное соответствие контрактам
+
+Generic-тип может соответствовать contract только в тех инстанциациях, где
+выполнено compile-time условие:
+
+```efen
+class Box<T> {
+    var value: T
+
+    #if T conforms Copyable {
+        conforms Copyable
+
+        fn copy() -> Box<T> {
+            return Box(value.copy())
+        }
+    }
+}
+```
+
+Ложное условие не запрещает саму инстанциацию. `Box<NonCopyable>` остаётся
+законным типом, но не соответствует `Copyable` и не получает условные члены.
+Это отличается от `class Box<T: Copyable>`, где ограничение запрещает создать
+`Box<T>` для неподходящего `T`.
+
+Условие может зависеть от нескольких параметров, compile-time значений и
+metadata:
+
+```efen
+#if A conforms Copyable && B conforms Copyable {
+    conforms Copyable
+}
+
+#if Size > 0 {
+    conforms NonEmpty
+}
+
+#if T has @serializable {
+    conforms Serializable
+}
+```
+
+Результат условия, выбранные реализации и прочитанные compile-time факты входят
+в ключ и зависимости инстанциации.
 
 ## Наблюдение параметра типа
 

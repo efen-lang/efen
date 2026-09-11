@@ -23,6 +23,28 @@ let values: [Int]?          // Optional<Array<Int>>
 let callback: ((Int) -> Void)?  // Optional<Function>
 ```
 
+`Option<T>` является стандартным generic-алиасом `T?`. Формы `None` и
+`Some(value)` являются встроенными альтернативными написаниями `null` и
+присутствующего значения; они не создают отдельный runtime-контейнер:
+
+```efen
+alias Option<T> = T?
+
+let number: Option<Int> = Some(42)
+let absent: Option<Int> = None
+```
+
+Вложенный optional сохраняет каждый уровень отсутствия значения:
+
+```efen
+Option<Option<String>>
+Option<String?>
+```
+
+Обе записи различают `None` и `Some(None)`. Повторение postfix-оператора не
+является синтаксисом типа: `String??` — ошибка; вложенность записывается через
+`Option<...>`.
+
 ## Зачем нужны Optional?
 
 ### Проблема null в других языках
@@ -538,24 +560,20 @@ fn findArea(shape: Shape?) -> Int? {
 
 ## Внутреннее представление
 
-Optional — это enum с двумя вариантами:
-
-```efen
-enum Optional<T> {
-    some { value: T }
-    none
-}
-```
-
-Синтаксис `T?` — это синтаксический сахар для `Optional<T>`.
+`T?` является optional-типом, а `Option<T>` — его стандартным alias. Optional
+не обязан иметь одну enum-раскладку для всех `T`: конкретную representation
+выбирает тип и backend с сохранением различимых состояний.
 
 ```efen
 let value1: Int? = 42
-let value2: Optional<Int> = .some(value: 42)  // Эквивалентно
+let value2: Option<Int> = Some(42)
 
 let empty1: Int? = null
-let empty2: Optional<Int> = .none  // Эквивалентно
+let empty2: Option<Int> = None
 ```
+
+Для `Option<Option<T>>` representation обязана различать `None`, `Some(None)` и
+`Some(Some(value))`.
 
 ## Сравнение Optional
 
@@ -624,7 +642,7 @@ fn loadUser(id: Int) throws -> User {
 
 ## См. также
 
-- [enum.md](enum.md) — Optional реализован как enum
+- [enum.md](enum.md) — enum и optional являются разными видами типов
 - [../blocks/if.md](../blocks/if.md) — Optional binding с if let
 - [../blocks/guard.md](../blocks/guard.md) — Guard let для optional
 - [../blocks/match.md](../blocks/match.md) — Сопоставление с образцом и optional

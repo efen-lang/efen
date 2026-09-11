@@ -2331,16 +2331,12 @@ contract Validated {
 ### С generics
 
 ```efen
-meta fn createOption<T>(hasValue: Bool, value: T?) -> InlineClosure {
-    if hasValue && value == null {
-        compileError("Cannot create .some with null value")
-    }
-
+meta fn createOption<T>(hasValue: Bool, value: T) -> InlineClosure {
     return inline {
         if hasValue {
-            Option.some(value: value!)
+            Some(value)
         } else {
-            Option.none
+            None
         }
     }
 }

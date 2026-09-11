@@ -54,6 +54,27 @@ var bonuses: EnumArray<Stat, Int?>
 Срезы создаются с помощью оператора индексирования `[]` и диапазонов внутри него.
 Срезы могут применяться к массивам и другим типам коллекций, которые поддерживают индексацию.
 
+Срез является невладеющим view исходного storage. Операция не выделяет новый
+массив и не копирует элементы:
+
+```efen
+let values = [10, 20, 30, 40]
+let middle = values[1..<3]
+```
+
+`middle` хранит диапазон и origin `values`. Его полный тип концептуально
+соответствует `Slice<Int, values>`; origin может быть выведен и не обязан
+писаться в исходнике. Права доступа к элементам выводятся из прав на источник.
+Срез читающего источника не даёт запись, а срез изменяемого источника может
+предоставлять изменяемые элементы при сохранении эксклюзивности.
+
+Пока срез используется, операция, способная уничтожить или переместить его
+storage либо изменить его representation, должна учитывать живой view. Явное
+создание независимого массива выполняется отдельной операцией копирования.
+
+Срез среза сохраняет origin исходного storage и сужает диапазон; он не образует
+новую владеющую область памяти.
+
 Синтаксис среза: `array[range]`, где `range` — это любой диапазон (см. раздел "Операторы диапазона" ниже).
 
 Примеры:
@@ -187,160 +208,76 @@ let slice8 = arr[..<3]     // [10, 20, 30] - от начала до индекс
 Итератор — это объект, который предоставляет последовательный доступ к элементам коллекции.
 В `Efen` итераторы используются для обхода коллекций в циклах и функциональных операциях.
 
-### Два способа реализации итераторов
+### Контракты обхода
 
-В `Efen` итераторы могут быть реализованы двумя способами:
-
-1. **Через контракт (contract)** — compile-time, нулевой overhead, static dispatch
-2. **Через интерфейс (interface)** — runtime VTBL, dynamic dispatch, полиморфизм
-
-Выбор зависит от требований к производительности и необходимости runtime полиморфизма.
-
-### Способ 1: Contract Iterator (compile-time)
-
-Контракт определяет требования времени компиляции. После компиляции контракт полностью исчезает из бинарника.
+`Iterator` описывает уже созданный курсор, а `Iterable` — значение, которое
+может создать такой курсор. Оба являются compile-time contract и не служат
+типами runtime-значений:
 
 ```efen
-// Контракт для итератора
-contract Iterator<T> {
-    fn next() -> Option<T>
+contract Iterator {
+    param Item: Type
+
+    fn next() -> Item?
 }
 
-// Контракт для итерируемых типов
-contract Iterable<T> {
-    fn iterator() -> Iterator<T>
+contract Iterable {
+    param Item: Type
+    param Cursor: Iterator<Item>
+
+    fn iterator() -> Cursor
 }
 ```
 
-**Преимущества contract:**
-- ✅ Нулевой runtime overhead
-- ✅ Static dispatch (прямой вызов методов)
-- ✅ Максимальная оптимизация компилятором
-- ✅ Используется в generic-функциях
-
-**Пример использования:**
+`Cursor` обязан быть конкретным типом, соответствующим `Iterator<Item>`.
+Аргументы contract можно передавать позиционно и по имени:
+`Iterator<String>` и `Iterator<Item: String>` равнозначны.
 
 ```efen
-// Generic-функция с контрактом
-fn sum<T, I>(iterable: I) -> Int
-    where I: Iterable<Int> {
+class ArrayIterator<T> {
+    conforms Iterator<Item: T>
 
-    var total = 0
-    let iter = iterable.iterator()
+    private let items: [T]
+    private var index: Int = 0
 
-    while let .some.{ value } = iter.next() {
-        total += value
-    }
+    fn next() -> T? {
+        if index >= items.count() {
+            return null
+        }
 
-    return total  // STATIC DISPATCH - оптимально
-}
-
-// Компилятор генерирует специализированный код для каждого типа
-let arr = [1, 2, 3, 4, 5]
-let result = sum(arr)  // Прямые вызовы без VTBL
-```
-
-### Способ 2: Interface Iterator (runtime)
-
-Интерфейс существует в runtime как виртуальная таблица (VTBL) и обеспечивает полиморфизм.
-
-```efen
-// Интерфейс для итератора
-interface Iterator<T> {
-    fn next() -> Option<T>
-}
-
-// Интерфейс для итерируемых типов
-interface Iterable<T> {
-    fn iterator() -> Iterator<T>
-}
-```
-
-**Преимущества interface:**
-- ✅ Runtime полиморфизм
-- ✅ Тип может быть неизвестен во время компиляции
-- ✅ Binary compatibility
-- ✅ Plugin systems
-
-**Пример использования:**
-
-```efen
-// Функция принимает любой Iterable через VTBL
-fn printAll(iterable: Iterable<String>) {
-    let iter = iterable.iterator()
-
-    while let .some.{ value } = iter.next() {
-        println(value)  // DYNAMIC DISPATCH через VTBL
+        let value = items[index]
+        index += 1
+        return value
     }
 }
 
-// Можно передать любую реализацию
-let list = StringList::new()
-let array = ["a", "b", "c"]
-
-printAll(list)   // Runtime dispatch
-printAll(array)  // Runtime dispatch
-```
-
-### Комбинированный подход
-
-Класс может одновременно соответствовать контракту (`conforms`) и реализовывать интерфейс (`implements`):
-
-```efen
 class MyCollection<T> {
-    conforms Iterable<T>    // Compile-time проверка
-    implements Iterable<T>  // Runtime VTBL
+    conforms Iterable<Item: T>
 
     private var items: [T] = []
 
-    fn iterator() -> MyIterator<T> {
-        return MyIterator::new(this.items)
+    fn iterator() -> ArrayIterator<T> {
+        return ArrayIterator<T>(items)
     }
-}
-
-class MyIterator<T> {
-    conforms Iterator<T>
-    implements Iterator<T>
-
-    private var items: [T]
-    private var index: Int = 0
-
-    fn next() -> Option<T> {
-        if this.index >= this.items.count() {
-            return .none
-        }
-        let value = this.items[this.index]
-        this.index += 1
-        return .some(value: value)
-    }
-}
-
-// Compile-time использование (оптимально)
-fn processStatic<C: Iterable<Int>>(collection: C) {
-    let iter = collection.iterator()
-    // Static dispatch - прямые вызовы
-}
-
-// Runtime использование (гибко)
-fn processDynamic(collection: Iterable<Int>) {
-    let iter = collection.iterator()
-    // Dynamic dispatch через VTBL
 }
 ```
 
-### Когда использовать какой подход?
+`Cursor` в этом соответствии выводится из результата `iterator()` и после
+вывода равен `ArrayIterator<T>`. Его можно указать явно по имени, если вывод
+неоднозначен.
 
-**Используйте Contract когда:**
-- Критична производительность
-- Тип известен во время компиляции
-- Используете generics
-- Не нужен runtime полиморфизм
+Тип элемента является полным типовым выражением. Один `Iterator` поэтому может
+выдавать значения, читающие ссылки, изменяемые ссылки и другие типы с правами:
 
-**Используйте Interface когда:**
-- Нужен runtime полиморфизм
-- Тип определяется во время выполнения
-- Реализуете plugin system
-- Нужна binary compatibility
+```efen
+Iterator<Item: T>
+Iterator<Item: &read T>
+Iterator<Item: &T>
+```
+
+Конкретные способы обхода связывают права источника с типом выдаваемого
+элемента. Их окончательный выбор для обычного, изменяющего и потребляющего `for`
+ещё не принят.
 
 ### Цикл for-in с итераторами
 
@@ -355,7 +292,7 @@ for number in numbers {
 
 // Эквивалентно:
 let iter = numbers.iterator()
-while let .some.{ value: number } = iter.next() {
+while let Some(number) = iter.next() {
     println(number)
 }
 ```
@@ -404,7 +341,7 @@ let total = numbers.sum()  // 15
 let numbers = [1, 2, 3, 4, 5]
 
 // find - поиск первого подходящего элемента
-let found = numbers.find => $0 > 3  // .some(value: 4)
+let found = numbers.find => $0 > 3  // 4
 
 // any - проверка существования элемента
 let hasEven = numbers.any => $0 % 2 == 0  // true
@@ -434,10 +371,10 @@ let taken = numbers.takeWhile => $0 < 4  // [1, 2, 3]
 let skipped = numbers.skipWhile => $0 < 4  // [4, 5]
 
 // first - первый элемент
-let first = numbers.first()  // .some(value: 1)
+let first = numbers.first()  // 1
 
 // last - последний элемент
-let last = numbers.last()  // .some(value: 5)
+let last = numbers.last()  // 5
 ```
 
 #### Комбинирование
@@ -509,7 +446,9 @@ let set = numbers.toSet()
 Пример реализации пользовательского итератора:
 
 ```efen
-class RangeIterator implements Iterator<Int> {
+class RangeIterator {
+    conforms Iterator<Item: Int>
+
     private let start: Int
     private let end: Int
     private var current: Int
@@ -520,21 +459,21 @@ class RangeIterator implements Iterator<Int> {
         this.current = start
     }
 
-    fn next() -> Option<Int> {
+    fn next() -> Int? {
         if this.current >= this.end {
-            return .none
+            return null
         }
 
         let value = this.current
         this.current += 1
-        return .some(value: value)
+        return value
     }
 }
 
 // Использование
 let iter = RangeIterator::new(1, 5)
 
-while let .some.{ value } = iter.next() {
+while let Some(value) = iter.next() {
     println(value)  // 1, 2, 3, 4
 }
 ```
@@ -544,19 +483,23 @@ while let .some.{ value } = iter.next() {
 Пример создания пользовательской коллекции с поддержкой итераций:
 
 ```efen
-class IntList implements Iterable<Int> {
+class IntList {
+    conforms Iterable<Item: Int>
+
     private var items: [Int] = []
 
     fn add(item: Int) {
         this.items[] = item
     }
 
-    fn iterator() -> Iterator<Int> {
+    fn iterator() -> IntListIterator {
         return IntListIterator::new(this.items)
     }
 }
 
-class IntListIterator implements Iterator<Int> {
+class IntListIterator {
+    conforms Iterator<Item: Int>
+
     private let items: [Int]
     private var index: Int = 0
 
@@ -564,14 +507,14 @@ class IntListIterator implements Iterator<Int> {
         this.items = items
     }
 
-    fn next() -> Option<Int> {
+    fn next() -> Int? {
         if this.index >= this.items.count() {
-            return .none
+            return null
         }
 
         let value = this.items[this.index]
         this.index += 1
-        return .some(value: value)
+        return value
     }
 }
 
@@ -591,13 +534,15 @@ for value in list {
 Итераторы могут быть бесконечными — возвращать значения без конца:
 
 ```efen
-class InfiniteCounter implements Iterator<Int> {
+class InfiniteCounter {
+    conforms Iterator<Item: Int>
+
     private var current: Int = 0
 
-    fn next() -> Option<Int> {
+    fn next() -> Int? {
         let value = this.current
         this.current += 1
-        return .some(value: value)
+        return value
     }
 }
 

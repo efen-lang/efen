@@ -255,21 +255,18 @@ match result {
 }
 ```
 
-Option (альтернатива optional):
+Optional использует обычный optional-тип и его стандартный alias:
 
 ```efen
-enum Option<T> {
-    some { value: T }
-    none
-}
+alias Option<T> = T?
 
 fn find(array: [Int], target: Int) -> Option<Int> {
     for (index, value) in array.enumerated() {
         if value == target {
-            return .some(value: index)
+            return Some(index)
         }
     }
-    return .none
+    return None
 }
 ```
 

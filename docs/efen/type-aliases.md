@@ -113,7 +113,7 @@ alias Parser = (String) -> Result?
 ### alias с дженериками
 
 ```efen
-alias Optional<T> = T?
+alias Option<T> = T?
 alias Result<T> = (T | Error)
 alias Pair<T, U> = (T, U)
 ```
