@@ -96,17 +96,38 @@ let config = [
 
 ```efen
 let ages = ["Alice": 25, "Bob": 30]
-let aliceAge = ages["Alice"]  // 25
+let aliceAge = ages["Alice"]        // Int? = Some(25)
+let charlieAge = ages["Charlie"]    // Int? = None
 ```
 
-### Безопасный доступ с optional chaining
-
-Так как ключ может отсутствовать в словаре, рекомендуется использовать optional chaining:
+Чтение всегда возвращает `Value?`. Если окружающий контекст требует `Value`,
+компилятор ищет прямую стратегию `Coerce<Value?>` и стандартно выбирает
+`OptionalOrThrow<Value>`:
 
 ```efen
-let ages = ["Alice": 25, "Bob": 30]
-let charlieAge = ages?["Charlie"]  // null, так как ключ не существует
+let aliceAge: Int? = ages["Alice"] // optional сохраняется
+let requiredAge: Int = ages["Alice"]
+// Эквивалентно OptionalOrThrow<Int>.coerce(ages["Alice"])
+// и может бросить MissingOptionalError.
 ```
+
+Без ожидаемого типа результат остаётся optional. Вставленная coercion является
+обычным вызовом, поэтому её исключение входит в выведенный `throws` функции.
+
+### Optional-словарь
+
+Оператор `?[]` проверяет наличие самого словаря, а не ключа:
+
+```efen
+let ages: [String: Int]? = loadAges()
+let aliceAge = ages?["Alice"]
+```
+
+Если `ages` равен `None`, индексирование не выполняется. Если словарь
+существует, внешний уровень равен `Some`, а обычный `[]` формирует внутренний
+optional результата поиска. Выведенный тип `aliceAge` — `Option<Option<Int>>`;
+явно писать его обычно не требуется. Состояния `None`, `Some(None)` и
+`Some(Some(value))` остаются различимы.
 
 ## Изменение элементов
 
@@ -159,7 +180,7 @@ let translations = [
     "thanks": "Спасибо"
 ]
 
-let greeting = translations["hello"]  // "Привет"
+let greeting: String = translations["hello"]  // "Привет" либо исключение coercion
 ```
 
 ### Счётчик встречаемости

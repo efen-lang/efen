@@ -127,10 +127,14 @@ responsibility DatabaseLayer handles DatabaseError {
 ### isolated функция
 
 ```efen
-isolated fn isolatedFunc() {
-    // Нельзя вызывать функции с исключениями
+isolated fn load() throws IOError {
+    readFile() // Допустимо: IOError объявлен явно.
 }
 ```
+
+`isolated` запрещает не сами исключения, а их неявное добавление к контракту.
+Каждое исключение должно быть перечислено в `throws` либо обработано внутри
+функции. Вызов, который потребовал бы расширить `throws`, является ошибкой.
 
 ### region nothrows
 

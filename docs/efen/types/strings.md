@@ -365,13 +365,16 @@ b.compareTo(a)                           // > 0 (b больше a)
 
 ```efen
 let emoji = "👨‍👩‍👧‍👦"
-emoji.length()                           // 7 (code units)
+emoji.length()                           // 7 Unicode code points
 emoji.graphemeLength()                   // 1 (visual characters)
 
 let text = "café"
 text.length()                            // 4
 text.graphemeLength()                    // 4
 ```
+
+`length()` считает Unicode code points, `graphemeLength()` — графемные
+кластеры. Число байтов UTF-8 возвращает отдельная операция `byteLength()`.
 
 ### Итерация по символам
 

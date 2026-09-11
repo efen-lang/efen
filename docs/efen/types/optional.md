@@ -380,22 +380,48 @@ let firstEven = findFirst(array: numbers) => $0 % 2 == 0  // Int? = 2
 let firstNegative = findFirst(array: numbers) => $0 < 0   // Int? = null
 ```
 
+## Контекстное разворачивание через Coerce
+
+Обычный `T?` сохраняет optional-тип, когда контекст не требует другого:
+
+```efen
+let value = dictionary["key"]       // T?
+let optional: T? = dictionary["key"]
+```
+
+Если связывание, параметр вызова или результат функции явно требует `T`,
+компилятор ищет одну прямую стратегию `Coerce<T?>` для целевого `T`.
+Стандартная стратегия называется `OptionalOrThrow<T>`:
+
+```efen
+let required: T = dictionary["key"]
+// OptionalOrThrow<T>.coerce(dictionary["key"])
+```
+
+Отсутствующее значение бросает `MissingOptionalError`. Этот эффект участвует в
+обычном выводе `throws`. Точное совпадение `T?` имеет приоритет, цепочки coercion
+не строятся, а без ожидаемого типа разворачивание не выполняется.
+
 ## Implicitly Unwrapped Optional (!)
 
-Тип, который автоматически разворачивается, но может быть null:
+Тип, который автоматически разворачивается с runtime trap и может быть null:
 
 ```efen
 var optionalValue: Int! = 42
 
 // Автоматически разворачивается
-let value: Int = optionalValue  // Не нужен !, но опасно если null!
+let value: Int = optionalValue  // Не нужен !, при null происходит trap.
 
 // Можно присвоить null
 optionalValue = null
 
 // Теперь это вызовет runtime ошибку
-let crash = optionalValue  // ❌ CRASH!
+let crash = optionalValue  // runtime trap
 ```
+
+`T!` отличается от контекстной стратегии для `T?`: `OptionalOrThrow<T>` имеет
+проверяемый `throws`, тогда как нарушение обещания implicitly-unwrapped значения
+останавливает выполнение в точке доступа.
 
 **Когда использовать:**
 - Редко! Только для особых случаев
