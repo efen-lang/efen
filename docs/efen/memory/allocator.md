@@ -37,6 +37,5 @@ class MyObject
     }
 }
 
-provide MyAllocator for MyObjectAllocator
+provide MyAllocator for MyObject
 ```
-

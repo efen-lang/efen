@@ -20,7 +20,7 @@ fn add(a: Int, b: Int) -> Int {
 
 Функции могут быть определены на основе сигнатуры (прототипа) функции. Например:
 ```efen
-type Adder = (a: Int, b: Int) -> Int
+alias Adder = (a: Int, b: Int) -> Int
 
 fn add: Adder {
     return a + b
@@ -37,13 +37,13 @@ public fn publicFunction() {
     // Доступна из других модулей и пакетов
 }
 internal fn internalFunction() {
-    // Доступна только внутри текущего модуля
+    // Доступна только внутри текущего пакета
 }
 private fn privateFunction() {
-    // Доступна только внутри текущего файла
+    // Доступна только внутри текущего модуля
 }
 api fn apiFunction() {
-    // Доступна в модулях, указанных в теге видимости 'api
+    // `api` разворачивается по составному атрибуту главного модуля пакета
 }
 ```
 
@@ -63,8 +63,8 @@ let str = identity<String>("hello")
 Дженерик функция с прототипом:
 
 ```efen
-type Wrapper<T> = (value: T) -> T
-fn wrap: Wrapper<T> {
+alias Wrapper<T> = (value: T) -> T
+fn wrap<T>: Wrapper<T> {
     return value
 }
 ```

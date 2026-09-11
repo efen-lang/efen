@@ -54,20 +54,20 @@ let movement = particles.{position, velocity}
 требует отдельной проверки типа. `.{...}` предназначен для локального выбора
 данных.
 
-Анонимному проекционному типу можно дать имя обычным алиасом `type`:
+Анонимному проекционному типу можно дать имя обычным `alias`:
 
 ```efen
-type Movement = [Particle].{position, velocity}
+alias Movement = [Particle].{position, velocity}
 ```
 
 Если алиас объявлен в области, где доступно значение, тип проекции может быть
 выведен из этого значения:
 
 ```efen
-type Movement = particles.{position, velocity}
+alias Movement = particles.{position, velocity}
 ```
 
-Это не объявляет новую projection и не меняет representation: `type` только
+Это не объявляет новую projection и не меняет representation: `alias` только
 даёт имя уже существующему анонимному проекционному типу.
 
 ---
@@ -121,5 +121,4 @@ let view = MyStruct::Public(...);
 ---
 
 ## 4. Примеры
-
 

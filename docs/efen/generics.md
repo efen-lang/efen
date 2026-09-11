@@ -55,7 +55,7 @@ let doubled = map([1, 2, 3], fn(x) { return x * 2 })  // T=Int, U=Int
 
 ## Дженерик-методы
 
-Методы классов и структур также могут быть дженерик-методами.
+Методы классов и функций стратегий также могут быть дженерик-методами.
 
 ```efen
 class Container {
@@ -113,7 +113,7 @@ echo intBox.getValue()  // 42
 ### Наследование с дженериками
 
 ```efen
-class Container<T> {
+open class Container<T> {
     var items: [T] = []
 
     fn add(item: T) {
@@ -169,7 +169,7 @@ interface Comparable<T> {
     fn compareTo(other: T) -> Int
 }
 
-class Person: Comparable<Person> {
+class Person implements Comparable<Person> {
     var age: Int
 
     fn compareTo(other: Person) -> Int {
@@ -221,15 +221,60 @@ let zipped = zip(numbers, letters)  // [(1, "a"), (2, "b"), (3, "c")]
 Алиасы типов также могут быть дженерик-типами:
 
 ```efen
-type Result<T> = (T | Error)
-type Handler<T> = (T) -> Void
-function Transformer<T, U> = (T) -> U
+alias Result<T> = (T | Error)
+alias Handler<T> = (T) -> Void
+alias Transformer<T, U> = (T) -> U
 
 // Использование
 fn processData<T>(handler: Handler<T>) {
     // ...
 }
 ```
+
+## Compile-time значения
+
+Generic-параметр может быть compile-time значением. Первая нормативная форма —
+значение enum, объявленного владельцем generic-типа. Она позволяет типу выбрать
+одну из собственных реализаций без создания отдельной глобальной конструкции:
+
+```efen
+type ParticleColumns: Array<Particle, SoA>
+```
+
+Здесь `Particle` — параметр типа, а `SoA` — enum-константа внутри `Array`.
+Конкретная инстанциация имеет одну определённую representation.
+Запись `[T]` сокращает `Array<T, default>`.
+
+## Наблюдение параметра типа
+
+Параметр типа доступен type-aware операциям:
+
+```efen
+fn printType<T>() {
+    let descriptor = typeof(T)
+    print T
+}
+```
+
+`typeof(T)` возвращает дескриптор `Type`. `T` приводится к `String` для обычной
+runtime-печати текущего конкретного типа.
+
+## Генерация кода
+
+Компилятор выбирает монотипизацию или стирание, если объявление не закрепило
+режим:
+
+```efen
+@monomorphize
+fn specialized<T>(value: T) {}
+
+@erase
+fn sharedBody<T>(value: T) {}
+```
+
+При монотипизации создаётся отдельное тело для необходимых инстанциаций. При
+стирании одно общее тело получает скрытый runtime-дескриптор каждого параметра
+типа; поэтому `typeof(T)` и преобразование `T` в строку остаются доступны.
 
 ## Варианс (Covariance/Contravariance)
 
@@ -274,9 +319,8 @@ fn transform<TInput, TOutput>(
 
 ## Ограничения
 
-1. Параметры типа не могут использоваться для создания статических членов
-2. Дженерик-типы не могут быть использованы в `typeof` выражениях напрямую
-3. Рефлексия над дженерик-типами ограничена из-за type erasure
+Параметры типа не могут использоваться для создания статических членов.
+Наблюдение типа не предоставляет прав на произвольное изменение его объявления.
 
 ## Смотрите также
 

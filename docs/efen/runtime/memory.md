@@ -3,26 +3,21 @@
 Контракты, структуры и функции, связанные с управлением памятью в `Efen`
 доступны в пакете `memory`.
 
-```efen
-
-## Контракты
+## Интерфейсы аллокаторов
 
 ```efen
-contract AllocatorContract {
-    constructor(size: Size)
+interface Allocator {
     fn allocate(size: Size) -> Pointer
     fn reallocate(ptr: Pointer, size: Int) -> Pointer
     fn deallocate(ptr: Pointer)        
 }
 
-contract ArenaContract extends AllocatorContract {
-    constructor(size: Size)
+interface ArenaAllocator : Allocator {
     fn reset()
     fn clear()
 }
 
-contract PoolContract extends AllocatorContract {
-    constructor(objectSize: Size, poolSize: Size)
+interface PoolAllocator : Allocator {
     fn acquire() -> Pointer
     fn release(ptr: Pointer)
 }
@@ -37,7 +32,7 @@ contract PoolContract extends AllocatorContract {
 ```efen
 import runtime.memory
 
-class HeapAllocator implements AllocatorContract {
+class HeapAllocator implements Allocator {
     constructor(size: Size) {
         // Инициализация не требуется для heap
     }
@@ -74,7 +69,7 @@ Arena (также известный как region/bump allocator) — быст�
 ```efen
 import runtime.memory
 
-class Arena implements ArenaContract {
+class Arena implements ArenaAllocator {
     private var buffer: Pointer
     private var offset: Size
     private var capacity: Size
@@ -164,7 +159,7 @@ Pool allocator выделяет объекты фиксированного ра
 ```efen
 import runtime.memory
 
-class Pool implements PoolContract {
+class Pool implements PoolAllocator {
     private var objectSize: Size
     private var poolSize: Size
     private var buffer: Pointer
@@ -350,11 +345,11 @@ class MyClass {
 
 ```efen
 // Fallback allocator: сначала пробует pool, потом heap
-class FallbackAllocator implements AllocatorContract {
-    private var primary: AllocatorContract
-    private var fallback: AllocatorContract
+class FallbackAllocator implements Allocator {
+    private var primary: Allocator
+    private var fallback: Allocator
 
-    constructor(primary: AllocatorContract, fallback: AllocatorContract) {
+    constructor(primary: Allocator, fallback: Allocator) {
         self.primary = primary
         self.fallback = fallback
     }
@@ -381,8 +376,8 @@ let allocator = FallbackAllocator(
 Для отладки утечек памяти:
 
 ```efen
-class TrackingAllocator implements AllocatorContract {
-    private var inner: AllocatorContract
+class TrackingAllocator implements Allocator {
+    private var inner: Allocator
     private var allocations: [Pointer: Size] = [:]
 
     fn allocate(size: Size) -> Pointer {

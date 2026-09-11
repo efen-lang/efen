@@ -15,12 +15,12 @@
 var age: int  // Любое целое число
 
 // Direct predicate refinement
-var age: int { $v >= 0 && $v <= 150 }  // Только валидные возраста
-var email: string { is_valid_email($v) }  // Только валидные email адреса
+var age: int { value >= 0 && value <= 150 }  // Только валидные возраста
+var email: string { is_valid_email(value) }  // Только валидные email адреса
 
 // Type definition style
-type Nat extends int { $v >= 0 }
-type Email extends string { is_valid_email($v) }
+type Nat: int { value >= 0 }
+type Email: string { is_valid_email(value) }
 
 let age: Nat = 25  // age гарантированно >= 0
 let email: Email = "email@dot.com" // email гарантированно валиден
@@ -29,26 +29,27 @@ let email: Email = "email@dot.com" // email гарантированно вал�
 ### Зачем нужны Refinement Types?
 
 1. **Статическая верификация** - проверка ограничений на этапе компиляции
-2. **Отсутствие null checks** - `type NonNull<T> extends T where { v != null }`
-3. **Безопасность индексации** - `type ValidIndex extends int where { v >= 0 && v < len(array) }`
-4. **Бизнес-логика в типах** - `type Email extends string where { is_valid_email(v) }`
+2. **Отсутствие null checks** - `type NonNull<T>: T { value != null }`
+3. **Безопасность индексации** - `type ValidIndex: int { value >= 0 && value < len(array) }`
+4. **Бизнес-логика в типах** - `type Email: string { is_valid_email(value) }`
 5. **Контракты без runtime overhead** - проверки на compile-time когда возможно
 
 ## Синтаксис
 
 ### Определение Refinement Type
 
-Для определения нового уточняющего типа используется ключевое слово `type`, 
-которое участвует так же в создании алиасов типов или материализации generic типов.
+Для определения нового уточняющего типа используется ключевое слово `type`.
+Прозрачные алиасы объявляются отдельным словом `alias`.
 
 ```php
-type Name extends BaseType { predicate }
+type Name: BaseType { predicate }
 ```
 
 **Компоненты:**
 - `type Name` - имя нового типа
-- `extends BaseType` - базовый тип, который уточняется
-- `{ predicate }` - предикат с явной переменной `$v` или `$value`, представляющей значение типа.
+- `: BaseType` - базовый тип, который уточняется
+- `{ predicate }` - необязательный предикат с единственной явной переменной
+  `value`, представляющей значение типа.
 
 ### Использование: метод `.refine()`
 
@@ -76,7 +77,7 @@ fn processAge(age: int) {
 #### Натуральные числа
 
 ```php
-type Nat extends int { v >= 0 }
+type Nat: int { value >= 0 }
 
 fn factorial(n: Nat): Nat {
     // n гарантированно >= 0, не нужны проверки
@@ -91,7 +92,7 @@ let nat: Nat = x.refine();  // Runtime проверка
 #### Email валидация
 
 ```php
-type Email extends string { is_valid_email(v) }
+type Email: string { is_valid_email(value) }
 
 class User {
     email: Email;  // Всегда валидный email
@@ -102,21 +103,15 @@ class User {
 }
 ```
 
-#### Безопасная индексация
+#### Зависимая индексация
 
-```php
-type Index<T> extends int { v >= 0 && v < count($array) }
-
-fn safeGet<T>(array: array<T>, index: int): T {
-    let safe: Index<T> = index.refine();  // Проверка границ
-    return array[safe];  // Гарантированно безопасно
-}
-```
+Тип индекса, чей предикат зависит от конкретного массива, требует отдельной
+модели зависимых типов и рассматривается вместе с ней.
 
 #### Non-null значения
 
 ```php
-type NonNull<T> extends T where { v != null }
+type NonNull<T>: T { value != null }
 
 fn processUser(user: User?) {
     if (user != null) {
@@ -129,22 +124,20 @@ fn processUser(user: User?) {
 
 ## Семантика
 
-### Subtyping
+### Совместимость
 
-Refinement type является подтипом базового типа:
-
-```php
-Nat <: int  // Nat можно использовать везде где ожидается int
-```
-
-Автоматическое приведение вверх (widening):
+Новый `type` имеет собственную номинальную идентичность. Базовый и новый тип
+требуют точного совпадения; отношение основы само по себе не создаёт widening:
 
 ```php
 fn printInt(x: int) { ... }
 
 let n: Nat = ...;
-printInt(n);  // OK, автоматическое приведение Nat -> int
+printInt(n);  // Ошибка: ожидается int, передан Nat
 ```
+
+Переход выполняется явной операцией или одной прямой видимой стратегией
+`Coerce<Source>`.
 
 ### Runtime проверка
 
@@ -204,8 +197,8 @@ struct Type {
 
 ```cpp
 // Синтетическая функция, генерируется компилятором
-fn __validator_Nat(v: int): bool {
-    return v >= 0;
+fn __validator_Nat(value: int): bool {
+    return value >= 0;
 }
 ```
 
@@ -233,8 +226,8 @@ void setTypePredicateFunctionId(TypeHandle* handle, uint32_t funcId);
 ### 1. Финансовые расчёты
 
 ```php
-type PositiveAmount extends float where { v > 0.0 }
-type Percentage extends float where { v >= 0.0 && v <= 100.0 }
+type PositiveAmount: float { value > 0.0 }
+type Percentage: float { value >= 0.0 && value <= 100.0 }
 
 fn calculateDiscount(price: PositiveAmount, discount: Percentage): PositiveAmount {
     let result = price * (1.0 - discount / 100.0);
@@ -245,8 +238,8 @@ fn calculateDiscount(price: PositiveAmount, discount: Percentage): PositiveAmoun
 ### 2. Безопасность веб-приложений
 
 ```php
-type SafeHtml extends string where { is_safe_html(v) }
-type ValidUrl extends string where { is_valid_url(v) }
+type SafeHtml: string { is_safe_html(value) }
+type ValidUrl: string { is_valid_url(value) }
 
 fn renderLink(url: string, text: string): SafeHtml {
     let safeUrl: ValidUrl = url.refine();
@@ -258,8 +251,8 @@ fn renderLink(url: string, text: string): SafeHtml {
 ### 3. Конфигурация
 
 ```php
-type Port extends int where { v >= 1 && v <= 65535 }
-type NonEmptyString extends string where { strlen(v) > 0 }
+type Port: int { value >= 1 && value <= 65535 }
+type NonEmptyString: string { strlen(value) > 0 }
 
 class ServerConfig {
     host: NonEmptyString;
@@ -270,7 +263,7 @@ class ServerConfig {
 ### 4. Коллекции
 
 ```php
-type NonEmptyArray<T> extends array<T> where { count(v) > 0 }
+type NonEmptyArray<T>: array<T> { count(value) > 0 }
 
 fn first<T>(arr: NonEmptyArray<T>): T {
     return arr[0];  // Безопасно, массив не пустой
@@ -286,7 +279,7 @@ fn first<T>(arr: NonEmptyArray<T>): T {
 ```php
 fn abs(x: int): Nat {
     if (x >= 0) {
-        return x.refine();  // SMT доказывает: x >= 0 => v >= 0
+        return x.refine();  // SMT доказывает: x >= 0 => value >= 0
     } else {
         return (-x).refine();  // SMT доказывает: x < 0 => -x >= 0
     }
@@ -298,8 +291,8 @@ fn abs(x: int): Nat {
 Зависимость от значений других параметров:
 
 ```php
-type BoundedInt<min, max> extends int where { v >= min && v <= max }
-type Array<T, n> extends array<T> where { count(v) == n }
+type BoundedInt<min, max>: int { value >= min && value <= max }
+type Array<T, n>: array<T> { count(value) == n }
 
 fn createFixedArray<T, n>(value: T): Array<T, n> {
     return array_fill(0, n, value).refine();
@@ -309,9 +302,9 @@ fn createFixedArray<T, n>(value: T): Array<T, n> {
 ### 3. Сложные предикаты
 
 ```php
-type SortedArray<T> extends array<T> where {
-    for (i = 0; i < count(v) - 1; i++) {
-        v[i] <= v[i + 1]
+type SortedArray<T>: array<T> {
+    for (i = 0; i < count(value) - 1; i++) {
+        value[i] <= value[i + 1]
     }
 }
 ```
@@ -323,8 +316,8 @@ type SortedArray<T> extends array<T> where {
 ```php
 fn process(x: int) {
     if (x >= 0) {
-        // Компилятор выводит: x : int{v >= 0}
-        let y = x + 1;  // y : int{v >= 1}
+        // Компилятор выводит: x : int{value >= 0}
+        let y = x + 1;  // y : int{value >= 1}
     }
 }
 ```
@@ -334,8 +327,8 @@ fn process(x: int) {
 ### Liquid Haskell
 
 ```haskell
-{-@ type Nat = {v:Int | v >= 0} @-}
-{-@ type Pos = {v:Int | v > 0} @-}
+{-@ type Nat = {value:Int | value >= 0} @-}
+{-@ type Pos = {value:Int | value > 0} @-}
 ```
 
 ### F* / Dafny
@@ -355,8 +348,8 @@ subtype Positive is Integer range 1 .. Integer'Last;
 ### Efen (наш синтаксис)
 
 ```php
-type Nat extends int where { v >= 0 }
-type Pos extends int where { v > 0 }
+type Nat: int { value >= 0 }
+type Pos: int { value > 0 }
 ```
 
 ## Заключение

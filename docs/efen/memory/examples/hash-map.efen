@@ -13,8 +13,8 @@
 
 layout HashMap<Key: Hashable, Value> {
 
-    type Buckets extends Size { v is 2^n }
-    type Mask    extends Size { v is 2^n - 1 }
+    type Buckets: Size { value is 2^n }
+    type Mask: Size { value is 2^n - 1 }
 
     set Entries: Entry {
         invariant reachable(e) {

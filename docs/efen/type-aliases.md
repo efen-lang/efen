@@ -4,29 +4,29 @@
 
 ## Содержание
 
-- [Ключевое слово type](#ключевое-слово-type)
-- [Ключевое слово function](#ключевое-слово-function)
+- [Ключевое слово alias](#ключевое-слово-alias)
+- [Отличие от нового type](#отличие-от-нового-type)
 - [Дженерик-алиасы](#дженерик-алиасы)
 - [Сложные типы](#сложные-типы)
 - [Примеры использования](#примеры-использования)
 - [Лучшие практики](#лучшие-практики)
 
-## Ключевое слово type
+## Ключевое слово alias
 
-Ключевое слово `type` используется для создания алиаса любого типа.
+Ключевое слово `alias` используется для создания алиаса любого типа.
 
 ### Базовый синтаксис
 
 ```efen
-type MyInt = Int
-type UserID = String
-type Timestamp = Int
+alias MyInt = Int
+alias UserID = String
+alias Timestamp = Int
 ```
 
 ### Использование
 
 ```efen
-type UserID = String
+alias UserID = String
 
 fn getUser(id: UserID) -> User? {
     // ...
@@ -36,42 +36,48 @@ let userId: UserID = "user123"
 let user = getUser(userId)
 ```
 
+Объявление алиаса сохраняется в HIR вместе с именем, исходной позицией,
+атрибутами и metadata. Употребление сохраняет ссылку на написанный алиас и на
+его каноническую цель. При проверке типов алиас раскрывается, а `typeof(UserID)`
+возвращает основной семантический тип. Compile-time API может читать написанный
+alias отдельно от результата `typeof`.
+
 ### Алиасы для примитивов
 
 ```efen
-type Byte = Int8
-type Word = Int16
-type DWord = Int32
-type QWord = Int64
+alias Byte = Int8
+alias Word = Int16
+alias DWord = Int32
+alias QWord = Int64
 
-type Percentage = Float  // 0.0 - 100.0
-type Ratio = Float       // 0.0 - 1.0
+alias Percentage = Float  // 0.0 - 100.0
+alias Ratio = Float       // 0.0 - 1.0
 ```
 
 ### Алиасы для коллекций
 
 ```efen
-type IntList = [Int]
-type StringMap = [String: Any]
-type Matrix = [[Float]]
+alias IntList = [Int]
+alias StringMap = [String: Any]
+alias Matrix = [[Float]]
 ```
 
-## Ключевое слово function
+## Функциональные типы
 
-Ключевое слово `function` специально предназначено для создания алиасов функциональных типов.
+Функциональный тип объявляется тем же `alias`, что и любой другой тип.
 
 ### Базовый синтаксис
 
 ```efen
-function Handler = (Int) -> Void
-function Predicate = (String) -> Bool
-function Mapper = (Int) -> String
+alias Handler = (Int) -> Void
+alias Predicate = (String) -> Bool
+alias Mapper = (Int) -> String
 ```
 
 ### Использование
 
 ```efen
-function EventHandler = (Event) -> Void
+alias EventHandler = (Event) -> Void
 
 class Button {
     var onClick: EventHandler?
@@ -91,40 +97,40 @@ button.setClickHandler(fn(event) {
 
 ```efen
 // Функция с несколькими параметрами
-function Comparator = (Int, Int) -> Int
+alias Comparator = (Int, Int) -> Int
 
 // Функция, возвращающая функцию
-function HandlerFactory = (String) -> ((Event) -> Void)
+alias HandlerFactory = (String) -> ((Event) -> Void)
 
 // Функция с optional результатом
-function Parser = (String) -> Result?
+alias Parser = (String) -> Result?
 ```
 
 ## Дженерик-алиасы
 
 Алиасы типов могут быть дженериками.
 
-### type с дженериками
+### alias с дженериками
 
 ```efen
-type Optional<T> = T?
-type Result<T> = (T | Error)
-type Pair<T, U> = (T, U)
+alias Optional<T> = T?
+alias Result<T> = (T | Error)
+alias Pair<T, U> = (T, U)
 ```
 
-### function с дженериками
+### alias функционального типа с дженериками
 
 ```efen
-function Handler<T> = (T) -> Void
-function Transformer<T, U> = (T) -> U
-function Predicate<T> = (T) -> Bool
-function Comparator<T> = (T, T) -> Int
+alias Handler<T> = (T) -> Void
+alias Transformer<T, U> = (T) -> U
+alias Predicate<T> = (T) -> Bool
+alias Comparator<T> = (T, T) -> Int
 ```
 
 ### Использование дженерик-алиасов
 
 ```efen
-function Mapper<T, U> = (T) -> U
+alias Mapper<T, U> = (T) -> U
 
 fn map<T, U>(items: [T], mapper: Mapper<T, U>) -> [U] {
     var result: [U] = []
@@ -142,11 +148,11 @@ let strings = map(numbers, fn(n) { return String(n) })
 ### Частичное применение дженериков
 
 ```efen
-type Result<T> = (T | Error)
+alias Result<T> = (T | Error)
 
 // Можно создать специализированные алиасы
-type IntResult = Result<Int>
-type StringResult = Result<String>
+alias IntResult = Result<Int>
+alias StringResult = Result<String>
 ```
 
 ## Сложные типы
@@ -154,25 +160,25 @@ type StringResult = Result<String>
 ### Union типы
 
 ```efen
-type ID = (Int | String)
-type Response = (Success | Error | Pending)
-type Nullable<T> = (T | null)
+alias ID = (Int | String)
+alias Response = (Success | Error | Pending)
+alias Nullable<T> = (T | null)
 ```
 
 ### Tuple типы
 
 ```efen
-type Point = (Int, Int)
-type RGB = (Int, Int, Int)
-type KeyValue = (String, Any)
+alias Point = (Int, Int)
+alias RGB = (Int, Int, Int)
+alias KeyValue = (String, Any)
 ```
 
 ### Вложенные структуры
 
 ```efen
-type UserData = [String: Any]
-type Config = [String: [String: Any]]
-type NestedList<T> = [T | [T]]
+alias UserData = [String: Any]
+alias Config = [String: [String: Any]]
+alias NestedList<T> = [T | [T]]
 ```
 
 ## Примеры использования
@@ -181,25 +187,25 @@ type NestedList<T> = [T | [T]]
 
 ```efen
 // Идентификаторы
-type UserID = String
-type PostID = Int
-type SessionToken = String
+alias UserID = String
+alias PostID = Int
+alias SessionToken = String
 
 // Временные метки
-type Timestamp = Int
-type Duration = Int
+alias Timestamp = Int
+alias Duration = Int
 
 // Результаты операций
-type UserResult = (User | Error)
-type ValidationResult = (Bool, [String])
+alias UserResult = (User | Error)
+alias ValidationResult = (Bool, [String])
 ```
 
 ### Callback и обработчики
 
 ```efen
-function SuccessCallback<T> = (T) -> Void
-function ErrorCallback = (Error) -> Void
-function CompletionHandler = (Result<Any>) -> Void
+alias SuccessCallback<T> = (T) -> Void
+alias ErrorCallback = (Error) -> Void
+alias CompletionHandler = (Result<Any>) -> Void
 
 class HTTPClient {
     fn get(
@@ -215,10 +221,10 @@ class HTTPClient {
 ### Состояние приложения
 
 ```efen
-type AppState = [String: Any]
-type Action = (String, [String: Any])
-function Reducer = (AppState, Action) -> AppState
-function Middleware = (AppState, Action) -> Action
+alias AppState = [String: Any]
+alias Action = (String, [String: Any])
+alias Reducer = (AppState, Action) -> AppState
+alias Middleware = (AppState, Action) -> Action
 
 class Store {
     var state: AppState
@@ -234,23 +240,23 @@ class Store {
 ### Конфигурация
 
 ```efen
-type HostPort = (String, Int)
-type Headers = [String: String]
-type QueryParams = [String: String]
+alias HostPort = (String, Int)
+alias Headers = [String: String]
+alias QueryParams = [String: String]
 
-type HTTPConfig = [String: Any]
-type DatabaseConfig = [String: Any]
+alias HTTPConfig = [String: Any]
+alias DatabaseConfig = [String: Any]
 ```
 
 ### Математические типы
 
 ```efen
-type Vector2D = (Float, Float)
-type Vector3D = (Float, Float, Float)
-type Matrix2x2 = [[Float]]
+alias Vector2D = (Float, Float)
+alias Vector3D = (Float, Float, Float)
+alias Matrix2x2 = [[Float]]
 
-function BinaryOp = (Float, Float) -> Float
-function UnaryOp = (Float) -> Float
+alias BinaryOp = (Float, Float) -> Float
+alias UnaryOp = (Float) -> Float
 ```
 
 ## Вложенные алиасы
@@ -258,13 +264,13 @@ function UnaryOp = (Float) -> Float
 Алиасы могут ссылаться на другие алиасы.
 
 ```efen
-type UserID = String
-type User = [String: Any]
-type UserMap = [UserID: User]
+alias UserID = String
+alias User = [String: Any]
+alias UserMap = [UserID: User]
 
-function UserHandler = (User) -> Void
-function UserValidator = (User) -> Bool
-function UserTransformer = (User) -> User
+alias UserHandler = (User) -> Void
+alias UserValidator = (User) -> Bool
+alias UserTransformer = (User) -> User
 ```
 
 ## Декораторы
@@ -273,13 +279,13 @@ function UserTransformer = (User) -> User
 
 ```efen
 @deprecated("Use NewResult instead")
-type OldResult = (Int | Error)
+alias OldResult = (Int | Error)
 
 @experimental
-type AsyncResult<T> = Future<Result<T>>
+alias AsyncResult<T> = Future<Result<T>>
 
 @internal
-type InternalID = Int
+alias InternalID = Int
 ```
 
 ## Алиасы в модулях
@@ -288,10 +294,10 @@ type InternalID = Int
 // types.efen
 module MyApp.Types
 
-type UserID = String
-type PostID = Int
+alias UserID = String
+alias PostID = Int
 
-function Handler<T> = (T) -> Void
+alias Handler<T> = (T) -> Void
 ```
 
 ```efen
@@ -303,28 +309,33 @@ fn processUser(id: UserID) {
 }
 ```
 
-## Отличия type от function
+## Отличие от нового type
 
-| Аспект | type | function |
-|--------|------|----------|
-| Назначение | Любые типы | Только функциональные типы |
-| Читаемость | Универсальное | Явно указывает на функцию |
-| Семантика | Общий алиас | Специфичный для функций |
-
-### Когда использовать type
+`alias X = T` создаёт прозрачное имя существующего типа. `type X: T` создаёт
+новый номинальный тип на основе `T`:
 
 ```efen
-type UserID = String
-type Point = (Int, Int)
-type Result<T> = (T | Error)
+alias DatabaseId = Int
+type UserId: Int
 ```
 
-### Когда использовать function
+`DatabaseId` взаимозаменяем с `Int`. `UserId` требует точного совпадения типов
+или отдельно объявленной прямой стратегии преобразования.
+
+### Когда использовать alias
 
 ```efen
-function Handler = (Event) -> Void
-function Validator<T> = (T) -> Bool
-function Mapper<T, U> = (T) -> U
+alias UserID = String
+alias Point = (Int, Int)
+alias Result<T> = (T | Error)
+```
+
+### Функциональные типы
+
+```efen
+alias Handler = (Event) -> Void
+alias Validator<T> = (T) -> Bool
+alias Mapper<T, U> = (T) -> U
 ```
 
 ## Ограничения
@@ -336,7 +347,7 @@ function Mapper<T, U> = (T) -> U
 
 ```efen
 // ❌ Ошибка: рекурсивный алиас
-type Tree = (Int, Tree?, Tree?)
+alias Tree = (Int, Tree?, Tree?)
 
 // ✅ Используйте класс или структуру
 class Tree {
@@ -350,44 +361,43 @@ class Tree {
 
 1. **Используйте осмысленные имена**: Имя алиаса должно отражать его назначение
    ```efen
-   type UserID = String  // ✅ Хорошо
-   type UID = String     // ⚠️ Непонятно
+   alias UserID = String  // ✅ Хорошо
+   alias UID = String     // ⚠️ Непонятно
    ```
 
-2. **Предпочитайте function для функциональных типов**
+2. **Используйте alias для функциональных типов**
    ```efen
-   function Handler = (Event) -> Void  // ✅ Явно
-   type Handler = (Event) -> Void      // ⚠️ Менее явно
+   alias Handler = (Event) -> Void
    ```
 
 3. **Группируйте связанные алиасы**
    ```efen
    // Идентификаторы
-   type UserID = String
-   type PostID = Int
-   type CommentID = Int
+   alias UserID = String
+   alias PostID = Int
+   alias CommentID = Int
 
    // Обработчики
-   function UserHandler = (User) -> Void
-   function PostHandler = (Post) -> Void
+   alias UserHandler = (User) -> Void
+   alias PostHandler = (Post) -> Void
    ```
 
 4. **Документируйте назначение**
    ```efen
    /// Уникальный идентификатор пользователя в системе
-   type UserID = String
+   alias UserID = String
 
    /// Обработчик события нажатия кнопки
-   function ClickHandler = (MouseEvent) -> Void
+   alias ClickHandler = (MouseEvent) -> Void
    ```
 
 5. **Используйте для сложных типов**
    ```efen
    // ✅ Хорошо: упрощает сложный тип
-   type ValidationResult = (Bool, [String], [String: Any])
+   alias ValidationResult = (Bool, [String], [String: Any])
 
    // ❌ Плохо: слишком простой тип
-   type MyInt = Int
+   alias MyInt = Int
    ```
 
 6. **Избегайте чрезмерного использования**
@@ -396,7 +406,7 @@ class Tree {
 
 ## Смотрите также
 
-- [Типы](types.md)
+- [Типы](types/type.md)
 - [Функции](functions.md)
 - [Дженерики](generics.md)
-- [Модули](modules.md)
+- [Модули и пакеты](packages.md)

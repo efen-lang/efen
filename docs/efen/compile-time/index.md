@@ -146,11 +146,12 @@ contract Class {
     // ===== Модификаторы =====
 
     // Проверка модификаторов
-    fn isAbstract() -> Bool;
     fn isFinal() -> Bool;
+    fn isOpen() -> Bool;
     fn isPublic() -> Bool;
     fn isPrivate() -> Bool;
     fn isProtected() -> Bool;
+    fn isFamily() -> Bool;
 
     // ===== Метаданные и атрибуты =====
 
@@ -172,6 +173,12 @@ contract Class {
     fn toBuilder() -> ClassBuilder;
 }
 ```
+
+`toBuilder()` не предоставляет общего права менять импортированный класс.
+Объявления зависимости доступны только для чтения, пока их владелец явно не
+разрешил внешнее преобразование и текущая сборка не применила его через
+`provide`. Такое изменение создаёт рабочий вид текущей сборки и не переписывает
+продукт зависимости. Точная форма разрешения ещё проектируется.
 
 ### ClassBuilder
 
@@ -225,8 +232,8 @@ contract ClassBuilder {
 
     // ===== Изменение модификаторов =====
 
-    fn setAbstract(value: Bool) -> ClassBuilder;
     fn setFinal(value: Bool) -> ClassBuilder;
+    fn setOpen(value: Bool) -> ClassBuilder;
     fn setVisibility(visibility: Visibility) -> ClassBuilder;
 
     // ===== Метаданные и атрибуты =====
@@ -261,7 +268,8 @@ interface Method {
     fn isProtected() -> Bool;
     fn isStatic() -> Bool;
     fn isFinal() -> Bool;
-    fn isAbstract() -> Bool;
+    fn isOpen() -> Bool;
+    fn isFamily() -> Bool;
     fn getAttributes() -> Attribute[];
     fn getMetadata() -> Metadata;
     fn getSourceLocation() -> SourceLocation;
@@ -343,6 +351,11 @@ interface SourceLocation {
 
 ### Metadata
 
+`MetadataValue` может быть значением расширения с произвольной бинарной схемой.
+Перед публикацией HIR производитель сериализует его в непрозрачный payload и
+сам отвечает за типовой ключ и версию схемы. Amber не вызывает методы значения
+и не интерпретирует его байты.
+
 ```efen
 interface Metadata {
     fn get(key: String) -> MetadataValue?;
@@ -382,9 +395,6 @@ enum Visibility {
 
 ```efen
 interface CodeBlock {
-    // Парсинг кода из строки
-    static fn parse(code: String) -> CodeBlock;
-
     // Создание пустого блока кода
     static fn empty() -> CodeBlock;
 

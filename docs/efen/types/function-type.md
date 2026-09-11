@@ -83,8 +83,8 @@ echo multiplyBy3(4)  // Выведет: 12
 Можно создавать алиасы для сложных типов функций:
 
 ```efen
-type BinaryOperation = (Int, Int) -> Int
-type UnaryPredicate = (Int) -> Bool
+alias BinaryOperation = (Int, Int) -> Int
+alias UnaryPredicate = (Int) -> Bool
 
 let operation: BinaryOperation = (a: Int, b: Int) => { a + b }
 let isEven: UnaryPredicate = (n: Int) => { n % 2 == 0 }

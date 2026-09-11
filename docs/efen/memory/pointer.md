@@ -119,7 +119,9 @@ struct Buffer {
     var header: Spawn<Byte>
     var data: Spawn<Byte>
     var footer: Spawn<Byte>
-    
+}
+
+strategy BufferOffsets for Buffer {
     @offset
     fn data() -> Size {
         return header.size

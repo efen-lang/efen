@@ -7,7 +7,7 @@ Tuple задаёт логическую форму данных, но не об�
 его значение может быть `null`:
 
 ```efen
-type EntityData = (
+alias EntityData = (
     position: Position?,
     velocity: Velocity?,
     health: Health?
@@ -63,8 +63,8 @@ let point: (Int, Int) = (10, 20)
 let person: (String, Int, Bool) = ("Alice", 30, true)
 
 // Алиас для типа кортежа
-type Point = (Int, Int)
-type Person = (String, Int, Bool)
+alias Point = (Int, Int)
+alias Person = (String, Int, Bool)
 
 let p: Point = (5, 15)
 ```
@@ -176,9 +176,9 @@ echo config2.timeout  // 30
 Можно создавать алиасы для именованных кортежей:
 
 ```efen
-type Config = (host: String, port: Int, timeout: Int)
-type Point = (x: Int, y: Int)
-type RGB = (r: Int, g: Int, b: Int)
+alias Config = (host: String, port: Int, timeout: Int)
+alias Point = (x: Int, y: Int)
+alias RGB = (r: Int, g: Int, b: Int)
 
 fn createConfig() -> Config {
     return (host: "localhost", port: 8080, timeout: 30)
@@ -212,7 +212,7 @@ echo age   // 30
 [оператором проекции `.{ }`](projection.md):
 
 ```efen
-type Point = (x: Int, y: Int)
+alias Point = (x: Int, y: Int)
 
 let point = getPoint()
 let .{ x, y } = point
@@ -291,7 +291,7 @@ echo distance(p1, p2)  // 5.0
 ### Именованные параметры-кортежи
 
 ```efen
-type Point = (x: Int, y: Int)
+alias Point = (x: Int, y: Int)
 
 fn distance(p1: Point, p2: Point) -> Float {
     let dx = p2.x - p1.x
@@ -406,11 +406,13 @@ fn processData() {
 Используйте структуры для:
 
 ```efen
-// 1. Типов с методами
+// 1. Типов данных с поведением, предоставленным стратегией
 struct Point {
     var x: Int
     var y: Int
+}
 
+strategy PointGeometry for Point {
     fn distance(other: Point) -> Float {
         let dx = other.x - x
         let dy = other.y - y
@@ -446,7 +448,7 @@ struct Entity {
 
 ```efen
 // ❌ Плохо: кортеж для сложной структуры
-type User = (id: String, name: String, email: String, age: Int, active: Bool)
+alias User = (id: String, name: String, email: String, age: Int, active: Bool)
 
 // ✅ Хорошо: struct для сложной структуры
 struct User {

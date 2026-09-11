@@ -43,12 +43,12 @@ var rect = Rectangle(width: 100, height: 50)
 rect.color = "red"   // OK: color изменяемое, переменная объявлена через var
 ```
 
-`let` замораживает значение целиком: у переменной, объявленной через `let`,
-нельзя изменить даже поле, объявленное как `var`.
+`let` запрещает перепривязать саму переменную. Запись в поле `var` разрешена,
+если тип допускает изменение и связывание располагает правом `write`.
 
 ```efen
 let frozen = Rectangle(width: 100, height: 50)
-// frozen.color = "red"  // Ошибка: frozen объявлена через let
+frozen.color = "red"
 ```
 
 ### Поля с значениями по умолчанию
@@ -186,12 +186,17 @@ let data = RefCounted<Data> {
 ```efen
 struct Wrapper<T: Comparable> {
     var value: T
+}
 
+strategy WrapperComparison<T> for Wrapper<T> {
     fn isGreaterThan(other: Wrapper<T>) -> Bool {
         return value > other.value
     }
 }
 ```
+
+Структуры содержат только данные. Методы и другое поведение предоставляются
+внешними стратегиями; их функции не становятся физическими полями структуры.
 
 ## Семантика значений
 
@@ -404,4 +409,4 @@ struct Point {
 - [Классы](classes.md)
 - [Дженерики](generics.md)
 - [Декораторы](decorators.md)
-- [Типы](types.md)
+- [Типы](types/type.md)

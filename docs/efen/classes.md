@@ -35,6 +35,9 @@ person.haveBirthday()  // Выведет: "Alice is now 31 years old"
 
 ## Конструкторы
 
+`Self` является алиасом текущего лексического класса, в объявлении которого он
+написан. Он не меняется на тип наследника при позднем связывании.
+
 Классы могут иметь пользовательские конструкторы:
 
 ```efen
@@ -58,13 +61,21 @@ let rect = Rectangle(width: 10.0, height: 5.0)
 
 ## Наследование классов
 
-Классы поддерживают одиночное наследование:
+Классы и методы являются final по умолчанию. `open class` разрешает
+наследование, а `open fn` — переопределение метода:
 
 ```efen
-class Animal {
+final class Closed {}
+```
+
+Явный `final` закрепляет и документирует то же ограничение, которое действует
+по умолчанию. Он также доступен для метода.
+
+```efen
+open class Animal {
     var name: String
 
-    fn makeSound() {
+    open fn makeSound() {
         print("Some generic sound")
     }
 }
@@ -86,6 +97,21 @@ dog.makeSound()  // Выведет: "Woof!"
 dog.fetch()  // Выведет: "Buddy is fetching the ball"
 ```
 
+`override fn` переопределяет открытый метод и снова делает его final. Если
+следующий наследник тоже должен иметь право переопределения, текущий уровень
+пишет `open fn`; наличие базового метода уже означает override:
+
+```efen
+open class Middle : Animal {
+    open fn makeSound() {
+        print("Middle")
+    }
+}
+```
+
+`open fn` внутри final-класса является ошибкой, поскольку такой метод невозможно
+унаследовать. Отдельного модификатора `abstract` в Efen нет.
+
 ## Реализация интерфейсов
 
 Классы могут реализовывать один или несколько интерфейсов:
@@ -99,7 +125,7 @@ interface Resizable {
     fn resize(scale: Float)
 }
 
-class Circle : Drawable, Resizable {
+class Circle implements Drawable, Resizable {
     var radius: Float
     var position: Point
 
@@ -155,12 +181,12 @@ interface Storable {
     fn load()
 }
 
-class Entity {
+open class Entity {
     var id: Int
     var createdAt: DateTime
 }
 
-class Product : Entity, Storable {
+class Product : Entity implements Storable {
     conforms Validatable
 
     var name: String
@@ -181,8 +207,8 @@ class Product : Entity, Storable {
 ```
 
 Синтаксис:
-- `: BaseClass` — одиночное наследование класса (должно идти первым)
-- `, Interface1, Interface2` — реализация интерфейсов (множественная)
+- `: BaseClass` — одиночное наследование класса
+- `implements Interface1, Interface2` — реализация интерфейсов
 - `conforms Contract1, Contract2` — соответствие контрактам (множественное)
 
 ## Свойства класса
