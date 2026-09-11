@@ -69,6 +69,27 @@ fn processWithExtra() throws CustomError {
 }
 ```
 
+Generic-функция может переносить точный pack исключений callback без сведения к
+общему базовому типу:
+
+```efen
+fn map<T, U, ...Errors>(
+    items: [T],
+    transform: (T) -> U throws ...Errors
+) -> [U] throws ...Errors
+    where ...Errors: Exception
+{
+    // ...
+}
+```
+
+`Errors` является compile-time массивом типов, совместимых с `Exception`. При
+инстанциации pack связывается с опубликованным итоговым `throws` переданной
+функции и раскрывается в `throws` функции `map`. Если callable прошёл через тип,
+который не сохранил его точное итоговое множество исключений, вывести `Errors`
+из такого значения нельзя: требуется явный аргумент либо более точная
+сигнатура callable.
+
 ### throws only (ограничение исключений)
 
 ```efen

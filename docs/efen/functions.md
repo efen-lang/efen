@@ -197,6 +197,18 @@ let nums: [Int] = [1, 2, 3]
 let result = sum(...nums)
 ```
 
+Generic-функция может связать гетерогенный pack значений с pack типов:
+
+```efen
+fn tuple<...Types>(...values: Types) -> Tuple<...Types> {
+    return Tuple(...values)
+}
+```
+
+В `tuple(1, "two")` pack `Types` равен `[Int, String]`. Это отличается от
+`numbers: ...Int`, где все runtime-аргументы имеют один тип. Подробные правила —
+в [generics](generics.md#pack-значений).
+
 ## Значения по умолчанию для параметров
 
 Параметры функции могут иметь значения по умолчанию, 
