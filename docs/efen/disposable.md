@@ -488,7 +488,7 @@ fn processFile(result: Result<File, Error>) {
 ### С замыканиями
 
 ```efen
-fn withFile<T>(path: String, action: fn(File) -> T) -> T {
+fn withFile<T>(path: String, action: (File) -> T) -> T {
     let disposable file = File::open(path)
     return action(file)
     // file.dispose() вызывается после action

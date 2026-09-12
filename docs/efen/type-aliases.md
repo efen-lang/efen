@@ -88,7 +88,7 @@ class Button {
 }
 
 let button = Button()
-button.setClickHandler(fn(event) {
+button.setClickHandler((event) {
     echo "Button clicked!"
 })
 ```
@@ -142,7 +142,7 @@ fn map<T, U>(items: [T], mapper: Mapper<T, U>) -> [U] {
 
 // Использование
 let numbers = [1, 2, 3]
-let strings = map(numbers, fn(n) { return String(n) })
+let strings = map(numbers, (n) => String(n))
 ```
 
 ### Частичное применение дженериков

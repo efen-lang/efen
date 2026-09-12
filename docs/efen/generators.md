@@ -84,8 +84,8 @@ generator counter() -> Int {
 
 ```efen
 let result = [1, 2, 3]
-    |> map(fn(x) => x * 2)
-    |> filter(fn(x) => x > 3)
+    |> map((x) => x * 2)
+    |> filter((x) => x > 3)
 
 // Явно отделённый единственный аргумент
 println <| "Hello, World!"

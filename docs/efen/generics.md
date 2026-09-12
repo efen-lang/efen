@@ -27,15 +27,16 @@
 ключевое слово `param` в начале тела объявления:
 
 ```efen
-class Box {
+fn identity -> T {
     param T: Type
+    param value: T
 
-    var value: T
+    return value
 }
 ```
 
-Эта форма эквивалентна `class Box<T>`. Как и у функции без круглых скобок,
-объявления `param` идут подряд до остальных членов.
+Эта форма эквивалентна `fn identity<T>(value: T) -> T`. У функции без круглых
+скобок объявления `param` идут подряд до остальных инструкций.
 
 ### Базовый синтаксис
 
@@ -45,8 +46,11 @@ fn identity<T>(value: T) -> T {
 }
 
 // Использование
-let num = identity<Int>(42)
-let str = identity<String>("hello")
+let num = identity(42)       // T выводится как Int
+let str = identity("hello")  // T выводится как String
+
+// Тип можно указать явно
+let explicit = identity<Int>(42)
 ```
 
 ### Множественные параметры типа
@@ -62,7 +66,7 @@ fn map<T, U>(items: [T], transform: (T) -> U) -> [U] {
 
 // Использование
 let numbers = [1, 2, 3]
-let strings = map<Int, String>(numbers, fn(n) { return String(n) })
+let strings = map(numbers, (n) => String(n))
 ```
 
 ### Вывод типов
@@ -71,37 +75,28 @@ let strings = map<Int, String>(numbers, fn(n) { return String(n) })
 
 ```efen
 let result = identity(42)  // T выводится как Int
-let doubled = map([1, 2, 3], fn(x) { return x * 2 })  // T=Int, U=Int
+let doubled = map([1, 2, 3], (x) => x * 2)  // T=Int, U=Int
 ```
 
 ## Дженерик-методы
 
-Методы классов и функций стратегий также могут быть дженерик-методами.
+Методы классов и методы, предоставляемые стратегиями, также могут объявлять
+собственные generic-параметры.
 
 ```efen
-class Container {
-    var items: [Any] = []
-
-    fn add<T>(item: T) {
-        items.append(item)
-    }
-
-    fn get<T>(index: Int) -> T? {
-        if index < items.count {
-            return items[index] as? T
-        }
-        return null
+class Transformer {
+    fn apply<T, U>(value: T, transform: (T) -> U) -> U {
+        return transform(value)
     }
 }
 
 // Использование
-let container = Container()
-container.add<Int>(42)
-container.add<String>("hello")
-
-let num: Int? = container.get<Int>(0)
-let str: String? = container.get<String>(1)
+let transformer = Transformer()
+let text = transformer.apply(42, (number) => String(number))
 ```
+
+`T` и `U` принадлежат методу `apply`, а не классу `Transformer`. Их значения
+выводятся заново для каждого вызова метода.
 
 ## Дженерик-классы
 
@@ -111,7 +106,8 @@ let str: String? = container.get<String>(1)
 class Box<T> {
     var value: T
 
-    init(value: T) {
+    @constructor
+    fn init(value: T) -> Self {
         self.value = value
     }
 
@@ -185,10 +181,10 @@ let pair = Pair<Int, String>(first: 42, second: "answer")
 ```efen
 struct RefCounted<T> {
     var refCount: Int = 0
-    T  // Встроенная структура типа T
+    var value: T
 }
 
-// При использовании все поля T становятся частью RefCounted
+let value = RefCounted<String>(refCount: 1, value: "hello")
 ```
 
 ## Дженерик-интерфейсы
@@ -196,15 +192,15 @@ struct RefCounted<T> {
 Интерфейсы также могут быть дженерик-типами.
 
 ```efen
-interface Comparable<T> {
-    fn compareTo(other: T) -> Int
+interface Equatable<T> {
+    fn equals(other: T) -> Bool
 }
 
-class Person implements Comparable<Person> {
+class Person implements Equatable<Person> {
     var age: Int
 
-    fn compareTo(other: Person) -> Int {
-        return age - other.age
+    fn equals(other: Person) -> Bool {
+        return age == other.age
     }
 }
 ```
@@ -214,14 +210,20 @@ class Person implements Comparable<Person> {
 Параметры типа могут иметь ограничения (constraints) для указания требований к типам.
 
 ```efen
+contract Comparable<T> {
+    fn compareTo(other: T) -> Int
+}
+
 // Базовое ограничение
-fn sort<T: Comparable>(items: [T]) -> [T] {
-    // T должен реализовывать Comparable
+fn compare<T: Comparable<T>>(left: T, right: T) -> Int {
+    return left.compareTo(right)
 }
 
 // Множественные ограничения
-fn process<T: Readable & Writable>(data: T) {
-    // T должен реализовывать оба интерфейса
+fn process<T>(data: T)
+    where T: Readable, T: Writable
+{
+    // T должен соответствовать обоим контрактам
 }
 ```
 
@@ -306,16 +308,22 @@ Enum, объявленный владельцем generic-типа, позвол
 type ParticleColumns: Array<Particle, SoA>
 ```
 
-Здесь `Particle` — параметр типа, а `SoA` — enum-константа внутри `Array`.
+Здесь `Particle` — аргумент параметра типа `Element`, а `SoA` — enum-константа
+внутри `Array`.
 Конкретная инстанциация имеет одну определённую representation.
 Запись `[T]` сокращает `Array<T, default>`.
 
 Полная форма позволяет явно указать тип параметра и значение по умолчанию:
 
 ```efen
-class Array {
+struct Array {
     param Element: Type
     param Form: Representation = default
+
+    enum Representation {
+        AoS
+        SoA
+    }
 }
 ```
 
@@ -327,7 +335,7 @@ class AnnotatedStorage {
     param Annotation: Attribute
 }
 
-let values = new AnnotatedStorage<Int, @myattr>
+let values = AnnotatedStorage<Int, @myattr>()
 ```
 
 Это отличается от атрибута внутри типового аргумента:
@@ -356,8 +364,13 @@ Array<Element: Particle, Form: SoA>
 компилятор требует именованный аргумент:
 
 ```efen
-Iterable<Item: Int> // Cursor выводится из iterator()
-Iterable            // Item и Cursor выводятся, если решение однозначно
+fn consumeInts<T: Iterable<Item: Int>>(items: T) {
+    // Cursor выводится из выбранного соответствия T контракту Iterable.
+}
+
+fn consume<T: Iterable>(items: T) {
+    // Item и Cursor выводятся из T, если соответствие единственно.
+}
 ```
 
 Выведенные параметры являются частью полной инстанциации и сохраняются в её
@@ -406,7 +419,7 @@ if value has @myattr {
 собственным списком типовых параметров принимает конструктор типов:
 
 ```efen
-class Repository {
+interface Repository {
     param Entity: Type
     param Result<T>: Type
 
@@ -503,10 +516,10 @@ class SquareMatrix {
     where Rows == Columns
 }
 
-fn sameElements<A: Iterable, B: Iterable>(left: A, right: B) -> Bool
+fn processSameElements<A: Iterable, B: Iterable>(left: A, right: B)
     where A.Item == B.Item, A.Item: Equatable
 {
-    // ...
+    // left и right могут иметь разные типы, но один тип элемента.
 }
 ```
 
@@ -544,14 +557,18 @@ fn printAll<T: Iterable<Item: String>>(items: T) {
 fn merge(
     left: Iterable<Item: String>,
     right: Iterable<Item: String>
-)
+) {
+    // left и right могут иметь разные конкретные типы.
+}
 ```
 
 `left` и `right` могут иметь разные конкретные типы. Когда требуется один тип,
 он объявляется явно:
 
 ```efen
-fn merge<T: Iterable<Item: String>>(left: T, right: T)
+fn merge<T: Iterable<Item: String>>(left: T, right: T) {
+    // left и right имеют один конкретный тип T.
+}
 ```
 
 ## Полиморфные функциональные типы
@@ -767,7 +784,11 @@ fn transform<TInput, TOutput>(
     items: [TInput],
     mapper: (TInput) -> TOutput
 ) -> [TOutput] {
-    // ...
+    var result: [TOutput] = []
+    for item in items {
+        result.append(mapper(item))
+    }
+    return result
 }
 ```
 

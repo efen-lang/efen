@@ -79,7 +79,7 @@ fn map<T, U>(items: [T], transform: (T) -> U) -> [U] {
 }
 
 let numbers = [1, 2, 3]
-let strings = map<Int, String>(numbers, fn(n) { return String(n) })
+let strings = map(numbers, (n) => String(n))
 ```
 
 ### Вывод типов
@@ -88,7 +88,7 @@ let strings = map<Int, String>(numbers, fn(n) { return String(n) })
 
 ```efen
 let result = identity(42)  // T выводится как Int
-let doubled = map([1, 2, 3], fn(x) { return x * 2 })
+let doubled = map([1, 2, 3], (x) => x * 2)
 ```
 
 Подробнее о дженериках см. [Дженерики](generics.md).
