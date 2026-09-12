@@ -27,29 +27,26 @@ layout Deque<T> {
 
     fn pushFront(value: T) {
         var node = Nodes.create(value: value, next: null)
-        let fresh: read Nodes.pointer = node   // borrowed before ownership moves
-
         let wasEmpty = head == null            // comparison neither moves nor borrows
 
-        node.next = head                       // sets head.prev with it
-        head = node
+        node.next = take head                  // sets head.prev with it
+        head = take node
 
         if wasEmpty {
-            tail = fresh
+            tail = head
         }
     }
 
     fn pushBack(value: T) {
         var node = Nodes.create(value: value, next: null)
-        let fresh: read Nodes.pointer = node
 
         if tail == null {
-            head = node
+            head = take node
+            tail = head
         } else {
-            tail.next = node                   // sets node.prev with it
+            tail.next = take node              // sets node.prev with it
+            tail = tail.next
         }
-
-        tail = fresh
     }
 
     // O(1): the owning cell of the node is either `head` or the `next` field of
@@ -59,13 +56,14 @@ layout Deque<T> {
         var cell = before == null ? head.slot : before.next.slot
 
         var victim = cell.take()               // acquire the owning reference
-        cell.target = victim.next              // prev of the new occupant follows
+        cell.target = take victim.next         // prev of the new occupant follows
 
         if read cell.target == null {
             tail = before
         }
 
-        return Nodes.take(victim).value        // consume ownership and move the value
+        var removed = Nodes.take(take victim)
+        return take removed.value              // consume ownership and move the value
     }
 
     fn popBack() -> T? {

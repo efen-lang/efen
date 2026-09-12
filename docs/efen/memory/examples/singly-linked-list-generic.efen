@@ -21,8 +21,8 @@ layout List<T: Equatable> {
 
     fn prepend(value: T) {
         var node = Nodes.create(value: value, next: null)
-        node.next = head
-        head = node
+        node.next = take head
+        head = take node
     }
 
     fn contains(value: T) -> Bool {
@@ -41,8 +41,8 @@ layout List<T: Equatable> {
 
             if node.value == value {
                 var victim = cell.take()          // the cell empties, we own the block
-                cell.target = victim.next         // the tail moves into the cell
-                Nodes.remove(victim)              // the block leaves the population here
+                cell.target = take victim.next    // the tail moves into the cell
+                Nodes.remove(take victim)         // the block leaves the population here
 
                 return true
             }

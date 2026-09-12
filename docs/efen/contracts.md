@@ -320,6 +320,29 @@ contract CombinedContract : FirstContract, SecondContract {
 
 ## Связь контрактов с интерфейсами
 
+Runtime-interface из contract создаётся только явной декларацией:
+
+```efen
+contract DrawableContract {
+    fn draw()
+}
+
+interface DrawableInterface from DrawableContract
+```
+
+`DrawableInterface` сохраняет compile-time identity исходного
+`DrawableContract` и проверяется как соответствующий ему (`conforms`). В
+runtime-поверхность переносятся только вызываемые методы. Associated types,
+требования к representation и другие compile-time ограничения проверяются при
+создании и реализации interface, но автоматически не материализуются в runtime
+metadata. Каждая runtime-сигнатура должна быть полностью замкнута: несвязанный
+associated type или `Self` и неудовлетворённое representation-требование
+являются ошибкой, а не молча стираются. Нужную runtime metadata может отдельно
+породить метакод.
+
+Без `interface ... from ...` contract остаётся только compile-time абстракцией
+и сам по себе не создаёт VTBL.
+
 Интерфейс может **соответствовать** (`conforms`) одному или нескольким контрактам. Это означает, что
 компилятор проверит на этапе компиляции, что интерфейс удовлетворяет всем требованиям контракта.
 

@@ -250,7 +250,7 @@ wrapper => {
 ```efen
 meta fn forEach(items: comptime Array, body: InlineClosure) -> InlineClosure {
     return inline {
-        for i in 0..<items.length {
+        for i in 0..<items.count {
             ${body}(items[i], i)  // Вызов с параметрами!
         }
     }
@@ -1990,7 +1990,7 @@ meta fn validateInterface(type: Type) -> InlineClosure {
 
     let methods = type.getMethods()
     return inline {
-        println("Interface ${type.getName()} has ${methods.length} methods")
+        println("Interface ${type.getName()} has ${methods.count} methods")
     }
 }
 ```

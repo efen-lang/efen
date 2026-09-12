@@ -91,7 +91,7 @@ fn process(arr: [Int], index: Int) -> Int {
 
 // Компилятор автоматически добавит проверки:
 fn process(arr: [Int], index: Int) -> Int {
-    if index < 0 || index >= arr.length() {
+    if index < 0 || index >= arr.count() {
         panic("Index out of bounds")
     }
     let value = arr[index]

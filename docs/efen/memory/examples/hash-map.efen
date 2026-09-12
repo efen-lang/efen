@@ -75,27 +75,27 @@ layout HashMap<Key: Hashable, Value> {
         }
 
         var fresh = Entries.create(key: key, hash: h, value: value)
-        fresh.next = buckets[i]            // the cell gives its ownership away
-        buckets[i] = fresh                 // and takes the new owner
+        fresh.next = take buckets[i]       // explicit transfer from the old root
+        buckets[i] = take fresh            // explicit transfer of the new root
 
         if Entries.count > (mask + 1) * 3 / 4 {
             resize(capacity: (mask + 1) * 2)
         }
     }
 
-    // `read cell.target` borrows: without the word the cell would be emptied on
-    // every non-matching step. `take` moves the block out of the cell, and
-    // `Entries.take` moves it out of the population together with its value.
+    // Ordinary `cell.target` access borrows. `take` moves the block out of the
+    // cell, and `Entries.take` moves it out of the population with its value.
     fn remove(key: Key) -> Value? {
         let h = key.hash()
 
         for cell in buckets[bucketOf(h)].slot along next {
-            let e = read cell.target
+            let e = cell.target
 
             if e.hash == h && e.key == key {
                 var victim = cell.take()
-                cell.target = victim.next
-                return Entries.take(victim).value
+                cell.target = take victim.next
+                var removed = Entries.take(take victim)
+                return take removed.value
             }
         }
 
@@ -107,17 +107,17 @@ layout HashMap<Key: Hashable, Value> {
     fn resize(capacity: Buckets) {
         // Allocate before moving the old storage: allocation may fail.
         var replacement = [own Entries.pointer?](size: capacity)
-        var old = buckets
+        var old = take buckets
 
         mask = capacity - 1
-        buckets = replacement
+        buckets = take replacement
 
         for cell in old.slots {
-            while read cell.target != null {
+            while cell.target != null {
                 var e = cell.take()
-                cell.target = e.next          // preserve the remaining old chain
-                e.next = buckets[e.home]
-                buckets[e.home] = e
+                cell.target = take e.next     // preserve the remaining old chain
+                e.next = take buckets[e.home]
+                buckets[e.home] = take e
             }
         }
     }

@@ -26,8 +26,8 @@ layout IntList {
     // which is where it is checked.
     fn prepend(value: Int) {
         var node = Nodes.create(value: value, next: null)
-        node.next = head              // the head field gives its ownership away
-        head = node                   // and the new owner is the head field
+        node.next = take head         // the head field gives its ownership away
+        head = take node              // and the new owner is the head field
     }
 
     fn contains(value: Int) -> Bool {
@@ -48,8 +48,8 @@ layout IntList {
 
             if node.value == value {
                 var victim = cell.take()          // the cell empties, we own the block
-                cell.target = victim.next         // the tail moves into the cell
-                Nodes.remove(victim)              // the block leaves the population here
+                cell.target = take victim.next    // the tail moves into the cell
+                Nodes.remove(take victim)         // the block leaves the population here
 
                 return true
             }

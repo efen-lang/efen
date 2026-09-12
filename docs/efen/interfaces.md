@@ -24,6 +24,12 @@
 - ✅ Сам contract не требует runtime-дескриптора или VTBL
 - ✅ Для generic constraints и compile-time проверок
 
+Interface не возникает из contract автоматически. Явная декларация
+`interface Name from Contract` создаёт runtime-interface и сохраняет
+compile-time связь с исходным contract. В interface переносятся только runtime-
+вызываемые методы; associated types, representation и прочие статические
+требования остаются проверками времени компиляции.
+
 ### Практический пример
 
 ```efen

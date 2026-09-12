@@ -55,34 +55,28 @@ struct Footer {
 
 struct Packet {
     Header
-    var unionSelector: UInt8 { unionSelector == data.typeOf }
-    union data {
-        payload: Payload
-        footer: Footer
-    }
+    var data: Payload | Footer
 }
 ```
 
-Здесь `Payload` и `Footer` занимают одно и то же место в памяти,
-и мы можем безопасно работать с ними, используя декларативную
-адресную арифметику.
+`data` является обычным union-значением с одной активной альтернативой. Тег
+принадлежит самому union и меняется вместе со значением; свободного selector-
+поля рядом с payload нет. Доступ выполняется через `match`, а inline или
+косвенное физическое представление выбирает компилятор.
 
 `Efen` так же поддерживает variadic unions:
 
 ```efen
 struct Message {
-    var type: UInt8 { type == data.indexOf }
-    var size: Size { size == data.sizeOf }
-    union data {
-        text: String
-        image: Image
-        video: Video
-    }
+    var data: String | Image | Video
 }
 ```
 
-В этом случае структура `Message` имеет различный размер в памяти
-в зависимости от значения поля `type`.
+Семантика поля не зависит от числа альтернатив. Обычное значение `Message`
+имеет один статически определённый layout для выбранной компилятором
+representation; runtime-вариант не меняет размер самого значения. Отдельная
+динамически-размерная representation требует самостоятельного layout-контракта
+и не возникает из union автоматически.
 
 ## Вычисляемые смещения
 
