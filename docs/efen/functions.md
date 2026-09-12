@@ -33,16 +33,16 @@ fn add: Adder {
 и доступны как префиксы к определению функции.
 
 ```efen
-public fn publicFunction() {
+public fn publicFunction {
     // Доступна из других модулей и пакетов
 }
-internal fn internalFunction() {
+internal fn internalFunction {
     // Доступна только внутри текущего пакета
 }
-private fn privateFunction() {
+private fn privateFunction {
     // Доступна только внутри текущего модуля
 }
-api fn apiFunction() {
+api fn apiFunction {
     // `api` разворачивается по составному атрибуту главного модуля пакета
 }
 ```
@@ -52,7 +52,10 @@ api fn apiFunction() {
 `Efen` поддерживает параметры типа (generics) для функций, позволяя создавать универсальные алгоритмы:
 
 ```efen
-fn identity<T>(value: T) -> T {
+fn identity -> T {
+    generic T: Type
+    param value: T
+
     return value
 }
 
@@ -64,7 +67,8 @@ let str = identity<String>("hello")
 
 ```efen
 alias Wrapper<T> = (value: T) -> T
-fn wrap<T>: Wrapper<T> {
+fn wrap: Wrapper<T> {
+    generic T: Type
     return value
 }
 ```
@@ -74,7 +78,12 @@ fn wrap<T>: Wrapper<T> {
 Функции могут иметь несколько параметров типа:
 
 ```efen
-fn map<T, U>(items: [T], transform: (T) -> U) -> [U] {
+fn map -> [U] {
+    generic T: Type
+    generic U: Type
+    param items: [T]
+    param transform: (T) -> U
+
     return items.map => transform($item)
 }
 
@@ -95,18 +104,19 @@ let doubled = map([1, 2, 3], (x) => x * 2)
 
 ## Определение параметров
 
-Параметры функции определяются внутри круглых скобок после имени функции.
+Параметры функции можно объявить в заголовке либо через `param` в начале тела.
+Обе формы являются валидным синтаксисом и обозначают одну модель параметров.
 Каждый параметр имеет имя и тип, разделённые двоеточием.
-Параметры разделяются запятыми.
 Параметры могут иметь значения по умолчанию, которые используются, если аргумент не был передан при вызове функции:
 ```efen
-fn greet(name: String = "Guest") {
+fn greet {
+    param name: String = "Guest"
+
     print("Hello, ${name}!")
 }
 ```
 
-Кроме классического синтаксиса, `Efen` поддерживает и альтернативный синтаксис для определения параметров функции,
-который позволяет указывать параметры в теле функции:
+Несколько параметров записываются отдельными последовательными объявлениями:
 ```efen
 fn multiply -> Int {
     // Описание для параметра a
@@ -118,9 +128,12 @@ fn multiply -> Int {
 }
 ```
 
-**Важно:** круглые скобки `()` после имени функции определяют, где будут параметры:
-- **С скобками** `fn foo(a: Int)` или `fn foo()` - параметры ТОЛЬКО в сигнатуре (пустые скобки = нет параметров)
-- **Без скобок** `fn foo { param a: Int }` - параметры ТОЛЬКО в теле через `param`
+Каноническую форму выбирает обязательное правило стиля: при числе runtime-
+параметров больше трёх используются объявления `param`. Заголовочная форма при
+этом остаётся валидной, но получает warning
+`S.function-parameter-layout`. Variadic-параметр считается одним; generic-
+параметры и неявный receiver не считаются. Общая модель style diagnostics
+описана в [Diagnostic Groups](diagnostic-groups.md#style-diagnostics-s).
 
 Все объявления `param` идут подряд в начале тела, до первой инструкции.
 Объявление `param` после первой инструкции — ошибка компиляции:
@@ -134,9 +147,20 @@ fn multiply -> Int {
 }
 ```
 
-Второй синтаксис особенно полезен для функций с большим количеством параметров
-или когда требуется более подробное описание параметров. Он так же делает код читаемее,
-убирая длинные списки параметров из заголовка функции.
+`param` всегда объявляет аргумент вызова. Generic-параметр объявления
+записывается отдельным ключевым словом `generic` и предшествует всем `param`:
+
+```efen
+fn identity -> T {
+    generic T: Type
+    param value: T
+
+    return value
+}
+```
+
+Такая запись сохраняет заголовок коротким и оставляет место для документации
+каждого параметра непосредственно перед его объявлением.
 
 `Efen` позволяет не указывать параметры и возвращаемое значение функции, если функция
 является частью реализации интерфейса или контракта. В этом случае компилятор использует
@@ -144,8 +168,15 @@ fn multiply -> Int {
 
 ```efen
 interface Calculator {
-    fn add(a: Int, b: Int) -> Int
-    fn subtract(a: Int, b: Int) -> Int
+    fn add -> Int {
+        param a: Int
+        param b: Int
+    }
+
+    fn subtract -> Int {
+        param a: Int
+        param b: Int
+    }
 }
 
 class SimpleCalculator {
@@ -166,7 +197,8 @@ class SimpleCalculator {
 Переменное число параметров задаётся с помощью синтаксиса:
 
 ```efen
-fn sum(numbers: ...Int) -> Int {
+fn sum -> Int {
+    param numbers: ...Int
     var total: Int = 0
     numbers.for => total += $number
     return total
@@ -179,17 +211,6 @@ fn sum(numbers: ...Int) -> Int {
 let result = sum(1, 2, 3, 4, 5)
 ```
 
-Для variadic параметров можно использовать альтернативный синтаксис:
-
-```efen
-fn sum -> Int {
-    param numbers: ...Int
-    var total: Int = 0
-    numbers.for => total += $number
-    return total
-}
-```
-
 Если требуется передать массив в функцию с переменным числом параметров,
 можно использовать оператор распаковки `...`:
 ```efen
@@ -200,7 +221,10 @@ let result = sum(...nums)
 Generic-функция может связать гетерогенный pack значений с pack типов:
 
 ```efen
-fn tuple<...Types>(...values: Types) -> Tuple<...Types> {
+fn tuple -> Tuple<...Types> {
+    generic ...Types: Type
+    param ...values: Types
+
     return Tuple(...values)
 }
 ```
@@ -214,7 +238,9 @@ fn tuple<...Types>(...values: Types) -> Tuple<...Types> {
 Параметры функции могут иметь значения по умолчанию, 
 которые используются, если аргумент не был передан при вызове функции:
 ```efen
-fn greet(name: String = "Guest") {
+fn greet {
+    param name: String = "Guest"
+
     print("Hello, ${name}!")
 }
 ```
@@ -359,7 +385,10 @@ let result = getValue + 5  // Ошибка компиляции!
 
 Функции в `Efen` поддерживают именованные параметры, что позволяет явно указывать имена параметров при вызове функции.
 ```efen
-fn greet(firstName: String, lastName: String) {
+fn greet {
+    param firstName: String
+    param lastName: String
+
     print("Hello, ${firstName} ${lastName}!")
 }
 greet(firstName: "John", lastName: "Doe")
@@ -400,7 +429,9 @@ fn add: Adder {
 
 Синтаксис:
 ```efen
-fn saveUser(name: String) in LoggerEffect {
+fn saveUser in LoggerEffect {
+    param name: String
+
     LoggerEffect.log("Saving user: ${name}")
 }
 ```
@@ -414,7 +445,10 @@ fn saveUser(name: String) in LoggerEffect {
 ```efen
 
 @attribute
-fn compute(a: Int, b: Int) -> Int {
+fn compute -> Int {
+    param a: Int
+    param b: Int
+
     return a * b
 }
 ```
@@ -422,7 +456,10 @@ fn compute(a: Int, b: Int) -> Int {
 Когда декораторов очень много, их разумно расположить внутри тела функции:
 
 ```efen
-fn compute(a: Int, b: Int) -> Int {
+fn compute -> Int {
+    param a: Int
+    param b: Int
+
     use attribute
     use {
         attribute1

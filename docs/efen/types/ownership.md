@@ -66,7 +66,9 @@ Readonly-тип не даёт `write`. CoW-тип при записи снача
 не-владеющих прав и сужает их до реально использованных.
 
 ```efen
-fn checksum(buffer: Buffer) -> UInt64 {
+fn checksum -> UInt64 {
+    param buffer: Buffer
+
     // Итоговая сигнатура получает только реально потребовавшиеся права.
 }
 ```
@@ -78,7 +80,9 @@ fn checksum(buffer: Buffer) -> UInt64 {
 Явная передача владения остаётся частью сигнатуры:
 
 ```efen
-fn consume(file: FileHandle own) {
+fn consume {
+    param file: FileHandle own
+
     // функция принимает обязанность уничтожить file
 }
 ```
@@ -112,15 +116,21 @@ Optional не меняет режим ссылки: `&T?` — читающая �
 optional-место, а `&out T?` — только пишущая.
 
 ```efen
-fn increment(value: &Int) {
+fn increment {
+    param value: &Int
+
     value = value + 1
 }
 
-fn inspect(value: &read Int) {
+fn inspect {
+    param value: &read Int
+
     echo value
 }
 
-fn initialize(value: &out Int) {
+fn initialize {
+    param value: &out Int
+
     value = 0
 }
 ```
@@ -135,7 +145,9 @@ fn initialize(value: &out Int) {
 ```efen
 // Полная форма результата: ref read[values] Int
 // Короткая форма результата: &read[values] Int
-fn first(values: &read Array<Int>) -> &read[values] Int {
+fn first -> &read[values] Int {
+    param values: &read Array<Int>
+
     return &read values[0]
 }
 ```
@@ -145,15 +157,20 @@ fn first(values: &read Array<Int>) -> &read[values] Int {
 origin. Несколько возможных источников перечисляются вместе:
 
 ```efen
-fn choose(left: &read Int, right: &read Int, condition: Bool)
-    -> &read[left, right] Int
+fn choose -> &read[left, right] Int {
+    param left: &read Int
+    param right: &read Int
+    param condition: Bool
+}
 ```
 
 Origin можно опустить, когда компилятор однозначно выводит его из всех путей
 возврата. Выведенная связь сохраняется в сигнатуре так же, как выведенные права:
 
 ```efen
-fn first(values: &read Array<Int>) -> &read Int
+fn first -> &read Int {
+    param values: &read Array<Int>
+}
 ```
 
 Если origin вывести нельзя, отсутствие `[origin]` является ошибкой, а не
@@ -165,8 +182,9 @@ fn first(values: &read Array<Int>) -> &read Int
 и компилятор доказывает, что origin живёт не меньше содержащего значения:
 
 ```efen
-struct View<T> {
-    param Source: Origin
+struct View {
+    generic T: Type
+    generic Source: Origin
     let value: &read[Source] T
 }
 ```
@@ -198,7 +216,10 @@ User inspect
 Один generic-компонент может работать с ними без отдельного объявления:
 
 ```efen
-fn identity<T>(value: T) -> T {
+fn identity -> T {
+    generic T: Type
+    param value: T
+
     return value
 }
 ```
@@ -215,7 +236,7 @@ fn identity<T>(value: T) -> T {
 class Queue {
     own var pending: Job?
 
-    fn detach() -> Job? {
+    fn detach -> Job? {
         return take self.pending
     }
 }

@@ -13,7 +13,7 @@
 - [Множественные параметры типа](#множественные-параметры-типа)
 - [Конструкторы типов](#конструкторы-типов)
 - [Ограничения параметров](#ограничения-параметров)
-- [Безымянный generic-параметр](#безымянный-generic-параметр)
+- [Generic-параметры с contract](#generic-параметры-с-contract)
 - [Полиморфные функциональные типы](#полиморфные-функциональные-типы)
 - [Variadic generic-параметры](#variadic-generic-параметры)
 - [Pack значений](#pack-значений)
@@ -21,27 +21,30 @@
 
 ## Дженерик-функции
 
-Функции могут объявлять параметры типа в угловых скобках после имени функции.
-Параметр типа является compile-time параметром со значением типа `Type`.
-Угловые скобки — короткая запись; полная форма использует уже существующее
-ключевое слово `param` в начале тела объявления:
+Функции могут объявлять generic-параметры ключевым словом `generic` в начале
+тела объявления. Параметр типа является compile-time параметром со значением
+типа `Type`:
 
 ```efen
 fn identity -> T {
-    param T: Type
+    generic T: Type
     param value: T
 
     return value
 }
 ```
 
-Эта форма эквивалентна `fn identity<T>(value: T) -> T`. У функции без круглых
-скобок объявления `param` идут подряд до остальных инструкций.
+Объявления `generic` предшествуют параметрам вызова, а объявления `param` идут
+после них подряд до остальных инструкций. Список в угловых скобках остаётся
+допустимой короткой формой generic-параметров объявления.
 
 ### Базовый синтаксис
 
 ```efen
-fn identity<T>(value: T) -> T {
+fn identity -> T {
+    generic T: Type
+    param value: T
+
     return value
 }
 
@@ -56,7 +59,12 @@ let explicit = identity<Int>(42)
 ### Множественные параметры типа
 
 ```efen
-fn map<T, U>(items: [T], transform: (T) -> U) -> [U] {
+fn map -> [U] {
+    generic T: Type
+    generic U: Type
+    param items: [T]
+    param transform: (T) -> U
+
     var result: [U] = []
     for item in items {
         result.append(transform(item))
@@ -85,7 +93,12 @@ let doubled = map([1, 2, 3], (x) => x * 2)  // T=Int, U=Int
 
 ```efen
 class Transformer {
-    fn apply<T, U>(value: T, transform: (T) -> U) -> U {
+    fn apply -> U {
+        generic T: Type
+        generic U: Type
+        param value: T
+        param transform: (T) -> U
+
         return transform(value)
     }
 }
@@ -103,19 +116,24 @@ let text = transformer.apply(42, (number) => String(number))
 Классы могут иметь параметры типа, которые применяются ко всему классу.
 
 ```efen
-class Box<T> {
+class Box {
+    generic T: Type
     var value: T
 
     @constructor
-    fn init(value: T) -> Self {
+    fn init -> Self {
+        param value: T
+
         self.value = value
     }
 
-    fn getValue() -> T {
+    fn getValue -> T {
         return value
     }
 
-    fn setValue(newValue: T) {
+    fn setValue {
+        param newValue: T
+
         value = newValue
     }
 }
@@ -144,20 +162,26 @@ echo intBox.getValue()  // 42
 ### Наследование с дженериками
 
 ```efen
-open class Container<T> {
+open class Container {
+    generic T: Type
     var items: [T] = []
 
-    fn add(item: T) {
+    fn add {
+        param item: T
+
         items.append(item)
     }
 }
 
-class Stack<T>: Container<T> {
-    fn push(item: T) {
+class Stack: Container<T> {
+    generic T: Type
+    fn push {
+        param item: T
+
         add(item)
     }
 
-    fn pop() -> T? {
+    fn pop -> T? {
         if items.count > 0 {
             return items.removeLast()
         }
@@ -171,7 +195,9 @@ class Stack<T>: Container<T> {
 Структуры поддерживают дженерики с композицией типов.
 
 ```efen
-struct Pair<T, U> {
+struct Pair {
+    generic T: Type
+    generic U: Type
     var first: T
     var second: U
 }
@@ -183,7 +209,8 @@ let pair = Pair<Int, String>(first: 42, second: "answer")
 ### Композиция с дженериками
 
 ```efen
-struct RefCounted<T> {
+struct RefCounted {
+    generic T: Type
     var refCount: Int = 0
     var value: T
 }
@@ -196,14 +223,19 @@ let value = RefCounted<String>(refCount: 1, value: "hello")
 Интерфейсы также могут быть дженерик-типами.
 
 ```efen
-interface Equatable<T> {
-    fn equals(other: T) -> Bool
+interface Equatable {
+    generic T: Type
+    fn equals -> Bool {
+        param other: T
+    }
 }
 
 class Person implements Equatable<Person> {
     var age: Int
 
-    fn equals(other: Person) -> Bool {
+    fn equals -> Bool {
+        param other: Person
+
         return age == other.age
     }
 }
@@ -214,19 +246,29 @@ class Person implements Equatable<Person> {
 Параметры типа могут иметь ограничения (constraints) для указания требований к типам.
 
 ```efen
-contract Comparable<T> {
-    fn compareTo(other: T) -> Int
+contract Comparable {
+    generic T: Type
+    fn compareTo -> Int {
+        param other: T
+    }
 }
 
 // Базовое ограничение
-fn compare<T: Comparable<T>>(left: T, right: T) -> Int {
+fn compare -> Int {
+    generic T: Comparable<T>
+    param left: T
+    param right: T
+
     return left.compareTo(right)
 }
 
 // Множественные ограничения
-fn process<T>(data: T)
+fn process
     where T: Readable, T: Writable
 {
+    generic T: Type
+    param data: T
+
     // T должен соответствовать обоим контрактам
 }
 ```
@@ -236,7 +278,12 @@ fn process<T>(data: T)
 Функции, классы и другие конструкции могут иметь несколько параметров типа.
 
 ```efen
-fn zip<T, U>(first: [T], second: [U]) -> [(T, U)] {
+fn zip -> [(T, U)] {
+    generic T: Type
+    generic U: Type
+    param first: [T]
+    param second: [U]
+
     var result: [(T, U)] = []
     let minCount = min(first.count, second.count)
 
@@ -263,7 +310,10 @@ alias Handler<T> = (T) -> Void
 alias Transformer<T, U> = (T) -> U
 
 // Использование
-fn processData<T>(handler: Handler<T>) {
+fn processData {
+    generic T: Type
+    param handler: Handler<T>
+
     // ...
 }
 ```
@@ -279,25 +329,25 @@ Generic-параметр может быть любым compile-time значе�
 Категория параметра задаётся его типом:
 
 ```efen
-param T: Type
-param Requirement: Contract
-param RuntimeAPI: Interface
-param Annotation: Attribute
-param Policy: Strategy
-param Source: Origin
-param Size: Int
+generic T: Type
+generic Requirement: Contract
+generic RuntimeAPI: Interface
+generic Annotation: Attribute
+generic Policy: Strategy
+generic Source: Origin
+generic Size: Int
 ```
 
 Один символ interface может участвовать в двух разных ролях. При
-`param T: Type` передаётся его runtime-тип; при `param I: Interface` передаётся
+`generic T: Type` передаётся его runtime-тип; при `generic I: Interface` передаётся
 compile-time объект декларации interface, доступный reflection и генерации.
 Contract не является runtime-типом, но является допустимым compile-time
-значением для `param C: Contract`.
+значением для `generic C: Contract`.
 
 ```efen
 class Adapter {
-    param Requirement: Contract
-    param RuntimeAPI: Interface
+    generic Requirement: Contract
+    generic RuntimeAPI: Interface
 
     #if Self conforms Requirement {
         // compile-time формирование реализации RuntimeAPI
@@ -321,8 +371,8 @@ type ParticleColumns: Array<Particle, SoA>
 
 ```efen
 struct Array {
-    param Element: Type
-    param Form: Representation = default
+    generic Element: Type
+    generic Form: Representation = default
 
     enum Representation {
         AoS
@@ -335,8 +385,8 @@ struct Array {
 
 ```efen
 class AnnotatedStorage {
-    param Element: Type
-    param Annotation: Attribute
+    generic Element: Type
+    generic Annotation: Attribute
 }
 
 let values = AnnotatedStorage<Int, @myattr>()
@@ -346,7 +396,7 @@ let values = AnnotatedStorage<Int, @myattr>()
 
 ```efen
 Array<@myattr Int>                 // T является аннотированным типом
-AnnotatedStorage<Int, @myattr>    // @myattr является отдельным param
+AnnotatedStorage<Int, @myattr>    // @myattr является отдельным generic-аргументом
 ```
 
 Параметры любого допустимого compile-time типа можно передавать позиционно и по
@@ -362,17 +412,22 @@ Array<Element: Particle, Form: SoA>
 квалифицируется владельцем. Две одноимённые константы, подходящие ожидаемому
 типу, создают ошибку неоднозначности, а не выбираются по порядку импортов.
 
-Любой `param` можно опустить в месте применения, если компилятор однозначно
+Любой `generic` можно опустить в месте применения, если компилятор однозначно
 выводит его значение из остальных аргументов, ограничений и сигнатур. Вывод не
 является отдельным видом параметра. Если решений нет или их несколько,
 компилятор требует именованный аргумент:
 
 ```efen
-fn consumeInts<T: Iterable<Item: Int>>(items: T) {
+fn consumeInts {
+    generic T: Iterable<Item: Int>
+    param items: T
     // Cursor выводится из выбранного соответствия T контракту Iterable.
 }
 
-fn consume<T: Iterable>(items: T) {
+fn consume {
+    generic T: Iterable
+    param items: T
+
     // Item и Cursor выводятся из T, если соответствие единственно.
 }
 ```
@@ -380,7 +435,7 @@ fn consume<T: Iterable>(items: T) {
 Выведенные параметры являются частью полной инстанциации и сохраняются в её
 ключе так же, как явно написанные.
 
-Значением `param T: Type` является полное типовое выражение. Оно сохраняет
+Значением `generic T: Type` является полное типовое выражение. Оно сохраняет
 базовый тип, ссылочную форму, права и metadata употребления:
 
 ```efen
@@ -419,15 +474,17 @@ if value has @myattr {
 
 ## Конструкторы типов
 
-Обычный параметр `param T: Type` принимает законченный тип. Параметр с
+Обычный параметр `generic T: Type` принимает законченный тип. Параметр с
 собственным списком типовых параметров принимает конструктор типов:
 
 ```efen
 interface Repository {
-    param Entity: Type
-    param Result<T>: Type
+    generic Entity: Type
+    generic Result<T>: Type
 
-    fn load(id: Id) -> Result<Entity?>
+    fn load -> Result<Entity?> {
+        param id: Id
+    }
 }
 
 alias Identity<T> = T
@@ -436,14 +493,14 @@ alias DeferredUsers = Repository<User, Future>
 ```
 
 `Result` сам не является типом значения. `Result<T>` является типом после
-применения конструктора к аргументу. Локальное имя `T` в `param Result<T>`
+применения конструктора к аргументу. Локальное имя `T` в `generic Result<T>`
 описывает сигнатуру конструктора и не добавляет параметр `Repository`.
 
 Конструктор может иметь несколько параметров и ограничения на них:
 
 ```efen
-param PairFamily<A, B>: Type
-param Buffer<T: Movable>: Type
+generic PairFamily<A, B>: Type
+generic Buffer<T: Movable>: Type
 ```
 
 Применение `Buffer<X>` законно только при доказанном `X conforms Movable`.
@@ -482,7 +539,7 @@ Repository<User, type<T> => Future<Result<T, Error>>>
 конструктора:
 
 ```efen
-param F<T>: Type {
+generic F<T>: Type {
     required method map<U>(transform: (T) -> U) -> F<U>
 }
 ```
@@ -505,8 +562,8 @@ param F<T>: Type {
 
 ```efen
 class Matrix {
-    param Rows: Int { Rows > 0 }
-    param Columns: Int { Columns > 0 }
+    generic Rows: Int { Rows > 0 }
+    generic Columns: Int { Columns > 0 }
 }
 ```
 
@@ -514,20 +571,25 @@ class Matrix {
 
 ```efen
 class SquareMatrix {
-    param Rows: Int { Rows > 0 }
-    param Columns: Int { Columns > 0 }
+    generic Rows: Int { Rows > 0 }
+    generic Columns: Int { Columns > 0 }
 
     where Rows == Columns
 }
 
-fn processSameElements<A: Iterable, B: Iterable>(left: A, right: B)
+fn processSameElements
     where A.Item == B.Item, A.Item: Equatable
 {
+    generic A: Iterable
+    generic B: Iterable
+    param left: A
+    param right: B
+
     // left и right могут иметь разные типы, но один тип элемента.
 }
 ```
 
-Блок после `param` и `where` являются обязательными условиями: ложное условие
+Блок после `generic` и `where` являются обязательными условиями: ложное условие
 запрещает инстанциацию. Они отличаются от `#if`, который условно формирует
 состав уже законной инстанциации.
 
@@ -535,42 +597,54 @@ fn processSameElements<A: Iterable, B: Iterable>(left: A, right: B)
 `A.Item`. Если один тип имеет несколько подходящих соответствий с разными
 значениями `Item`, проекция неоднозначна и требует явно выбрать стратегию.
 
-## Безымянный generic-параметр
+## Generic-параметры с contract
 
-Contract в позиции типа параметра функции является короткой записью отдельного
-безымянного generic-параметра:
+Generic-функция всегда объявляет конкретный тип отдельно от runtime-параметра:
 
 ```efen
-fn printAll(items: Iterable<Item: String>) {
+fn printAll {
+    generic Items: Iterable<Item: String>
+    param items: Items
+
     // ...
 }
 ```
 
-Эта форма эквивалентна:
+То же имя используется во всех местах сигнатуры, которым нужна эта идентичность:
 
 ```efen
-fn printAll<T: Iterable<Item: String>>(items: T) {
+fn printAll {
+    generic T: Iterable<Item: String>
+    param first: T
+    param second: T
+
     // ...
 }
 ```
 
-Она не превращает contract в runtime-тип и не выполняет стирание. Каждое
-употребление contract в позиции отдельного параметра вводит независимый тип:
+Contract не становится runtime-типом и не выполняет стирание. Для двух
+независимых конкретных типов объявляются два generic-параметра:
 
 ```efen
-fn merge(
-    left: Iterable<Item: String>,
-    right: Iterable<Item: String>
-) {
+fn merge {
+    generic Left: Iterable<Item: String>
+    generic Right: Iterable<Item: String>
+    param left: Left
+    param right: Right
+
     // left и right могут иметь разные конкретные типы.
 }
 ```
 
 `left` и `right` могут иметь разные конкретные типы. Когда требуется один тип,
-он объявляется явно:
+объявляется одна общая идентичность:
 
 ```efen
-fn merge<T: Iterable<Item: String>>(left: T, right: T) {
+fn merge {
+    generic T: Iterable<Item: String>
+    param left: T
+    param right: T
+
     // left и right имеют один конкретный тип T.
 }
 ```
@@ -580,15 +654,18 @@ fn merge<T: Iterable<Item: String>>(left: T, right: T) {
 Generic-функцию можно передать как значение, не выбирая одну инстанциацию:
 
 ```efen
-fn test(transform: fn<T>(T) -> T) {
+fn test {
+    generic transform: <T>(T) -> T
+
     let number = transform(42)
     let text = transform("hello")
 }
 ```
 
-Тип `fn<T>(T) -> T` требует одну функцию, применимую для каждого допустимого
-`T`. Он отличается от `fn test<T>(transform: (T) -> T)`, где `T` выбирается один
-раз для всего вызова `test`.
+Тип `<T>(T) -> T` требует одну функцию, применимую для каждого допустимого `T`.
+`generic transform` связывает её как generic-параметр `test`. Это отличается от
+именованного `generic T: Type` с `param transform: (T) -> T`, где `T` выбирается
+один раз для всего вызова `test`.
 
 ## Variadic generic-параметры
 
@@ -596,7 +673,7 @@ fn test(transform: fn<T>(T) -> T) {
 
 ```efen
 struct Tuple {
-    param ...Elements: Type
+    generic ...Elements: Type
 }
 ```
 
@@ -611,7 +688,7 @@ Tuple<...Elements>
 Variadic-параметр можно ограничить контрактом:
 
 ```efen
-param ...Errors: Type
+generic ...Errors: Type
 where ...Errors: Exception
 ```
 
@@ -639,7 +716,10 @@ alias OptionalTuple<...Elements> =
 Runtime pack связывается с type pack той же длины:
 
 ```efen
-fn tuple<...Types>(...values: Types) -> Tuple<...Types> {
+fn tuple -> Tuple<...Types> {
+    generic ...Types: Type
+    param ...values: Types
+
     return Tuple(...values)
 }
 ```
@@ -682,13 +762,14 @@ Generic-тип может соответствовать contract только �
 выполнено compile-time условие:
 
 ```efen
-class Box<T> {
+class Box {
+    generic T: Type
     var value: T
 
     #if T conforms Copyable {
         conforms Copyable
 
-        fn copy() -> Box<T> {
+        fn copy -> Box<T> {
             return Box(value.copy())
         }
     }
@@ -697,7 +778,7 @@ class Box<T> {
 
 Ложное условие не запрещает саму инстанциацию. `Box<NonCopyable>` остаётся
 законным типом, но не соответствует `Copyable` и не получает условные члены.
-Это отличается от `class Box<T: Copyable>`, где ограничение запрещает создать
+Это отличается от `generic T: Copyable`, где ограничение запрещает создать
 `Box<T>` для неподходящего `T`.
 
 Условие может зависеть от нескольких параметров, compile-time значений и
@@ -725,7 +806,8 @@ metadata:
 Параметр типа доступен type-aware операциям:
 
 ```efen
-fn printType<T>() {
+fn printType {
+    generic T: Type
     let descriptor = typeof(T)
     print T
 }
@@ -741,10 +823,16 @@ runtime-печати текущего конкретного типа.
 
 ```efen
 @monomorphize
-fn specialized<T>(value: T) {}
+fn specialized {
+    generic T: Type
+    param value: T
+}
 
 @erase
-fn sharedBody<T>(value: T) {}
+fn sharedBody {
+    generic T: Type
+    param value: T
+}
 ```
 
 При монотипизации создаётся отдельное тело для необходимых инстанциаций. При
@@ -765,18 +853,23 @@ Efen поддерживает вариантность для дженерик-�
 ```efen
 // Ковариантность (out) - тип может быть только возвращаемым значением
 interface Producer<out T> {
-    fn produce() -> T
+    fn produce -> T
 }
 
 // Контравариантность (in) - тип может быть только входным параметром
 interface Consumer<in T> {
-    fn consume(item: T)
+    fn consume {
+        param item: T
+    }
 }
 
 // Инвариантность (по умолчанию) - тип может быть и входным, и выходным
-interface Storage<T> {
-    fn get() -> T
-    fn set(item: T)
+interface Storage {
+    generic T: Type
+    fn get -> T
+    fn set {
+        param item: T
+    }
 }
 ```
 
@@ -791,10 +884,12 @@ interface Storage<T> {
 /// Трансформирует элементы одного типа в другой
 /// - TInput: Тип входных элементов
 /// - TOutput: Тип выходных элементов
-fn transform<TInput, TOutput>(
-    items: [TInput],
-    mapper: (TInput) -> TOutput
-) -> [TOutput] {
+fn transform -> [TOutput] {
+    generic TInput: Type
+    generic TOutput: Type
+    param items: [TInput]
+    param mapper: (TInput) -> TOutput
+
     var result: [TOutput] = []
     for item in items {
         result.append(mapper(item))

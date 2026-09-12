@@ -70,17 +70,22 @@ mutable traversal или `take values[index]`.
 Одно написание `Range(...)` объединяет две перегрузки библиотечного constructor:
 
 ```efen
-class Range<T> {
+class Range {
+    generic T: Type
     @constructor
-    fn init(source: Array<T> own) -> Self
+    fn init -> Self {
+        param source: Array<T> own
+    }
 
     #if T conforms Copyable {
         @constructor
-        fn init(source: Array<T> read) -> Self
+        fn init -> Self {
+            param source: Array<T> read
+        }
 
         @constructor
         fn init -> Self {
-            param Source: Origin
+            generic Source: Origin
             param source: Slice<T, Source> read
             // Копирует выбранные элементы в собственное storage.
         }
@@ -268,9 +273,9 @@ enum IntervalBound {
 }
 
 class Interval {
-    param Element: Type
-    param Lower: IntervalBound = .inclusive
-    param Upper: IntervalBound = .inclusive
+    generic Element: Type
+    generic Lower: IntervalBound = .inclusive
+    generic Upper: IntervalBound = .inclusive
 }
 ```
 
@@ -284,8 +289,9 @@ class Interval {
 возрастающего обхода используется библиотечный contract:
 
 ```efen
-contract Steppable<T>: Comparable<T>, ImplicitlyCopyable, Movable {
-    fn successor() -> T?
+contract Steppable: Comparable<T>, ImplicitlyCopyable, Movable {
+    generic T: Type
+    fn successor -> T?
 }
 ```
 
@@ -413,16 +419,16 @@ let slice8 = arr[..<3]     // [10, 20, 30] - от начала до индекс
 
 ```efen
 contract Iterator {
-    param Item: Type
+    generic Item: Type
 
-    fn next() -> Item?
+    fn next -> Item?
 }
 
 contract Iterable {
-    param Item: Type
-    param Cursor: Iterator<Item>
+    generic Item: Type
+    generic Cursor: Iterator<Item>
 
-    fn iterator() -> Cursor
+    fn iterator -> Cursor
 }
 ```
 
@@ -431,13 +437,14 @@ contract Iterable {
 `Iterator<String>` и `Iterator<Item: String>` равнозначны.
 
 ```efen
-class ArrayIterator<T> {
+class ArrayIterator {
+    generic T: Type
     conforms Iterator<Item: T>
 
     private let items: [T]
     private var index: Int = 0
 
-    fn next() -> T? {
+    fn next -> T? {
         if index >= items.count() {
             return null
         }
@@ -448,12 +455,13 @@ class ArrayIterator<T> {
     }
 }
 
-class MyCollection<T> {
+class MyCollection {
+    generic T: Type
     conforms Iterable<Item: T>
 
     private var items: [T] = []
 
-    fn iterator() -> ArrayIterator<T> {
+    fn iterator -> ArrayIterator<T> {
         return ArrayIterator<T>(items)
     }
 }
@@ -671,13 +679,16 @@ class CountingIterator {
     private let end: Int
     private var current: Int
 
-    fn new(start: Int, end: Int) {
+    fn new {
+        param start: Int
+        param end: Int
+
         this.start = start
         this.end = end
         this.current = start
     }
 
-    fn next() -> Int? {
+    fn next -> Int? {
         if this.current >= this.end {
             return null
         }
@@ -706,11 +717,13 @@ class IntList {
 
     private var items: [Int] = []
 
-    fn add(item: Int) {
+    fn add {
+        param item: Int
+
         this.items[] = item
     }
 
-    fn iterator() -> IntListIterator {
+    fn iterator -> IntListIterator {
         return IntListIterator::new(this.items)
     }
 }
@@ -721,11 +734,13 @@ class IntListIterator {
     private let items: [Int]
     private var index: Int = 0
 
-    fn new(items: [Int]) {
+    fn new {
+        param items: [Int]
+
         this.items = items
     }
 
-    fn next() -> Int? {
+    fn next -> Int? {
         if this.index >= this.items.count() {
             return null
         }
@@ -757,7 +772,7 @@ class InfiniteCounter {
 
     private var current: Int = 0
 
-    fn next() -> Int? {
+    fn next -> Int? {
         let value = this.current
         this.current += 1
         return value

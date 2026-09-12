@@ -24,11 +24,11 @@ contract MyContract {
 - ✅ Позволяет статическую диспетчеризацию, когда конкретная реализация известна
 
 Contract не является типом значения. Его нельзя использовать как тип свойства
-или локальной переменной. В позиции параметра функции contract является короткой
-записью безымянного generic-параметра, а в `opaque Contract` в позиции результата
-— ограничением скрытого конкретного типа. Неизвестное конкретное значение с
-runtime-полиморфизмом выражается интерфейсом; обе сокращённые формы contract
-остаются статическими и не создают runtime-interface.
+или локальной переменной. Generic-функция сначала объявляет конкретный тип через
+`generic T: Contract`, а затем использует `T` как тип runtime-параметра.
+`opaque Contract` в позиции результата ограничивает скрытый конкретный тип.
+Неизвестное конкретное значение с runtime-полиморфизмом выражается интерфейсом.
+`opaque Contract` остаётся статической формой и не создаёт runtime-interface.
 
 ### Interface — runtime абстракция
 - ✅ Существует в **runtime** как **VTBL** (виртуальная таблица)
@@ -42,12 +42,12 @@ runtime-полиморфизмом выражается интерфейсом; 
 ```efen
 // CONTRACT: только compile-time
 contract Drawable {
-    fn draw()
+    fn draw
 }
 
 // INTERFACE: runtime VTBL
 interface Shape {
-    fn area() -> Float
+    fn area -> Float
 }
 
 // Класс соответствует контракту и реализует интерфейс
@@ -57,12 +57,12 @@ class Circle {
 
     var radius: Float
 
-    fn draw() {
+    fn draw {
         // Реализация требования контракта
         print("Рисую круг")
     }
 
-    fn area() -> Float {
+    fn area -> Float {
         // Реализация метода интерфейса
         return 3.14 * radius * radius
     }
@@ -73,12 +73,17 @@ class Circle {
 
 ```efen
 // Compile-time: компилятор проверяет что draw() есть
-fn renderStatic<T: Drawable>(object: T) {
+fn renderStatic {
+    generic T: Drawable
+    param object: T
+
     object.draw()  // STATIC DISPATCH - прямой вызов
 }
 
 // Runtime: используется VTBL для полиморфизма
-fn calculateArea(shape: Shape) -> Float {
+fn calculateArea -> Float {
+    param shape: Shape
+
     return shape.area()  // DYNAMIC DISPATCH - вызов через VTBL
 }
 ```
@@ -114,36 +119,45 @@ contract; обычная известная реализация по-прежн
 ```efen
 // Контракт для compile-time проверок
 contract Serializable {
-    fn serialize() -> String
+    fn serialize -> String
 }
 
 // Интерфейс для runtime полиморфизма
 interface Storable {
-    fn save(path: String)
+    fn save {
+        param path: String
+    }
 }
 
 class Document {
     conforms Serializable  // Compile-time гарантия
     implements Storable    // Runtime возможность
 
-    fn serialize() -> String {
+    fn serialize -> String {
         return "..."
     }
 
-    fn save(path: String) {
+    fn save {
+        param path: String
+
         let data = serialize()  // Статический вызов
         writeToFile(path, data)
     }
 }
 
 // Generic с контрактом - нулевой overhead
-fn sendOver<T: Serializable>(object: T) {
+fn sendOver {
+    generic T: Serializable
+    param object: T
+
     let data = object.serialize()  // STATIC - оптимально
     network.send(data)
 }
 
 // Полиморфный с интерфейсом - runtime гибкость
-fn saveAll(objects: [Storable]) {
+fn saveAll {
+    param objects: [Storable]
+
     for obj in objects {
         obj.save("/tmp/file")  // DYNAMIC - через VTBL
     }
@@ -163,7 +177,7 @@ contract Movable {
 }
 
 contract Copyable {
-    fn copy() -> Self
+    fn copy -> Self
 }
 
 contract ImplicitlyCopyable : Copyable {
@@ -195,14 +209,14 @@ let second = first
 
 ## Параметры контракта
 
-Контракт может объявлять compile-time параметры через `param`. Параметр со
-значением типа записывается как `param Name: Type`:
+Контракт объявляет compile-time параметры через `generic`. Параметр со
+значением типа записывается как `generic Name: Type`:
 
 ```efen
 contract Iterator {
-    param Item: Type
+    generic Item: Type
 
-    fn next() -> Item?
+    fn next -> Item?
 }
 ```
 
@@ -224,17 +238,17 @@ class AnotherStringIterator {
 
 ```efen
 contract Iterable {
-    param Item: Type
-    param Cursor: Iterator<Item>
+    generic Item: Type
+    generic Cursor: Iterator<Item>
 
-    fn iterator() -> Cursor
+    fn iterator -> Cursor
 }
 ```
 
 `Cursor` здесь является конкретным типом результата. `Iterator<Item>` остаётся
 compile-time ограничением и не используется как тип значения. Параметр может
-иметь значение по умолчанию: `param Name: Type = DefaultType`. Кроме типов,
-`param` принимает любое compile-time значение с указанным типом, включая
+иметь значение по умолчанию: `generic Name: Type = DefaultType`. Кроме типов,
+`generic` принимает любое compile-time значение с указанным типом, включая
 enum-константу, число, строку, origin, экземпляр атрибута, contract, interface,
 strategy, функцию или другую compile-time декларацию. Переданный contract
 остаётся объектом compile-time и не становится типом runtime-значения.
@@ -246,11 +260,11 @@ strategy, функцию или другую compile-time декларацию. 
 class IntList {
     conforms Iterable<Item: Int>
 
-    fn iterator() -> IntListIterator
+    fn iterator -> IntListIterator
 }
 ```
 
-Здесь сопоставление с `fn iterator() -> Cursor` выводит
+Здесь сопоставление с `fn iterator -> Cursor` выводит
 `Cursor = IntListIterator`. Компилятор затем проверяет
 `IntListIterator conforms Iterator<Item: Int>`. Неоднозначный вывод является
 ошибкой и требует явного именованного аргумента.
@@ -260,16 +274,16 @@ Generic-тип может объявить соответствие условн
 запрещает создать сам тип:
 
 ```efen
-class Box<T> {
+class Box {
+    generic T: Type
     #if T conforms Copyable {
         conforms Copyable
     }
 }
 ```
 
-Для generic-объявлений угловые скобки служат короткой записью параметров.
-Например, `class Box<T>` соответствует полной форме `param T: Type` в начале
-тела `Box`.
+`generic` является полной формой параметра объявления. Список в угловых скобках
+остаётся допустимой короткой формой там, где она предусмотрена объявлением.
 
 ## Наследование контрактов
 
@@ -374,7 +388,11 @@ contract RefCountedContract {
         T
     }
 
-    fn retain(self: Self)
-    fn release(self: Self)
+    fn retain {
+        param self: Self
+    }
+    fn release {
+        param self: Self
+    }
 }
 ```

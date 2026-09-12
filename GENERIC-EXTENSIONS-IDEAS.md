@@ -1,6 +1,7 @@
 # Расширение generics Efen: решения и оставшиеся вопросы
 
-Дата решения: 2026-09-11.
+Дата семантических решений: 2026-09-11. Синтаксис параметров уточнён
+2026-09-12.
 
 Нормативное описание находится в [generics](docs/efen/generics.md),
 [типах](docs/efen/types/type.md), [функциях](docs/efen/functions.md) и
@@ -14,7 +15,7 @@
 Generic-параметр может принимать семейство типов:
 
 ```efen
-param Result<T>: Type
+generic Result<T>: Type
 ```
 
 `Future` можно передать как аргумент и применить внутри generic как `Future<T>`.
@@ -30,7 +31,7 @@ type<T> => Future<Result<T, Error>>
 параметра:
 
 ```efen
-param F<T>: Type {
+generic F<T>: Type {
     required method map<U>(transform: (T) -> U) -> F<U>
 }
 ```
@@ -44,7 +45,7 @@ param F<T>: Type {
 Локальное условие пишется у параметра:
 
 ```efen
-param Size: Int { Size > 0 }
+generic Size: Int { Size > 0 }
 ```
 
 Отношение нескольких параметров пишется через `where`:
@@ -61,26 +62,31 @@ where A.Item == B.Item
 Generic-функция может быть значением:
 
 ```efen
-fn<T>(T) -> T
+generic transform: <T>(T) -> T
 ```
 
-Один объект такой функции обязан работать для каждого допустимого `T`.
+Связанный с `transform` объект функции обязан работать для каждого допустимого
+`T`. `fn` остаётся ключевым словом определения функции; `<T>(T) -> T` является
+полиморфным функциональным типом.
 
-### Безымянный generic-параметр
+### Generic-параметр с contract
 
-Contract в позиции параметра функции сокращает отдельный generic-параметр:
+Generic-функция всегда называет конкретный тип отдельно от runtime-параметра:
 
 ```efen
-fn printAll(items: Iterable<Item: String>)
+fn printAll {
+    generic Items: Iterable<Item: String>
+    param items: Items
+}
 ```
 
-Несколько таких параметров вводят независимые конкретные типы; общий тип нужно
-назвать явно.
+Contract не используется непосредственно как тип runtime-параметра и не вводит
+скрытый generic-параметр.
 
 ### Variadic generics
 
 ```efen
-param ...Elements: Type
+generic ...Elements: Type
 Tuple<...Elements>
 ```
 
@@ -88,7 +94,7 @@ Tuple<...Elements>
 аргументы, а в применении раскрывает их. Ограничение:
 
 ```efen
-param ...Errors: Type
+generic ...Errors: Type
 where ...Errors: Exception
 ```
 
@@ -109,17 +115,24 @@ Elements.map(type<T> => T?)
 Runtime pack связывается с type pack:
 
 ```efen
-fn tuple<...Types>(...values: Types) -> Tuple<...Types>
+fn tuple -> Tuple<...Types> {
+    generic ...Types: Type
+    param ...values: Types
+}
 ```
 
 ### Generic `throws`
 
 ```efen
-fn map<T, U, ...Errors>(
-    items: [T],
-    transform: (T) -> U throws ...Errors
-) -> [U] throws ...Errors
+fn map -> [U] throws ...Errors
     where ...Errors: Exception
+{
+    generic T: Type
+    generic U: Type
+    generic ...Errors: Type
+    param items: [T]
+    param transform: (T) -> U throws ...Errors
+}
 ```
 
 Generic сохраняет точный набор исключений callback.
@@ -159,7 +172,9 @@ Opaque-тип не обещает бинарной совместимости. �
 Функция может объявить безымянный opaque-результат:
 
 ```efen
-fn tokens(text: String) -> opaque Iterator<Item: Token>
+fn tokens -> opaque Iterator<Item: Token> {
+    param text: String
+}
 ```
 
 Несколько конкретных типов результата разрешены, если все соответствуют

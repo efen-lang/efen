@@ -277,9 +277,9 @@ capture semantics.
 - `docs/efen/structs.md:399` → `types.md`;
 - `docs/efen/type-aliases.md:399` → `types.md`;
 - `docs/efen/type-aliases.md:402` → `modules.md`;
-- `docs/efen/superpolymorphism.md:227`: запись
-  `vtable[draw](shape.drawable)` интерпретируется Markdown как ссылка на
-  `shape.drawable`; выражение следует заключить в backticks.
+- `docs/efen/superpolymorphism.md:227`: выражение с индексом `draw` у `vtable`
+  и аргументом `shape.drawable` интерпретируется Markdown как ссылка; выражение
+  следует заключить в backticks.
 
 ### Незавершённые нормативные разделы
 
