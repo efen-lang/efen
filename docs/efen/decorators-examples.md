@@ -104,7 +104,7 @@ class DataProcessor {
 fn createUser(
     @NotNull @Email email: String,
     @NotNull @Length(min: 3, max: 50) name: String,
-    @Range(min: 18, max: 120) age: Int
+    @WithinRange(min: 18, max: 120) age: Int
 ) -> User {
     return User(email, name, age)
 }

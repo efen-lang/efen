@@ -61,6 +61,32 @@ type ParticleSoA: Array<Particle, SoA>
 конкретные типы или разные инстанциации generic-типа. Преобразование между ними
 задаётся явно, в том числе отдельной стратегией `Coerce`.
 
+## Колоночные storage projections
+
+Layout может связать логическое население обычных структур с несколькими
+физическими хранилищами. Например, поля `Particle` могут лежать отдельными
+columns, а общая встроенная часть HIR-узлов — отдельно от payload каждого вида.
+
+Это не вторая representation типа `Particle` или `Function`. Самостоятельное
+значение сохраняет representation своего типа; член `storage` внутри layout
+задаёт projection логической identity населения в физические rows и columns.
+
+```efen
+layout World {
+    source memory: Arena
+    set Particles: Particle from memory
+
+    storage columns for Particles {
+        representation Columnar<Particle>
+    }
+}
+```
+
+Программа продолжает использовать обычные `particle.position` и
+`function.body`. Accessors layout находят physical coordinate по logical
+identity и field path. Подробный контракт, split-by-kind HIR, транзакции,
+ссылки и сериализация описаны в [колоночных layout](memory/columnar-layouts.md).
+
 ## Границы ответственности
 
 - тип задаёт логическую семантику и единственную выбранную representation;
@@ -73,6 +99,24 @@ type ParticleSoA: Array<Particle, SoA>
 населения и происхождение ссылок. `Layout<T>` может описывать типизированный
 запрос allocation, например тип элемента, количество и выравнивание; он не
 заменяет конструкцию `layout` и не получает её семантику автоматически.
+
+Layout управляет памятью средствами HIR и может помечать созданные им слоты как
+`managed`. Для скрытого physical slot borrow checker отключён; layout, аспект
+или метакод строит операции создания, хранения, перемещения и освобождения.
+Публичный projected place населения сохраняет обычную проверку origin, rights,
+liveness и borrows. Пользователь не пишет `managed` как модификатор переменной —
+это свойство порождённого HIR-слота.
+
+Сам HIR также описывается обычными структурами Efen и пользуется тем же
+механизмом representation. Логическое поле HIR может иметь естественный тип
+`String`, `[HirNodeId]` или `Type`, тогда как representation кодирует его строковым
+ID, диапазоном, side table или другой физической формой. Поэтому C++ record
+начального Amber является одной bootstrap-реализацией, а не пределом модели HIR.
+
+В частности, layout HIR может применить разнесённое хранение видов: общие поля
+`BaseNode` находятся в columns всех узлов, а поля `Function`, `Call` и
+динамически добавленных видов — в отдельных payload stores. Для пользователя и
+метакода они всё равно остаются обычными структурами Efen со встраиванием.
 
 Срез коллекции является невладеющим view её storage. Он сохраняет origin,
 диапазон и доступные права, но не получает отдельную representation и не копирует

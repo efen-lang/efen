@@ -98,6 +98,7 @@ stub, trampoline и inline cache рантайма, но не являются с
    - Именованные способы физического представления логических типов
    - Размещение, выделение, создание и уничтожение данных
    - Одна representation конкретного типа и параметризованные формы контейнеров
+   - [Колоночные layout](memory/columnar-layouts.md): logical identity, columns и split-by-kind storage
 
 13. [Кортежи](types/tuples.md)
    - Фиксированная логическая схема разнородных данных
@@ -105,6 +106,7 @@ stub, trampoline и inline cache рантайма, но не являются с
 
 14. [Коллекции](types/collections.md)
    - Массивы, словари и enum-массивы
+   - Runtime-неизменяемый `Range<T>` и дескрипторы границ `Interval`
 
 15. [Слои](layers.md)
    - Объявление слоёв и отношения `uses`, `exposes`, `provides`

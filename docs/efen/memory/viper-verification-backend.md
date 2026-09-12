@@ -142,6 +142,49 @@ VIR хранит `LayoutId`, `PopulationId(LayoutId, declaration)`, `BlockId`,
 Новая жизнь физически переиспользованного места получает новый `BlockId`:
 свежесть нужна относительно всех ранее выданных идентичностей, а не только `live`.
 
+Для [колоночного storage](columnar-layouts.md) `BlockId` является логической
+identity и не совпадает с `StorageId` или номером physical row. VIR дополнительно
+хранит kind и прямые/обратные отображения common и payload rows. Он проверяет,
+что каждая живая identity имеет ровно одну инициализированную common-строку и
+payload своего вида, а каждая опубликованная physical row имеет ровно одного
+логического владельца.
+
+`create`, `remove`, `replace` и `compact` получают normal и exceptional
+переходы над всеми участвующими stores. Ошибка подготовки сохраняет прежние
+`live` и mappings и уничтожает каждый provisional fragment ровно один раз.
+`swap-remove` обновляет обе стороны отображения перемещённого соседа.
+`managed` у скрытого backing slot не служит доказательством безопасности
+публичного `Place`: projected access по-прежнему требует membership, origin,
+rights, initialization и отсутствие конфликтующего borrow.
+
+Runtime-open family добавляет в VIR `KindCatalog`, `KindDescriptor`,
+`StorageWitness`, `CatalogEpoch`, `FieldPlace(identity, path)`, physical
+`StoreId`/`RowId` и прямые/обратные maps. Обязательный закон квантифицируется по
+всем зарегистрированным видам, а не по полям исходного `BaseNode`:
+
+```text
+forall kind in KindCatalog:
+    Admitted(kind) && DescriptorValid(kind) && WitnessValid(kind)
+
+forall id in Live:
+    CatalogContains(Kind(id))
+    && CommonMapsTo(id)
+    && PayloadMapsTo(id, Kind(id))
+    && FieldsAndOwnershipValid(id, Descriptor(Kind(id)))
+```
+
+Регистрация вида требует exclusive catalog guard и увеличивает epoch.
+Специализированное доказательство, предполагавшее закрытый список видов,
+зависит от этого epoch и после регистрации перепроверяется либо становится
+неприменимым. Общие операции перечисляют owning и reference fields через
+descriptor, поэтому поздний вид не скрывает новое входящее ребро.
+
+VIR-операции `ValidateKind`, `RegisterKind`, `ResolveField`, `PrepareStorage`,
+`CommitStorage` и `AbortStorage` различают fallible prepare и no-throw commit.
+Формулы `CommonMapsTo`, `PayloadMapsTo`, `ReverseOwner`, `Borrowable`,
+`Addressable` и `StableUntil` связывают logical place с physical storage. Это
+внутренние операции проверяющего backend, а не новый surface-синтаксис Efen.
+
 Кроме прав на поля отслеживаются `owner(block): Place?` и инициализированные
 поля. `own` нельзя получить копированием `read`. Перемещение очищает источник;
 перезапись назначения отсоединяет прежнего жильца, но не удаляет его из `live`.
@@ -800,11 +843,13 @@ FFI, хранимые позиционные типы, общий язык за�
 Восстановление свойства генерирует доказательство, а не `inhale` формулы:
 [семантика inhale/exhale](https://viper.ethz.ch/tutorial/permissions-inhale-exhale.html).
 
-Перечислимость — контракт источника, логическое множество не создаёт runtime-
-итератор. При уничтожении layout источник перечисляет каждый живой блок один
-раз вместе с тегом варианта и сведениями для освобождения. Внешних заимствований
-нет, деструкторы нагрузки не следуют внутренним ссылкам и не бросают. Тег не может
-существовать исключительно в пользовательских ссылках на блок.
+Для one-block storage перечислимость может предоставлять источник. Для
+multi-store storage живые identities и kind перечисляет directory самого
+storage. Retained witness вида уничтожает каждое инициализированное логическое
+поле ровно один раз; затем source освобождает physical columns, maps и chunks.
+Внешних заимствований нет, drop не следует внутренним ссылкам, не бросает и не
+входит повторно в уничтожаемый layout. Kind не может существовать исключительно
+в пользовательских ссылках на элемент.
 
 К корпусу обязательных проверок добавляются: население без инвариантов; безопасное
 кольцо без доказательства завершения; потерянный, но живой блок; индекс и ячейка

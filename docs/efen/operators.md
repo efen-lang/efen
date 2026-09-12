@@ -137,6 +137,15 @@ let name = optionalName ?? "Guest"
 1<..<5
 ```
 
+В позиции выражения эти операторы создают библиотечный `Interval` с
+compile-time формой включённости границ и runtime-значениями границ. В позиции
+образца та же запись является interval-pattern и не создаёт runtime-объект:
+
+```efen
+let bounds = 1..5       // Interval
+if value is 1..5 { ... } // pattern
+```
+
 ### Типы
 
 ```efen

@@ -23,3 +23,13 @@
 и компилятор выбирает подходящий контракт для управления памятью автоматически. Однако, это легко изменить
 с помощью `provide`-выражений.
 
+## Layout и структуры данных
+
+- [Адреса и структуры данных](addresses.md) — населения, origins и операции
+  membership.
+- [Колоночные layout](columnar-layouts.md) — отображение обычных логических
+  структур в несколько rows и columns, split-by-kind HIR и транзакции storage.
+- [Варианты physical storage](layout-representations.md) — AoSoA, hot/cold,
+  sparse/ECS, compressed, segmented, GPU и adaptive формы поверх общего API.
+- [Efen → Viper](viper-verification-backend.md) — обязательства безопасности и
+  проверка операций layout.
