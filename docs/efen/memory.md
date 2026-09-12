@@ -1,5 +1,7 @@
 # Управление памятью
 
+[Документация](index.md) · [Словарь](glossary.md) · [Тематический memory guide](memory/index.md) · [Ownership](types/ownership.md)
+
 С одной стороны `Efen` позволяет управлять памятью напрямую, 
 а с другой стороны содержит все необходимые абстракции, чтобы скрыть этот процесс.
 
@@ -288,4 +290,3 @@ aspect RefCount implements RefCountInterface {
 | mutable    | ✅    | ✅     | ✅                | ✅ *(move)*         |
 | box        | ✅    | ❌     | ✅                | ❌                  |
 | tag        | ❌    | ❌     | ✅                | ✅ *(как handle)*   |
-

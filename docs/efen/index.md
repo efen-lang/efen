@@ -1,156 +1,133 @@
-# Efen
+# Документация Efen
 
-Efen — PHP-совместимый многоуровневый компилируемый язык с управляемыми
-языковыми абстракциями. На нижнем уровне программист может выражать решения,
-сопоставимые с уровнем C, а поверх них — определять более высокие абстракции
-средствами самого Efen. Язык задаёт встроенные правила абстракции, но не
-предписывает единственную реализацию класса, контейнера или другой абстракции:
-её реализацию программист определяет на этапе compile-time и, при
-необходимости, во время выполнения.
+[Корень репозитория](../../README.md) · [Словарь](glossary.md) · [Amber HIR](https://github.com/limelight-lang/amber/blob/main/design/README.md)
 
-Компиляция разделена по ответственности:
+Efen — PHP-совместимый компилируемый язык с программируемыми compile-time
+абстракциями. Эти документы описывают проект языка; они не подтверждают наличие
+готовой реализации компилятора.
 
-```
-Фронтенд Efen  →  Amber (HIR, анализ и преобразования)  →  профиль ядра HIR
-                                                            ├─ AOT: MLIR → LLVM → машинный код
-                                                            ├─ JIT: MLIR / LLVM IR → LLVM ORC → машинный код
-                                                            ├─ JIT: Cranelift IR → Cranelift → машинный код
-                                                            └─ исследование: MIR IR → MIR generator → машинный код
-```
+## Выберите маршрут
 
-Фронтенд знает синтаксис Efen и строит HIR. Amber не зависит от синтаксиса:
-он исполняет код времени компиляции, который читает, преобразует и порождает
-код, выполняет общий статический анализ и передаёт профиль HIR бэкенду. Общая
-граница — HIR Amber, а не MLIR: Cranelift и MIR требуют собственного понижения;
-LLVM ORC получает LLVM IR, при необходимости построенный из MLIR.
+| Если нужно… | Читайте по порядку |
+|---|---|
+| Понять основную модель | [Абстракции](abstractions.md) → [типы](types/type.md) → [функции](functions.md) → [классы](classes.md) |
+| Писать обычный Efen-код | [Вызовы](function-call-syntax.md) → [управляющие конструкции](blocks/index.md) → [коллекции](types/collections.md) → [ошибки](throws.md) |
+| Расширять чужие типы | [Контракты](contracts.md) → [interfaces](interfaces.md) → [стратегии](strategies.md) → [разрешение членов](aspects/members-resolving.md) |
+| Писать metaprogramming | [Compile-time API](compile-time/index.md) → [метафункции](compile-time/metafunctions.md) → [аспекты](aspects/aspect.md) → [metadata](aspects/metadata.md) |
+| Разобраться в памяти | [Ownership](types/ownership.md) → [representation](representations.md) → [memory guide](memory/index.md) → [addresses/layout](memory/addresses.md) |
+| Понять зависимости приложения | [Пакеты](packages.md) → [видимость](visibility.md) → [контексты и эффекты](context-and-effects.md) → [слои](layers.md) |
+| Сопоставить язык с компилятором | [Режимы компиляции](compilation-modes.md) → [диалекты](dialects.md) → [Amber architecture](https://github.com/limelight-lang/amber/blob/main/design/architecture/README.md) |
 
-PHP является диалектом над семантическим уровнем Efen. Фронтенд PHP понижает
-PHP-класс в класс Efen с PHP-аспектами, а PHP-типы — в типы Efen с контрактами
-PHP runtime. Поэтому после построения HIR Amber не различает язык-источник:
-происхождение сохраняется для диагностики, но не меняет семантику анализа или
-понижения.
+## Карта понятий
 
-Целевые JIT-пути различаются назначением: LLVM ORC — оптимизирующий JIT для
-пикового качества кода, Cranelift — JIT с малой задержкой компиляции, MIR —
-исследовательская лёгкая цель. AsmJit и DynASM допустимы для специализированных
-stub, trampoline и inline cache рантайма, но не являются самостоятельными
-бэкендами HIR. Все пути обязаны соблюдать общий ABI и контракты представления
-данных, исключений, safepoint, времени жизни и диспетчеризации.
-
-## Содержание
-
-1. [Управляемые языковые абстракции](abstractions.md)
-   - Основные концепции Efen
-   - Как программист может определять поведение абстракций
-
-2. [Интерфейсы](interfaces.md)
-   - Абстракции времени выполнения
-   - Бинарные структуры данных для работы с объектами
-   - Множественное наследование
-
-3. [Классы](classes.md)
-   - Абстракции над структурами данных
-   - Состояние и поведение объектов
-
-4. [Структуры](structs.md)
-   - Типы-значения
-   - Композиция через встраивание
-   - Легковесные контейнеры данных
-
-5. [Дженерики](generics.md)
-   - Параметры типа для функций, классов и структур
-   - Ограничения типов
-   - Вывод типов
-
-6. [Алиасы типов](type-aliases.md)
-   - Ключевое слово `type` для создания алиасов
-   - Ключевое слово `function` для функциональных типов
-   - Дженерик-алиасы
-
-7. [Стратегии](strategies.md)
-   - Расширение функциональности типов
-   - Применение стратегий к классам и интерфейсам
-   - Конкурирующие стратегии и правила выбора
-   - Совместимость стратегий
-
-8. [Контракты](contracts.md)
-   - Абстракции времени компиляции
-   - Наследование контрактов
-   - Связь контрактов с интерфейсами через `conforms`
-
-9. [Типы-состояния](types/typestate.md)
-   - Проверяемые компилятором протоколы объектов
-   - Переходы между состояниями
-   - Связь typestate с ownership
-
-10. [Области кода](code-regions.md)
-   - Локальные статические гарантии
-   - Сохранение typestate через `region preserve`
-   - Проверка всех путей выхода
-
-11. [Управляющие конструкции](blocks/index.md)
-   - Условные операторы (if, if-else, optional binding)
-   - Циклы (for-in, while, repeat-while)
-   - Match и сопоставление с образцом
-   - Guard и defer для управления потоком выполнения
-
-12. [Репрезентации](representations.md)
-   - Именованные способы физического представления логических типов
-   - Размещение, выделение, создание и уничтожение данных
-   - Одна representation конкретного типа и параметризованные формы контейнеров
-   - [Колоночные layout](memory/columnar-layouts.md): logical identity, columns и split-by-kind storage
-
-13. [Кортежи](types/tuples.md)
-   - Фиксированная логическая схема разнородных данных
-   - Именованные и optional-элементы
-
-14. [Коллекции](types/collections.md)
-   - Массивы, словари и enum-массивы
-   - Runtime-неизменяемый `Range<T>` и дескрипторы границ `Interval`
-
-15. [Слои](layers.md)
-   - Объявление слоёв и отношения `uses`, `exposes`, `provides`
-   - Проверка как группа диагностик `Layer`
-
-16. [Диагностики синтаксиса и стиля](diagnostic-groups.md#style-diagnostics-s)
-   - Валидный синтаксис разбирается независимо от канонического стиля
-   - Правила `S` сообщаются как style warnings с машинными исправлениями
-
-## Иерархия абстракций
-
-```
-Compile-time:
-  └─ Контракты (Contracts)
-       └─ conforms
-            ↓
-Runtime:
-  ├─ Интерфейсы (Interfaces)
-  │    └─ наследование (:)
-  ├─ Классы (Classes)
-  └─ Стратегии (Strategies)
-       └─ расширение (for)
+```text
+source syntax
+├─ values and control flow
+│  ├─ types, functions, closures
+│  └─ if / match / loops / flow / generators
+├─ abstraction model
+│  ├─ contract ──explicit from──▶ interface
+│  ├─ class / struct
+│  └─ strategy / aspect / attribute
+├─ static environment
+│  ├─ package / visibility / layer
+│  └─ context / effect / throws / region
+└─ physical model
+   ├─ ownership / origin / take
+   └─ representation / layout / population
 ```
 
-## Регистр имён
+## Лексическое правило имён
 
-Регистр первой буквы имени закреплён лексически и определяет вид имени.
+Регистр первой буквы является частью грамматики и определяет вид имени:
 
-- **С заглавной буквы** — типы, состояния, [населения `set`](memory/addresses.md),
-  контексты: `String`, `Point`, `Open`, `Logger`.
-- **Со строчной буквы** — значения, функции, поля, варианты enum:
+- с заглавной буквы начинаются типы, состояния, populations `set` и контексты:
+  `String`, `Point`, `Open`, `Entries`, `Logger`;
+- со строчной буквы начинаются значения, функции, поля и варианты enum:
   `count`, `saveUser`, `width`, `north`.
 
-То же правило действует после сигила `%`: имя с заглавной буквы — тип эффекта или
-контракта (`%Logger`), имя со строчной — поле активного контекста (`%db`,
-`%logger`).
+После `%` действует то же правило: `%Logger` обозначает тип эффекта или
+контракта, `%db` — поле активного контекста. Имя типа со строчной буквы или имя
+варианта enum с заглавной является ошибкой компиляции, а не стилевым
+предупреждением.
 
-Правило нормативно: компилятор опирается на регистр при разборе, поэтому имя типа
-со строчной буквы и имя варианта enum с заглавной — ошибка компиляции.
+## Язык выражений и управление потоком
 
-## Ключевые особенности
+| Тема | Документы |
+|---|---|
+| Функции и вызовы | [Функции](functions.md), [синтаксис вызова](function-call-syntax.md), [function type](types/function-type.md) |
+| Замыкания и генераторы | [Замыкания](closure.md), [генераторы](generators.md), [flow](flow.md) |
+| Ветвления и циклы | [Control flow](blocks/index.md), [`is`](is.md), [деструктуризация](destructuring.md) |
+| Ошибки и гарантии областей | [`throws`](throws.md), [try/catch](blocks/try-catch.md), [code regions](code-regions.md), [guard](blocks/guard.md) |
+| Операторы и исходный текст | [Операторы](operators.md), [комментарии](comments.md), [conditional compilation](сonditional_compilation.md) |
 
-- **Управляемость**: Программист может определять поведение абстракций на этапе компиляции и выполнения
-- **Разделение уровней**: Четкое разделение абстракций времени компиляции (контракты) и времени выполнения (интерфейсы, классы, стратегии)
-- **Композиция**: Возможность комбинировать различные абстракции для создания гибкой архитектуры
-- **Модульность**: Стратегии позволяют расширять функциональность без изменения исходного кода
-- **Безопасные протоколы**: Типы-состояния запрещают вызовы операций в недопустимом состоянии объекта
+## Типы и данные
+
+| Тема | Документы |
+|---|---|
+| Основы типов | [Типы](types/type.md), [константы](types/constants.md), [алиасы](type-aliases.md), [refinement types](types/refinement-types.md) |
+| Составные значения | [Tuple](types/tuples.md), [enum](types/enum.md), [optional](types/optional.md), [проекции](types/projection.md) |
+| Коллекции и строки | [Коллекции](types/collections.md), [словари](types/dictionaries.md), [строки](types/strings.md) |
+| Generics | [Generics](generics.md), [built-in contracts](types/built-in-contracts.md) |
+| Состояния и ресурсы | [Typestate](types/typestate.md), [ownership](types/ownership.md), [disposable](disposable.md) |
+| Проверка программ | [Тесты и failure-сценарии](tests/tests.md), [группы диагностик](diagnostic-groups.md) |
+
+## Абстракции и расширяемость
+
+| Тема | Документы |
+|---|---|
+| Общая модель | [Управляемые абстракции](abstractions.md), [классы](classes.md), [структуры](structs.md) |
+| Контракты и интерфейсы | [Контракты](contracts.md), [interfaces](interfaces.md), [superpolymorphism](superpolymorphism.md) |
+| Поведение без изменения типа | [Стратегии](strategies.md), [`StrategySelector`](strategies.md#правила-выбора-стратегии) |
+| Преобразование деклараций | [Аспекты](aspects/aspect.md), [построение класса](aspects/compile-time/class.md), [member resolver](aspects/members-resolving.md) |
+| Атрибуты и metadata | [Metadata](aspects/metadata.md), [декораторы](decorators.md), [примеры декораторов](decorators-examples.md) |
+
+## Модули, зависимости и эффекты
+
+| Тема | Документы |
+|---|---|
+| Поставка и имена | [Пакеты и модули](packages.md), [видимость](visibility.md) |
+| Архитектурные границы | [Слои](layers.md), [группы диагностик](diagnostic-groups.md) |
+| Ambient dependencies | [Контексты и эффекты](context-and-effects.md), [`without Context`](context-and-effects.md) |
+| Исключения | [`throws`, `MustHandle`, `nothrows`](throws.md) |
+
+## Ownership, memory и layout
+
+Начинать этот раздел лучше с [memory guide](memory/index.md), а не с отдельных
+примеров allocator или pointer.
+
+| Уровень | Документы |
+|---|---|
+| Права и время жизни | [Ownership, borrow, origin и `take`](types/ownership.md) |
+| Общая модель памяти | [Обзор](memory.md), затем тематический [memory guide](memory/index.md) |
+| Логический тип и физическая форма | [Representations](representations.md) |
+| Populations и dependent addresses | [Addresses](memory/addresses.md), [разбор дефектов](memory/addresses-defects.md), [prior art](memory/prior-art.md) |
+| Physical storage | [Columnar layouts](memory/columnar-layouts.md), [варианты representation](memory/layout-representations.md) |
+| Verification boundary | [Efen → Viper](memory/viper-verification-backend.md) |
+| Исторические низкоуровневые наброски | [Allocator](memory/allocator.md), [pointer](memory/pointer.md), [class internals](memory/classes-internal.md) |
+
+`Layout<T>` и dependent types остаются отдельной отложенной темой. Документы о
+Viper задают проект proof boundary, но не являются свидетельством выполненного
+machine proof.
+
+## Compile-time и toolchain
+
+| Тема | Документы |
+|---|---|
+| API и generated HIR | [Compile-time API](compile-time/index.md), [метафункции](compile-time/metafunctions.md) |
+| Конфигурация сборки | [Режимы компиляции](compilation-modes.md), [diagnostic groups](diagnostic-groups.md) |
+| Другие frontend-языки | [Диалекты](dialects.md) |
+| Runtime-facing API | [Runtime index](runtime/index.md), [runtime memory](runtime/memory.md) |
+| Тестовые конструкции | [Tests](tests/tests.md) |
+| Общий HIR и стадии | [Amber design](https://github.com/limelight-lang/amber/blob/main/design/README.md), [Amber glossary](https://github.com/limelight-lang/amber/blob/main/design/glossary.md) |
+
+## Где искать ответ
+
+| Вопрос | Источник истины |
+|---|---|
+| Как конструкция Efen ведёт себя сейчас? | Тематический документ в `docs/efen/` |
+| Что означает термин? | [Словарь Efen](glossary.md) |
+| Почему решение принято или отменено? | [Amber decision log](https://github.com/limelight-lang/amber/blob/main/dev/DECISIONS.md) |
+| Что ещё предстоит спроектировать или реализовать? | [Amber plan](https://github.com/limelight-lang/amber/blob/main/dev/PLAN.md) и явно открытые разделы тематических документов |
+| Как семантика хранится в HIR? | [Amber HIR guide](https://github.com/limelight-lang/amber/blob/main/design/hir/README.md) |
+| Это уже работает в компиляторе? | Нужны код и runtime/compiler tests; одна документация этого не доказывает |
