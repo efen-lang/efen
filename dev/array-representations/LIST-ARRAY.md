@@ -62,7 +62,7 @@ layout Array {
 implementation Target {
     set Nodes: Node
     var head: own Node.item? = null
-    var tail: read Node.Pointer? = null
+    var tail: read Node.item? = null
     var length: Size = 0
 }
 ```
@@ -124,8 +124,8 @@ fn free(area: own Node.Area)
 
 Все четыре роли являются чистыми указателями без сохранённого размера:
 
-- `Node.item` — владеющий указатель на выделение ровно одного элемента;
-- `Node.Area` — владеющий указатель на начало выделенного блока;
+- `Node.item` — указатель на начало выделения ровно одного элемента;
+- `Node.Area` — указатель на начало выделенного блока;
 - `Node.Range` — указатель на начало последовательности без права освободить
   блок;
 - `Node.Pointer` — указатель ровно на один физический `Node`.
@@ -139,8 +139,14 @@ fn free(area: own Node.Area)
 источника памяти значение.
 
 В этом представлении каждый логический элемент `Nodes` связан с отдельным
-`Node.item`. `Node.Pointer` и `Nodes.Pointer` могут иметь одно машинное значение,
-но выполняют разные роли. Физическая схема обязана описать их соответствие.
+`Node.item`. `Node.item`, `Node.Pointer` и `Nodes.Pointer` могут иметь одно
+машинное значение, но выполняют разные роли. Физическая схема обязана описать
+их соответствие.
+
+Роль указателя и право владения независимы. `own Node.item` можно ослабить до
+`read Node.item`, не теряя знания, что адрес является началом одноэлементного
+выделения. Однако `Node.free` требует именно `own Node.Area`, поэтому читающий
+`Node.item` освободить память не может.
 
 В эскизе остаются четыре явно кандидатных интерфейса:
 
@@ -171,7 +177,7 @@ aspect List<Target> conforms Representation<Target> {
 
     struct ReadCursor {
         let owner: &read Target
-        var current: read Node.Pointer?
+        var current: read Node.item?
     }
 
     strategy ReadCursorIteration for ReadCursor {
@@ -202,7 +208,7 @@ aspect List<Target> conforms Representation<Target> {
         }
 
         var head: own Node.item? = null
-        var tail: read Node.Pointer? = null {
+        var tail: read Node.item? = null {
             (head == null) == (tail == null) &&
             (tail == null || tail!.next == null)
         }
@@ -225,7 +231,7 @@ aspect List<Target> conforms Representation<Target> {
             }
         }
 
-        fn nodeAt(index: Size) -> read Node.Pointer {
+        fn nodeAt(index: Size) -> read Node.item {
             checkIndex(index)
 
             var current = head!
@@ -456,10 +462,11 @@ aspect List<Target> conforms Representation<Target> {
 
 При удалении владеющий указатель сначала переносится из `head` или
 `before.next`, продолжение цепочки занимает освободившееся место, затем
-`take victim.value` переносит `Element` из отсоединённого узла. При уничтожении
-опустевшего владеющего указателя узел исключается из `Nodes`, а его память
-возвращается распределителю. Пользовательский деструктор результата работает
-после выхода из окон и не видит промежуточную цепочку.
+`take victim.value` переносит `Element` из отсоединённого узла. После этого
+`Node.free(take victim)` потребляет владеющий `Node.item` и возвращает память
+распределителю. Отсоединённый узел больше не входит в логическое `Nodes`.
+Пользовательский деструктор результата работает после выхода из окон и не видит
+промежуточную цепочку.
 
 ## Срезы, ссылки и обход
 
