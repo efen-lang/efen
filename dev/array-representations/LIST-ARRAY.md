@@ -166,24 +166,21 @@ aspect List<Target> conforms Representation<Target> {
             (tail == null || tail!.next == null)
         }
 
-        @constructor
-        public fn init -> Self {
-            return self
-        }
+        var length: Size = 0
 
         public fn count -> Size {
-            return Nodes.count
+            return length
         }
 
         fn checkIndex(index: Size) {
-            if index >= Nodes.count {
-                throw BoundsError(index, Nodes.count)
+            if index >= length {
+                throw BoundsError(index, length)
             }
         }
 
         fn checkInsertIndex(index: Size) {
-            if index > Nodes.count {
-                throw BoundsError(index, Nodes.count)
+            if index > length {
+                throw BoundsError(index, length)
             }
         }
 
@@ -228,6 +225,8 @@ aspect List<Target> conforms Representation<Target> {
         }
 
         public fn append(value: own Target.Element) {
+            let nextLength = checkedAdd(length, 1)
+
             region suspend Nodes.reachable {
                 region suspend tail {
                     let node = Nodes.allocate(
@@ -242,6 +241,8 @@ aspect List<Target> conforms Representation<Target> {
                         tail!.next = take node
                         tail = tail!.next
                     }
+
+                    length = nextLength
                 }
             }
         }
@@ -249,10 +250,12 @@ aspect List<Target> conforms Representation<Target> {
         public fn insert(index: Size, value: own Target.Element) {
             checkInsertIndex(index)
 
-            if index == Nodes.count {
+            if index == length {
                 append(take value)
                 return
             }
+
+            let nextLength = checkedAdd(length, 1)
 
             if index == 0 {
                 region suspend Nodes.reachable {
@@ -263,6 +266,7 @@ aspect List<Target> conforms Representation<Target> {
                         )
                         node.next = take head
                         head = take node
+                        length = nextLength
                     }
                 }
                 return
@@ -278,6 +282,7 @@ aspect List<Target> conforms Representation<Target> {
                     )
                     node.next = take before.next
                     before.next = take node
+                    length = nextLength
                 }
             }
         }
@@ -296,6 +301,7 @@ aspect List<Target> conforms Representation<Target> {
                             tail = null
                         }
 
+                        length -= 1
                         result = take victim.value
                     }
                 }
@@ -313,6 +319,7 @@ aspect List<Target> conforms Representation<Target> {
                         tail = before
                     }
 
+                    length -= 1
                     result = take victim.value
                 }
             }
@@ -321,8 +328,8 @@ aspect List<Target> conforms Representation<Target> {
         }
 
         public fn slice(first: Size, last: Size) -> ArraySlice<Self> {
-            if first > last || last > Nodes.count {
-                throw RangeError(first, last, Nodes.count)
+            if first > last || last > length {
+                throw RangeError(first, last, length)
             }
             return ArraySlice(owner: &self, first: first, last: last)
         }
@@ -330,8 +337,8 @@ aspect List<Target> conforms Representation<Target> {
         public fn readSlice(first: Size, last: Size)
             -> ArrayReadSlice<Self>
         {
-            if first > last || last > Nodes.count {
-                throw RangeError(first, last, Nodes.count)
+            if first > last || last > length {
+                throw RangeError(first, last, length)
             }
             return ArrayReadSlice(
                 owner: &read self,
@@ -428,7 +435,7 @@ aspect List<Target> conforms Representation<Target> {
 На каждой публичной границе:
 
 ```text
-count() == Nodes.count
+length равно числу узлов, достижимых из head по next
 каждый узел Nodes достижим из head по next
 count() == 0  <=>  head == null && tail == null
 count() > 0   =>   tail — последний узел цепочки
