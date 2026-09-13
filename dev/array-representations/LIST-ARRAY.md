@@ -53,6 +53,34 @@ layout Array {
 До применения `R` это определение намеренно неполно. Аспект достраивает конечный
 тип через `implementation Target`, после чего компилятор проверяет контракт.
 
+## Что становится частью `Target`
+
+Объявление внутри `implementation Target` становится членом самого конечного
+типа. Оно не хранится в отдельном экземпляре аспекта. Поэтому следующий блок:
+
+```efen
+implementation Target {
+    set Nodes: Node
+    var head: own Node.item? = null
+    var tail: read Node.Pointer? = null
+    var length: Size = 0
+}
+```
+
+означает, что каждый экземпляр `Array<Element, List>` содержит своё логическое
+множество `Nodes` и свои поля `head`, `tail` и `length`.
+
+Все четыре члена имеют начальное состояние: `Nodes` пусто, ссылки равны `null`,
+длина равна нулю. Поэтому Efen может синтезировать создание пустого значения по
+умолчанию; пустой пользовательский конструктор не нужен.
+
+Создание значения и выбор места для него — разные операции. Локальный `Target`
+может находиться в стеке, быть полем другого значения или элементом внешнего
+`layout`. Обязательный вызов `Target.allocate` навязал бы динамическую память
+даже там, где она не нужна. Если программе требуется отдельно выделенный
+`Target`, стандартное поведение его представления может предоставить такую
+операцию автоматически.
+
 ## Какие средства используются
 
 Внутренняя память узлов описывается обычным Efen `layout`:
@@ -60,18 +88,16 @@ layout Array {
 ```efen
 set Nodes: Node
 Nodes.Pointer
-Nodes.allocate(...)
-Nodes.allocateMany(count: ...)
+Node.allocate(...)
+Node.allocateArea(count: ...)
+Node.free(...)
 ```
 
 Поэтому `implementation Target` может добавить в конечный тип член `set Nodes`.
 
-Семантика `set` и указателей описана в
-[адресах и структурах данных](../../docs/efen/memory/addresses.md). `Nodes`
-задаёт логические идентификаторы и время жизни узлов. Его две функции выделения
-создают элементы этого множества. Владеющий `Nodes.Pointer` отвечает за время
-жизни выделения; когда последний владелец уничтожается, представление возвращает
-память тому же физическому распределителю.
+`Nodes` задаёт только логическое множество узлов. Оно не является аллокатором и
+не владеет физической памятью автоматически. `Nodes.Pointer` указывает на один
+логический элемент этого множества.
 
 Выделение выполняют две разные функции:
 
@@ -80,30 +106,41 @@ fn allocate(
     value: own Node,
     zeroed: Bool = false,
     alignment: Alignment = Node.alignment
-) -> own Nodes.Pointer
+) -> own Node.item
 
-fn allocateMany(
+fn allocateArea(
     count: Size,
-    make: (Size) -> Node,
     zeroed: Bool = false,
     alignment: Alignment = Node.alignment
-) -> own Nodes.Range
+) -> own Node.Area
+
+fn free(area: own Node.Area)
 ```
 
-`Nodes.allocate` создаёт один `Node` и возвращает `Nodes.Pointer`.
-`Nodes.allocateMany` создаёт `count` узлов и возвращает `Nodes.Range`. Обе
-функции выделяют память, инициализируют значения и включают их в логическое
-множество. При ошибке ни один частично созданный элемент не остаётся в `Nodes`.
+`Node.allocate` выделяет один элемент и возвращает `Node.item`.
+`Node.allocateArea` выделяет блок для `count` элементов и возвращает
+`Node.Area`. `Node.free` принимает `Node.Area`; ему можно передать `Node.item`,
+но нельзя передать `Node.Range` или `Node.Pointer`.
+
+Все четыре роли являются чистыми указателями без сохранённого размера:
+
+- `Node.item` — владеющий указатель на выделение ровно одного элемента;
+- `Node.Area` — владеющий указатель на начало выделенного блока;
+- `Node.Range` — указатель на начало последовательности без права освободить
+  блок;
+- `Node.Pointer` — указатель ровно на один физический `Node`.
+
+Размер области хранится отдельно. Из `Node.Area` можно получить `Node.Range`, а
+из диапазона после проверки индекса — `Node.Pointer`.
 
 `zeroed: true` зануляет физическую память до инициализации. Оно допустимо только
 тогда, когда контракт типа разрешает нулевое представление. `alignment` не может
 быть меньше естественного выравнивания `Node` и должен иметь допустимое для
 источника памяти значение.
 
-В этом примере физическое представление `Nodes` выбирается по умолчанию. Позже
-`List` сможет открыть его как ещё один обобщённый параметр. Это позволит тем же
-логическим узлам жить в непрерывном пуле, блоках, файле или другой памяти без
-изменения алгоритма списка.
+В этом представлении каждый логический элемент `Nodes` связан с отдельным
+`Node.item`. `Node.Pointer` и `Nodes.Pointer` могут иметь одно машинное значение,
+но выполняют разные роли. Физическая схема обязана описать их соответствие.
 
 В эскизе остаются четыре явно кандидатных интерфейса:
 
@@ -129,12 +166,12 @@ fn allocateMany(
 aspect List<Target> conforms Representation<Target> {
     struct Node {
         var value: Target.Element
-        var next: own other Target.Nodes.Pointer? = null
+        var next: own Node.item? = null
     }
 
     struct ReadCursor {
         let owner: &read Target
-        var current: read Target.Nodes.Pointer?
+        var current: read Node.Pointer?
     }
 
     strategy ReadCursorIteration for ReadCursor {
@@ -164,8 +201,8 @@ aspect List<Target> conforms Representation<Target> {
             }
         }
 
-        var head: own Nodes.Pointer? = null
-        var tail: read Nodes.Pointer? = null {
+        var head: own Node.item? = null
+        var tail: read Node.Pointer? = null {
             (head == null) == (tail == null) &&
             (tail == null || tail!.next == null)
         }
@@ -188,7 +225,7 @@ aspect List<Target> conforms Representation<Target> {
             }
         }
 
-        fn nodeAt(index: Size) -> read Nodes.Pointer {
+        fn nodeAt(index: Size) -> read Node.Pointer {
             checkIndex(index)
 
             var current = head!
@@ -233,7 +270,7 @@ aspect List<Target> conforms Representation<Target> {
 
             region suspend Nodes.reachable {
                 region suspend tail {
-                    let node = Nodes.allocate(
+                    let node = Node.allocate(
                         value: Node(value: take value, next: null),
                         alignment: Node.alignment
                     )
@@ -264,7 +301,7 @@ aspect List<Target> conforms Representation<Target> {
             if index == 0 {
                 region suspend Nodes.reachable {
                     region suspend tail {
-                        let node = Nodes.allocate(
+                        let node = Node.allocate(
                             value: Node(value: take value, next: null),
                             alignment: Node.alignment
                         )
@@ -280,7 +317,7 @@ aspect List<Target> conforms Representation<Target> {
 
             region suspend Nodes.reachable {
                 region suspend tail {
-                    let node = Nodes.allocate(
+                    let node = Node.allocate(
                         value: Node(value: take value, next: null),
                         alignment: Node.alignment
                     )
@@ -307,6 +344,7 @@ aspect List<Target> conforms Representation<Target> {
 
                         length -= 1
                         result = take victim.value
+                        Node.free(take victim)
                     }
                 }
                 return take result
@@ -325,6 +363,7 @@ aspect List<Target> conforms Representation<Target> {
 
                     length -= 1
                     result = take victim.value
+                    Node.free(take victim)
                 }
             }
 
@@ -370,7 +409,10 @@ aspect List<Target> conforms Representation<Target> {
                 members: Nodes,
                 first: head,
                 next: Node.next,
-                element: Node.value
+                element: Node.value,
+                allocation: Node.item,
+                logicalPointer: Nodes.Pointer,
+                physicalPointer: Node.Pointer
             )
         }
 
@@ -398,7 +440,7 @@ aspect List<Target> conforms Representation<Target> {
 
 ## Почему операции безопасны при ошибках
 
-Проверка индекса выполняется до изменения структуры. `Nodes.allocate` может
+Проверка индекса выполняется до изменения структуры. `Node.allocate` может
 бросить исключение, но при ошибке не оставляет частично созданный узел в
 `Nodes`. После успешного `allocate` остаются только безотказные переносы
 указателей.
@@ -409,7 +451,7 @@ aspect List<Target> conforms Representation<Target> {
 
 `region suspend` не отменяет проверку памяти, происхождения ссылки или прав. Он
 временно разрешает нарушить два явно названных логических условия и требует
-восстановить их на каждом выходе. Если `Nodes.allocate` бросает, старые `head`,
+восстановить их на каждом выходе. Если `Node.allocate` бросает, старые `head`,
 `tail` и множество `Nodes` остаются согласованными.
 
 При удалении владеющий указатель сначала переносится из `head` или
@@ -449,16 +491,17 @@ iterator выдаёт позиции 0 ..< count
 ```
 
 Индексирование стоит `O(index + 1)`, последовательный обход — `O(count)`, а
-`append` после успешного `Nodes.allocate` — `O(1)`. Эти различия допустимы;
+`append` после успешного `Node.allocate` — `O(1)`. Эти различия допустимы;
 изменение логической последовательности недопустимо.
 
 ## Оставшиеся открытые формы
 
-В коде нет отдельного логического протокола `create/take`. `Nodes.allocate` и
-`Nodes.allocateMany` образуют типизированный интерфейс выделения памяти, а
-время жизни полученного места следует из владения `Nodes.Pointer`.
+В коде нет отдельного логического протокола `create/take`. `Node.allocate` и
+`Node.allocateArea` образуют типизированный интерфейс выделения памяти.
+`Node.free` освобождает только `Node.Area` или его более точную форму
+`Node.item`.
 
-Открыты точные сигнатуры `Nodes.allocate`, `Nodes.allocateMany` и общих кандидатных
+Открыты точные сигнатуры `Node.allocate`, `Node.allocateArea`, `Node.free` и общих кандидатных
 программных интерфейсов представления: `implementation Target`,
 `DefinitionPlan`, `PhysicalSchema`, `ArrayPlace`, `PreparedReplacement`,
 `HardConstraints` и `CostHints`.
