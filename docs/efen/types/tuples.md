@@ -180,7 +180,7 @@ alias Config = (host: String, port: Int, timeout: Int)
 alias Point = (x: Int, y: Int)
 alias RGB = (r: Int, g: Int, b: Int)
 
-fn createConfig() -> Config {
+fn createConfig -> Config {
     return (host: "localhost", port: 8080, timeout: 30)
 }
 
@@ -393,7 +393,7 @@ let rgb = (255, 0, 0)
 let pairs = [(1, "one"), (2, "two"), (3, "three")]
 
 // 4. Локальных данных без методов
-fn processData() {
+fn processData {
     let temp = (value: 42, valid: true)
     if temp.valid {
         echo temp.value
@@ -469,13 +469,13 @@ struct TempResult {
     var value: Int
     var valid: Bool
 }
-fn process() {
+fn process {
     let temp = TempResult { value: 42, valid: true }
     // Используется только здесь
 }
 
 // ✅ Лучше: кортеж
-fn process() {
+fn process {
     let temp = (value: 42, valid: true)
     if temp.valid {
         echo temp.value
@@ -492,13 +492,13 @@ fn process() {
 ```efen
 let unit = ()
 
-fn doSomething() -> () {
+fn doSomething -> () {
     echo "Done"
     return ()
 }
 
 // Эквивалентно Void
-fn doSomething() -> Void {
+fn doSomething -> Void {
     echo "Done"
 }
 ```

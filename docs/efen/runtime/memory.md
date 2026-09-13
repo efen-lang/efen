@@ -13,12 +13,12 @@ interface Allocator {
 }
 
 interface ArenaAllocator : Allocator {
-    fn reset()
-    fn clear()
+    fn reset
+    fn clear
 }
 
 interface PoolAllocator : Allocator {
-    fn acquire() -> Pointer
+    fn acquire -> Pointer
     fn release(ptr: Pointer)
 }
 ```
@@ -101,12 +101,12 @@ class Arena implements ArenaAllocator {
         // Arena не освобождает отдельные объекты
     }
 
-    fn reset() {
+    fn reset {
         // Сброс арены для повторного использования
         self.offset = 0
     }
 
-    fn clear() {
+    fn clear {
         // Полная очистка
         free(self.buffer)
         self.buffer = null
@@ -177,7 +177,7 @@ class Pool implements PoolAllocator {
         initializeFreeList()
     }
 
-    private fn initializeFreeList() {
+    private fn initializeFreeList {
         self.freeList = self.buffer
 
         // Связываем все блоки в список
@@ -192,7 +192,7 @@ class Pool implements PoolAllocator {
         *(current as *Pointer) = null
     }
 
-    fn acquire() -> Pointer {
+    fn acquire -> Pointer {
         if self.freeList == null {
             error("Pool exhausted")
         }
@@ -397,7 +397,7 @@ class TrackingAllocator implements Allocator {
         inner.deallocate(ptr)
     }
 
-    fn reportLeaks() {
+    fn reportLeaks {
         if allocations.isEmpty {
             print("No memory leaks detected")
         } else {
@@ -442,7 +442,7 @@ class GameWorld {
         poolSize: 10000
     )
 
-    fn spawnEntity() -> Entity {
+    fn spawnEntity -> Entity {
         let ptr = entityPool.acquire()
         return ptr as *Entity
     }

@@ -67,7 +67,7 @@ fn calculateDiscount(orderId: String) -> Float {
 ### Каналы токенов ANTLR4
 
 ```
-Source Code: fn foo() { /// Doc comment
+Source Code: fn foo { /// Doc comment
                          let x = 42; // regular comment
 
 DEFAULT (0):  [fn] [foo] [(] [)] [{] [let] [x] [=] [42] [;]

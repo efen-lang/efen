@@ -117,12 +117,12 @@ struct Buffer {
 
 strategy BufferOffsets for Buffer {
     @offset
-    fn data() -> Size {
+    fn data -> Size {
         return header.size
     }
     
     @offset
-    fn footer() -> Size {
+    fn footer -> Size {
         return header.size + data.size
     }
     
@@ -223,7 +223,7 @@ class NodeList {
         self.head = null
     }
     
-    fn append() {}
+    fn append {}
 }
 ```
 

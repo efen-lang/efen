@@ -151,7 +151,7 @@ let box2 = box1.move()      // Перемещение
 Например:
 
 ```efen
-fn example() {
+fn example {
     let box1 = Box(value: 10)   // Box живёт в области видимости example
 }                               // Освобождение box1
 ```
@@ -171,12 +171,12 @@ class Box {
         print("Box is being destroyed")
     }
     
-    fn print() {
+    fn print {
         print("Point(x: ${point.x}, y: ${point.y}")
     }
 }
 
-fn example() {
+fn example {
     let p1 = Point(x: 1.0, y: 2.0) // Point живёт в области видимости example
     let box1 = Box(value: p1)      // Box живёт в области видимости example
                                    // Box владеет Point на чтение
@@ -200,7 +200,7 @@ class Box {
         print("Box is being destroyed")
     }
     
-    fn print() {
+    fn print {
         if point == null {
             print("Point has been deallocated")
         } else {
@@ -245,8 +245,8 @@ class Box {
 contract RefCountContract {
     // Методы доступны только компилятору
     for compiler {
-        fn retain()
-        fn release()
+        fn retain
+        fn release
     }
 }
 
@@ -263,11 +263,11 @@ aspect RefCount implements RefCountInterface {
     // Соответствие контракту
     conforms RefCountContract
 
-    fn retain() {
+    fn retain {
         self.refCount += 1
     }
 
-    fn release() {
+    fn release {
         if unlikely self.refCount == 0 {
             error("Release called on object with refCount 0")
         }

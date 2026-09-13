@@ -314,7 +314,7 @@ struct Person {
 
 // Декораторы автоматически генерируют:
 // - fn equals(other: Person) -> Bool
-// - fn hash() -> Int
+// - fn hash -> Int
 ```
 
 ## Вложенные структуры

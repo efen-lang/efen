@@ -16,6 +16,7 @@ Efen — PHP-совместимый компилируемый язык, в ко
 | Понять расширяемость | [Контракты](docs/efen/contracts.md) → [стратегии](docs/efen/strategies.md) → [аспекты](docs/efen/aspects/aspect.md) |
 | Писать compile-time код | [Compile-time API](docs/efen/compile-time/index.md) → [метафункции](docs/efen/compile-time/metafunctions.md) → [metadata](docs/efen/aspects/metadata.md) |
 | Найти определение термина | [Словарь Efen](docs/efen/glossary.md) |
+| Понять принципы синтаксиса | [Философия языка](docs/efen/philosophy.md) |
 
 Полный тематический каталог и дополнительные маршруты находятся в
 [индексе документации](docs/efen/index.md).

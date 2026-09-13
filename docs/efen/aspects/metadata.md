@@ -47,7 +47,7 @@ HIR.
 ```efen
 @route("/users")
 @cached
-public fn users() -> [User]
+public fn users -> [User]
 ```
 
 Исходное применение атрибута является неизменяемым фактом исходной программы.

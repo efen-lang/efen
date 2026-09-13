@@ -125,7 +125,7 @@ opaque type TokenStream:
 = TokenScanner
 
 fn tokens(text: String) -> TokenStream
-fn emptyTokens() -> TokenStream
+fn emptyTokens -> TokenStream
 ```
 
 Каждое самостоятельное `-> opaque Contract` вводит собственную идентичность

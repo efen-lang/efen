@@ -32,7 +32,7 @@ class MyObject
 {
     var data: Int;
 
-    fn init() {
+    fn init {
         self.data = data;
     }
 }

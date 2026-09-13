@@ -66,7 +66,7 @@ sandbox {
 
 ```efen
 @compileTime
-fn generateCode() {
+fn generateCode {
     // Этот код выполняется в песочнице во время компиляции
     let data = readConfigFile("config.json")
     return generateStructs(data)
@@ -177,7 +177,7 @@ efenc --mode=testing main.efen
 ### Условная компиляция по режиму
 
 ```efen
-fn connectToDatabase() {
+fn connectToDatabase {
     #if MODE == "production"
         return Database::connect("production.db")
     #elif MODE == "testing"

@@ -126,7 +126,7 @@ import runtime.tls
 
 @threadLocal var counter: Int = 0
 
-fn incrementCounter() {
+fn incrementCounter {
     counter += 1  // Каждый поток имеет свою копию
 }
 ```

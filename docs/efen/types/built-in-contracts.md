@@ -34,8 +34,8 @@ contract TypeContract {
 
 ```efen
 contract ReferenceCounterContract {
-    fn retain()
-    fn release()
+    fn retain
+    fn release
     var referenceCount: Int { get }
 }
 ```

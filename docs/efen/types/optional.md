@@ -432,11 +432,11 @@ let crash = optionalValue  // runtime trap
 class ViewController {
     var view: View!  // Будет инициализировано в viewDidLoad
 
-    fn viewDidLoad() {
+    fn viewDidLoad {
         self.view = View()  // Гарантированно установлено после загрузки
     }
 
-    fn updateUI() {
+    fn updateUI {
         view.backgroundColor = .white  // Безопасно, view уже инициализирован
     }
 }

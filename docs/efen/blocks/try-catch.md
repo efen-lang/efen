@@ -210,7 +210,7 @@ fn readFile(path: String) throws only FileError {
 В вложенных блоках catch/finally без try работают только для своего scope:
 
 ```efen
-fn complex() {
+fn complex {
     operation1()
 
     if condition {
@@ -274,7 +274,7 @@ try {
 Для точек ответственности с `throws only`:
 
 ```efen
-fn limited() throws only NetworkError {
+fn limited throws only NetworkError {
     try {
         operation()  // Может бросить разные исключения
     } catch e: DatabaseError {
@@ -292,7 +292,7 @@ fn limited() throws only NetworkError {
 Для точек ответственности с `nothrows`:
 
 ```efen
-fn handler() nothrows {
+fn handler nothrows {
     try {
         riskyOperation()
     } catch e: Exception {

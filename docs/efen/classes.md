@@ -14,11 +14,11 @@ class Person {
     var name: String
     var age: Int
 
-    fn greet() {
+    fn greet {
         print("Hello, my name is ${name}")
     }
 
-    fn haveBirthday() {
+    fn haveBirthday {
         age += 1
         print("${name} is now ${age} years old")
     }
@@ -51,7 +51,7 @@ class Rectangle {
         self.height = height
     }
 
-    fn area() -> Float {
+    fn area -> Float {
         return width * height
     }
 }
@@ -75,7 +75,7 @@ final class Closed {}
 open class Animal {
     var name: String
 
-    open fn makeSound() {
+    open fn makeSound {
         print("Some generic sound")
     }
 }
@@ -83,11 +83,11 @@ open class Animal {
 class Dog : Animal {
     var breed: String
 
-    override fn makeSound() {
+    override fn makeSound {
         print("Woof!")
     }
 
-    fn fetch() {
+    fn fetch {
         print("${name} is fetching the ball")
     }
 }
@@ -103,7 +103,7 @@ dog.fetch()  // Выведет: "Buddy is fetching the ball"
 
 ```efen
 open class Middle : Animal {
-    open fn makeSound() {
+    open fn makeSound {
         print("Middle")
     }
 }
@@ -118,7 +118,7 @@ open class Middle : Animal {
 
 ```efen
 interface Drawable {
-    fn draw()
+    fn draw
 }
 
 interface Resizable {
@@ -129,7 +129,7 @@ class Circle implements Drawable, Resizable {
     var radius: Float
     var position: Point
 
-    fn draw() {
+    fn draw {
         print("Drawing circle at ${position} with radius ${radius}")
     }
 
@@ -145,7 +145,7 @@ class Circle implements Drawable, Resizable {
 
 ```efen
 contract Serializable {
-    fn serialize() -> String
+    fn serialize -> String
     fn deserialize(data: String)
 }
 
@@ -155,7 +155,7 @@ class User {
     var name: String
     var email: String
 
-    fn serialize() -> String {
+    fn serialize -> String {
         return "${name};${email}"
     }
 
@@ -173,12 +173,12 @@ class User {
 
 ```efen
 contract Validatable {
-    fn validate() -> Bool
+    fn validate -> Bool
 }
 
 interface Storable {
-    fn save()
-    fn load()
+    fn save
+    fn load
 }
 
 open class Entity {
@@ -192,15 +192,15 @@ class Product : Entity implements Storable {
     var name: String
     var price: Float
 
-    fn validate() -> Bool {
+    fn validate -> Bool {
         return !name.isEmpty && price > 0
     }
 
-    fn save() {
+    fn save {
         print("Saving product ${name}")
     }
 
-    fn load() {
+    fn load {
         print("Loading product")
     }
 }
@@ -288,15 +288,15 @@ let pi = Math.PI
 class Counter {
     var count: Int = 0
 
-    fn increment() {
+    fn increment {
         count += 1
     }
 
-    fn decrement() {
+    fn decrement {
         count -= 1
     }
 
-    fn reset() {
+    fn reset {
         count = 0
     }
 }

@@ -168,7 +168,7 @@ enum Direction {
     east
     west
 
-    fn opposite() -> Direction {
+    fn opposite -> Direction {
         return match self {
             .north: .south
             .south: .north
@@ -460,7 +460,7 @@ enum OrderStatus {
         }
     }
 
-    fn nextStatus() -> OrderStatus? {
+    fn nextStatus -> OrderStatus? {
         return match self {
             .pending: .confirmed
             .confirmed: null  // Нужен внешний триггер (отгрузка)

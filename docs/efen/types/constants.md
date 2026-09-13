@@ -75,7 +75,7 @@ const API_URL = "https://api.example.com"
 const API_VERSION = "v1"
 const MAX_RETRIES = 3
 
-fn makeRequest() {
+fn makeRequest {
     let url = API_URL + "/" + API_VERSION
     // Константы доступны
 }
@@ -86,7 +86,7 @@ fn makeRequest() {
 Константы могут быть объявлены внутри функций и блоков:
 
 ```efen
-fn calculate() {
+fn calculate {
     const PI = 3.14159
     const RADIUS = 10.0
 
@@ -260,7 +260,7 @@ module limits {
 import network
 import limits
 
-fn startServer() {
+fn startServer {
     listen(network::DEFAULT_PORT)
     setMaxUsers(limits::MAX_USERS)
 }
@@ -309,7 +309,7 @@ const MAX_SIZE = 1024
 let currentSize = calculateSize()
 
 // let для неизменяемых локальных переменных
-fn process() {
+fn process {
     let input = readInput()  // Вычислено в runtime
     let result = input * 2   // Неизменяемая переменная
 }

@@ -52,11 +52,11 @@ fn getUserByEmail(conn: Connection, email: String) -> Option<User> {
 // Плагин компилятора для нового диалекта
 @dialectPlugin
 class MyDialect implements DialectCompiler {
-    fn name() -> String {
+    fn name -> String {
         return "mydialect"
     }
 
-    fn fileExtensions() -> [String] {
+    fn fileExtensions -> [String] {
         return [".emd", ".mydialect"]
     }
 
@@ -233,7 +233,7 @@ async fn fetchData(url: String) -> String {
     return data
 }
 
-async fn processUsers() {
+async fn processUsers {
     let users = await fetchUsers()
     for user in users {
         await processUser(user)
@@ -397,7 +397,7 @@ let schedule = cron {
 use dialect JSX
 use dialect CSS
 
-fn renderApp() -> Element {
+fn renderApp -> Element {
     let styles = css {
         .app { padding: 20px; }
     }

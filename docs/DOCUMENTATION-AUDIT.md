@@ -408,7 +408,7 @@ capture semantics.
 Предварительный синтаксис typestate-переходов при исключениях:
 
 ```efen
-fn open() -> :Closed >> Open
+fn open -> :Closed >> Open
     throws Error >> Failed
     throws IOError >> Closed
     throws TimeoutError >> Retrying
@@ -489,8 +489,8 @@ deallocate(pointer: Pointer, layout: Layout)
     структуры сохраняют обычные фигурные скобки. Кортеж разбирается круглыми
     скобками `let (x, _) = pair`; именованный кортеж дополнительно допускает
     `let .{ name, age } = person`. Форма `Type -> pattern` из языка уходит.
-11. **Typestate** в сигнатуре пишется словом `state`: `fn read() -> String
-    state Open`, `fn open() state Closed >> Open`. Порядок хвоста сигнатуры:
+11. **Typestate** в сигнатуре пишется словом `state`: `fn read -> String
+    state Open`, `fn open state Closed >> Open`. Порядок хвоста сигнатуры:
     `-> тип`, `state`, `in`, `throws | throws only | nothrows`.
 12. **Правило пробелов для знаков.** Знак, отделённый слева и прижатый справа,
     — префикс (`%db`, `-x`, `&x`); отделённый с обеих сторон — бинарный

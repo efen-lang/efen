@@ -183,7 +183,7 @@ fn login(username: String?, password: String?) -> Bool {
 ### Базовый defer
 
 ```efen
-fn processFile() {
+fn processFile {
     print("Открываем файл")
 
     defer {
@@ -232,7 +232,7 @@ process(value: 42)
 Если в функции несколько `defer`, они выполняются в **обратном** порядке объявления (LIFO):
 
 ```efen
-fn example() {
+fn example {
     defer { print("1") }
     defer { print("2") }
     defer { print("3") }
@@ -250,7 +250,7 @@ example()
 Это позволяет освобождать ресурсы в правильном порядке:
 
 ```efen
-fn processData() {
+fn processData {
     print("Открываем соединение с БД")
     defer { print("Закрываем соединение с БД") }
 
@@ -273,7 +273,7 @@ processData()
 `Defer` выполняется при выходе из своей области видимости, не обязательно функции:
 
 ```efen
-fn example() {
+fn example {
     print("Начало функции")
 
     if true {
@@ -329,7 +329,7 @@ fn readFile(path: String) -> String? {
 #### Блокировки
 
 ```efen
-fn updateSharedResource() {
+fn updateSharedResource {
     lock.acquire()
 
     defer {
@@ -358,7 +358,7 @@ fn performOperation(name: String) {
 #### Изменение состояния
 
 ```efen
-fn process() {
+fn process {
     var isProcessing = true
 
     defer {

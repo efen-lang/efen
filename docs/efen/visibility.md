@@ -79,7 +79,7 @@ class Account {
 ```efen
 private module
 
-public fn myFunction() {
+public fn myFunction {
     // Предупреждение: попытка сделать публичную функцию в приватном модуле
 }
 ```
@@ -129,7 +129,7 @@ attributes {
 Атрибуты определяются только в главном модуле пакета и могут применяться к любым сущностям:
 
 ```efen
-api fn myApiFunction() {
+api fn myApiFunction {
     // доступно в модулях и пакетах, указанных в атрибуте видимости
 }
 ```

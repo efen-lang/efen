@@ -10,7 +10,7 @@
 ```efen
 contract MyContract {
     var myProperty: Int { get set }
-    func myMethod()
+    func myMethod
 }
 ```
 
@@ -294,12 +294,12 @@ class Box {
 ```efen
 contract BaseContract {
     var baseProperty: Int { get set }
-    func baseMethod()
+    func baseMethod
 }
 
 contract DerivedContract : BaseContract {
     var derivedProperty: String { get set }
-    func derivedMethod()
+    func derivedMethod
 }
 ```
 
@@ -314,7 +314,7 @@ contract SecondContract {
 }
 
 contract CombinedContract : FirstContract, SecondContract {
-    func combinedMethod()
+    func combinedMethod
 }
 ```
 
@@ -326,7 +326,7 @@ Runtime-interface из contract создаётся только явной де�
 
 ```efen
 contract DrawableContract {
-    fn draw()
+    fn draw
 }
 
 interface DrawableInterface from DrawableContract
@@ -361,7 +361,7 @@ interface MyInterface {
 ```efen
 interface ParentInterface {
     var parentProperty: Bool { get set }
-    func parentMethod()
+    func parentMethod
 }
 
 interface MyInterface : ParentInterface {
@@ -374,7 +374,7 @@ interface MyInterface : ParentInterface {
 Множественные контракты:
 ```efen
 contract SecondContract {
-    func additionalMethod()
+    func additionalMethod
 }
 
 interface MyInterface : ParentInterface {

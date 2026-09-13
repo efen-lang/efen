@@ -43,7 +43,7 @@ fn handleFile(path: str) {
 
 ```efen
 interface Disposable {
-    fn dispose() -> void
+    fn dispose -> void
 }
 ```
 
@@ -63,14 +63,14 @@ class Database implements Disposable {
         return this.connection.execute(sql)
     }
 
-    fn dispose() {
+    fn dispose {
         println("Закрываем соединение с БД")
         this.connection.close()
     }
 }
 
 // Использование
-fn fetchData() {
+fn fetchData {
     let disposable db = Database::new("localhost:5432")
 
     let results = db.query("SELECT * FROM users")
@@ -86,7 +86,7 @@ fn fetchData() {
 
 1. **При нормальном выходе из области видимости**
    ```efen
-   fn process() {
+   fn process {
        let disposable file = File::open("data.txt")
        let content = file.read()
        // dispose() вызывается здесь
@@ -95,7 +95,7 @@ fn fetchData() {
 
 2. **При раннем возврате (return)**
    ```efen
-   fn process() -> Bool {
+   fn process -> Bool {
        let disposable file = File::open("data.txt")
 
        if file.isEmpty() {
@@ -109,7 +109,7 @@ fn fetchData() {
 
 3. **При выбросе исключения**
    ```efen
-   fn process() throws {
+   fn process throws {
        let disposable file = File::open("data.txt")
 
        if corruptedData(file) {
@@ -122,7 +122,7 @@ fn fetchData() {
 
 4. **При panic**
    ```efen
-   fn process() {
+   fn process {
        let disposable file = File::open("data.txt")
 
        if invalidData(file) {
@@ -184,7 +184,7 @@ fn openFile(path: String) -> File {
     return file  // Ownership передается, dispose() НЕ вызывается здесь
 }
 
-fn useFile() {
+fn useFile {
     let disposable file = openFile("data.txt")
     processFile(file)
     // dispose() вызывается здесь
@@ -196,7 +196,7 @@ fn useFile() {
 Можно вызвать `dispose()` вручную, но после этого использовать ресурс нельзя:
 
 ```efen
-fn manualDispose() {
+fn manualDispose {
     let disposable file = File::open("data.txt")
 
     processFile(file)
@@ -213,7 +213,7 @@ fn manualDispose() {
 Чтобы предотвратить автоматический dispose, используйте `forget`:
 
 ```efen
-fn keepAlive() -> File {
+fn keepAlive -> File {
     let disposable file = File::open("data.txt")
 
     // Отменяем автоматический dispose
@@ -222,7 +222,7 @@ fn keepAlive() -> File {
     return file  // Ответственность за закрытие на вызывающем коде
 }
 
-fn caller() {
+fn caller {
     let file = keepAlive()
     // Теперь нужно вручную закрыть файл
     defer {
@@ -247,11 +247,11 @@ class FileProcessor implements Disposable {
         this.logger = Logger::new("processor.log")
     }
 
-    fn process() {
+    fn process {
         // Обработка
     }
 
-    fn dispose() {
+    fn dispose {
         // Автоматически вызовет dispose() для всех disposable полей
         // в обратном порядке объявления:
         // 1. logger.dispose()
@@ -267,19 +267,19 @@ class FileProcessor implements Disposable {
 
 ```efen
 interface AsyncDisposable {
-    async fn disposeAsync() -> void
+    async fn disposeAsync -> void
 }
 
 class AsyncDatabase implements AsyncDisposable {
     private var connection: AsyncConnection
 
-    async fn disposeAsync() {
+    async fn disposeAsync {
         await this.connection.closeAsync()
         println("Соединение закрыто")
     }
 }
 
-async fn useDatabase() {
+async fn useDatabase {
     let disposable db = AsyncDatabase::new()
     await db.query("SELECT * FROM users")
     // await db.disposeAsync() вызывается автоматически
@@ -292,17 +292,17 @@ async fn useDatabase() {
 
 ```efen
 interface FallibleDisposable {
-    fn dispose() throws -> void
+    fn dispose throws -> void
 }
 
 class FallibleResource implements FallibleDisposable {
-    fn dispose() throws {
+    fn dispose throws {
         // Может выбросить ошибку
         this.connection.close()  // throws
     }
 }
 
-fn useResource() {
+fn useResource {
     let disposable resource = FallibleResource::new()
 
     try {
@@ -344,7 +344,7 @@ fn processMultipleFiles(paths: [String]) {
 
 2. **Не забывайте про ownership**
    ```efen
-   fn getData() -> File {
+   fn getData -> File {
        let disposable file = File::open("data.txt")
        return file  // Ownership передается
    }
@@ -352,7 +352,7 @@ fn processMultipleFiles(paths: [String]) {
 
 3. **Используйте defer для сложных сценариев**
    ```efen
-   fn complex() {
+   fn complex {
        let resource = acquireResource()
        defer {
            resource.release()  // Гарантированно выполнится
@@ -365,7 +365,7 @@ fn processMultipleFiles(paths: [String]) {
 4. **Обрабатывайте ошибки в dispose**
    ```efen
    class SafeResource implements Disposable {
-       fn dispose() {
+       fn dispose {
            try {
                this.connection.close()
            } catch (e: Error) {
@@ -390,7 +390,7 @@ fn processMultipleFiles(paths: [String]) {
 
 ```efen
 // Старый подход
-fn oldWay() {
+fn oldWay {
     let file = File::open("data.txt")
     try {
         processFile(file)
@@ -400,7 +400,7 @@ fn oldWay() {
 }
 
 // С disposable
-fn newWay() {
+fn newWay {
     let disposable file = File::open("data.txt")
     processFile(file)
 }
@@ -410,7 +410,7 @@ fn newWay() {
 
 ```efen
 // С defer
-fn withDefer() {
+fn withDefer {
     let file = File::open("data.txt")
     defer {
         file.close()
@@ -419,7 +419,7 @@ fn withDefer() {
 }
 
 // С disposable - проще
-fn withDisposable() {
+fn withDisposable {
     let disposable file = File::open("data.txt")
     processFile(file)
 }
@@ -437,7 +437,7 @@ void processFile() {
 
 ```efen
 // Efen disposable - явная семантика
-fn processFile() {
+fn processFile {
     let disposable file = File::open("data.txt")
     // ...
 }  // dispose() вызывается здесь

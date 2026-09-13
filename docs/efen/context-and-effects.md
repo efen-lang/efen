@@ -33,7 +33,7 @@ fn saveUser(name: String) in LoggerEffect {
     // Логика сохранения пользователя
 }
 
-fn main() {
+fn main {
     let logger = LoggerEffect {
         fn log(message: String) {
             // Реализация логгера, например, вывод в консоль
@@ -152,7 +152,7 @@ fn fetchData(query: String) in Environment {
     let results = Environment.db.execute(query)
 }
 
-fn main() {
+fn main {
 
     let MainEnv = Environment(
         db: Database(connectionString: "localhost"),
@@ -254,7 +254,7 @@ class DataService {
         %logger.log("Data cached with key: ${key}")
     }
     
-    fn withoutContextMethod() {
+    fn withoutContextMethod {
         // Эта функция не использует контекст
         print("This method does not in the context.")
     }
@@ -308,16 +308,16 @@ context EnvA {
     let a: String
 }
 
-fn funcB() in EnvA {
+fn funcB in EnvA {
     print(%a)
 }
 
-fn funcA() {
+fn funcA {
     print(%a)
     funcB()
 }
 
-fn main() {
+fn main {
     let context = EnvA(a: "Hello, World!")
 
     with context {
@@ -339,13 +339,13 @@ fn main() {
 context EnvA {
     let a: String
 }
-fn funcB() in EnvA {
+fn funcB in EnvA {
     print(%a)
 }
-isolated fn funcA() {
+isolated fn funcA {
     funcB() // Ошибка: для вызова пришлось бы неявно добавить `in EnvA`.
 }
-fn main() {
+fn main {
     let context = EnvA(a: "Hello, World!")
     with context {
         funcA()
@@ -356,7 +356,7 @@ fn main() {
 Явно объявленный контекст остаётся доступен:
 
 ```efen
-isolated fn explicitContext() in EnvA {
+isolated fn explicitContext in EnvA {
     print(%a)
 }
 ```
@@ -377,15 +377,15 @@ context EnvA {
     let a: String
 }
 
-fn funcA() in EnvA {
+fn funcA in EnvA {
     print(%a)
 }
 
-fn funcB() {
+fn funcB {
     funcA() // Корректно: funcB наследует контекст EnvA
 }
 
-fn funcC() {
+fn funcC {
     without EnvA {
         let local = makeLocalEnvA()
         with local {
@@ -402,15 +402,15 @@ context EnvA {
     let a: String
 }
 
-fn funcA() in EnvA {
+fn funcA in EnvA {
     print(%a)
 }
 
-fn funcB() {
+fn funcB {
     funcA()
 }
 
-fn main() {
+fn main {
     without EnvA {
         funcB() // Ошибка: EnvA не связан внутри закрытой области.
     }
@@ -463,11 +463,11 @@ context ContextA {
 context ContextB {
     let valueB: Int
 }
-fn useCombinedContext() in ContextA, ContextB {
+fn useCombinedContext in ContextA, ContextB {
     print(%valueA)
     print(%valueB)
 }
-fn main() {
+fn main {
     with ContextA(valueA: "Hello"), ContextB(valueB: 42) {
         useCombinedContext()
     }
@@ -485,11 +485,11 @@ context BaseContext {
     let value: String
 }
 
-fn useContext() in BaseContext {
+fn useContext in BaseContext {
     print(%value)
 }
 
-fn main() {
+fn main {
     
     with BaseContext(value: "Base Value") {
         useContext() // Выведет: Base Value

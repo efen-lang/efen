@@ -14,7 +14,7 @@
 
 ```efen
 interface Drawable {
-    func draw()
+    func draw
     func resize(scale: Float)
 }
 
@@ -36,7 +36,7 @@ class Shape implements Drawable {
 
 ```efen
 strategy SVGDrawing for Drawable {
-    func draw() {
+    func draw {
         print("Drawing as SVG")
     }
 
@@ -46,7 +46,7 @@ strategy SVGDrawing for Drawable {
 }
 
 strategy CanvasDrawing for Drawable {
-    func draw() {
+    func draw {
         print("Drawing on Canvas")
     }
 
@@ -71,7 +71,7 @@ shape.draw()  // Выведет: "Drawing on Canvas"
 ```efen
 interface Renderer {
     func render(scene: Scene)
-    func clear()
+    func clear
 }
 
 strategy OpenGLRenderer for Renderer {
@@ -79,7 +79,7 @@ strategy OpenGLRenderer for Renderer {
         // Рендеринг через OpenGL
     }
 
-    func clear() {
+    func clear {
         // Очистка OpenGL буфера
     }
 }
@@ -89,7 +89,7 @@ strategy VulkanRenderer for Renderer {
         // Рендеринг через Vulkan
     }
 
-    func clear() {
+    func clear {
         // Очистка Vulkan буфера
     }
 }
@@ -99,7 +99,7 @@ class GraphicsEngine implements Renderer {
 
     var scenes: [Scene]
 
-    func renderAll() {
+    func renderAll {
         for scene in scenes {
             render(scene: scene)  // Делегируется renderer.render()
         }
@@ -124,11 +124,11 @@ engine.renderAll()  // Использует выбранный рендерер
 
 ```efen
 interface Drawable {
-    func draw()
+    func draw
 }
 
 interface Serializable {
-    func serialize() -> String
+    func serialize -> String
     func deserialize(data: String)
 }
 
@@ -155,15 +155,15 @@ let data = doc.serialize()  // Использует JSONSerializer
 
 ```efen
 interface Drawable {
-    func draw()
-    func clear()
+    func draw
+    func clear
 }
 
 class Shape implements Drawable {
     interface drawable: Drawable  // Динамическая реализация draw()
 
     // Статическая реализация clear()
-    func clear() {
+    func clear {
         print("Clearing shape")
     }
 }

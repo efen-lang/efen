@@ -38,7 +38,7 @@ compile-time связь с исходным contract. В interface перено�
 // INTERFACE: присутствует в runtime как VTBL
 interface Logger {
     fn log(message: String)
-    fn level() -> Int
+    fn level -> Int
 }
 
 class FileLogger {
@@ -48,7 +48,7 @@ class FileLogger {
         writeToFile("/var/log/app.log", message)
     }
 
-    fn level() -> Int {
+    fn level -> Int {
         return 3
     }
 }
@@ -60,7 +60,7 @@ class ConsoleLogger {
         print(message)
     }
 
-    fn level() -> Int {
+    fn level -> Int {
         return 5
     }
 }
@@ -120,8 +120,8 @@ processLogs(logger: consoleLogger, messages: ["Debug info"])
    ```efen
    // Плагины загружаются динамически
    interface Plugin {
-       fn name() -> String
-       fn execute()
+       fn name -> String
+       fn execute
    }
 
    let plugins = loadPlugins("/plugins/*.dll")
@@ -163,7 +163,7 @@ processLogs(logger: consoleLogger, messages: ["Debug info"])
 ```efenswift
 interface MyInterface {
     var myProperty: Int { get set }
-    func myMethod()
+    func myMethod
 }
 ```
 

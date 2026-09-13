@@ -51,8 +51,8 @@ Typestate указывается словом `state`. Одно состояни
 это состояние и сохраняет его:
 
 ```efen
-fn flush() state Open
-fn read() -> String state Open
+fn flush state Open
+fn read -> String state Open
 ```
 
 - `flush` ничего не возвращает, требует `Open` и оставляет объект в `Open`;
@@ -65,14 +65,14 @@ fn read() -> String state Open
 Оператор `>>` обозначает переход из исходного состояния в новое:
 
 ```efen
-fn open() state Closed >> Open
-fn close() state Open >> Closed
+fn open state Closed >> Open
+fn close state Open >> Closed
 ```
 
 Метод с результатом записывается так:
 
 ```efen
-fn connect() -> Connection state Disconnected >> Connected
+fn connect -> Connection state Disconnected >> Connected
 ```
 
 Общие формы сигнатуры:
@@ -101,7 +101,7 @@ class File {
         let descriptor: Int
     }
 
-    fn open() state Closed >> Open throws IOError {
+    fn open state Closed >> Open throws IOError {
         descriptor = os.open(path)
     }
 
@@ -109,7 +109,7 @@ class File {
         return os.read(descriptor, count)
     }
 
-    fn close() state Open >> Closed {
+    fn close state Open >> Closed {
         os.close(descriptor)
     }
 }
@@ -127,7 +127,7 @@ file.close()                      // теперь Closed
 выбрасывает исключение, объект сохраняет исходное состояние:
 
 ```efen
-fn open() state Closed >> Open throws IOError
+fn open state Closed >> Open throws IOError
 ```
 
 - успешный возврат: `Closed` становится `Open`;
@@ -140,7 +140,7 @@ fn open() state Closed >> Open throws IOError
 Typestate отделён от контекстных эффектов `in` и исключений `throws`:
 
 ```efen
-fn open() state Closed >> Open in FileSystem, Logger throws IOError
+fn open state Closed >> Open in FileSystem, Logger throws IOError
 ```
 
 Порядок частей сигнатуры:
@@ -213,9 +213,9 @@ interface Connection {
     initial state Disconnected
     state Connected
 
-    fn connect() state Disconnected >> Connected
+    fn connect state Disconnected >> Connected
     fn send(data: [Byte]) -> Int state Connected
-    fn disconnect() state Connected >> Disconnected
+    fn disconnect state Connected >> Disconnected
 }
 ```
 
@@ -246,7 +246,7 @@ error[typestate.invalid-call]: `read` requires state `Open`
 Слово `state` не конфликтует с union-типами:
 
 ```efen
-fn parse() -> Bool | String state Ready
+fn parse -> Bool | String state Ready
 ```
 
 Здесь `Bool | String` — возвращаемый union-тип, а `Ready` — состояние объекта.

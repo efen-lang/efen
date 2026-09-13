@@ -55,6 +55,7 @@ source syntax
 
 | Тема | Документы |
 |---|---|
+| Философия и канонический синтаксис | [Философия языка](philosophy.md) |
 | Функции и вызовы | [Функции](functions.md), [синтаксис вызова](function-call-syntax.md), [function type](types/function-type.md) |
 | Замыкания и генераторы | [Замыкания](closure.md), [генераторы](generators.md), [flow](flow.md) |
 | Ветвления и циклы | [Control flow](blocks/index.md), [`is`](is.md), [деструктуризация](destructuring.md) |

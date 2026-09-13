@@ -276,7 +276,7 @@ guard let value = optionalValue else {
 Defer обеспечивает выполнение кода при любом выходе:
 
 ```efen
-func process() {
+func process {
     defer { cleanup() }
 
     guard condition else { return }  // cleanup выполнится

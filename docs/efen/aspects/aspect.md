@@ -29,7 +29,7 @@ aspect AspectName
         // Например, атрибуты, описание и т.д.
         // А так же код времени компиляции
         strategy for Class {
-            fn addMethod() {
+            fn addMethod {
                 // Алгоритм добавление нового метода к классу
             }
         }
@@ -88,7 +88,7 @@ class MyClass {
 aspect Queue<Item> {
     array items: Item[] = [];
     required method enqueue(item: Item);
-    required method dequeue() -> Item;
+    required method dequeue -> Item;
 }
 
 class IntQueue {
@@ -98,7 +98,7 @@ class IntQueue {
         items.push(item);
     }
     
-    method dequeue() -> Int {
+    method dequeue -> Int {
         return items.pop();
     }
 }

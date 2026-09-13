@@ -20,7 +20,7 @@ var closure = (param1: Int, param2: Int) -> Int { return param1 + param2 }
 Замыкание как возвращаемый тип функции:
 
 ```efen
-fn getClosure() -> (Int, Int) -> Int {
+fn getClosure -> (Int, Int) -> Int {
     return => return param1 + param2
 }
 ```
@@ -214,7 +214,7 @@ let doubled = processArray(numbers, (x) => x * 2)  // [2, 4, 6, 8, 10]
 Замыкания могут захватывать и сохранять ссылки на переменные и константы из окружающего контекста:
 
 ```efen
-fn makeCounter(): () -> Int {
+fn makeCounter: () -> Int {
     var count = 0
     return () => {
         count += 1
@@ -254,7 +254,7 @@ print(triple(5))   // 15
 Для захвата по ссылке используются изменяемые переменные:
 
 ```efen
-fn makeCounter() -> () -> Int {
+fn makeCounter -> () -> Int {
     var count = 0
     return () => {
         count += 1  // count захвачен по ссылке
@@ -535,7 +535,7 @@ users.filter((user) => user.age > 18 && user.isActive && !user.isBanned)
 class ViewController {
     var onComplete: (() -> Void)?
 
-    func setup() {
+    func setup {
         // ❌ Retain cycle
         onComplete = {
             self.dismiss()
@@ -590,14 +590,14 @@ class NetworkManager {
         requests.append(request)
     }
 
-    func processData() {
+    func processData {
         addRequest { [weak self] in
             guard let self = self else { return }
             self.performTask()
         }
     }
 
-    func performTask() {
+    func performTask {
         print("Task performed")
     }
 }
@@ -621,7 +621,7 @@ class Child {
         self.parent = parent
     }
 
-    func doSomething() {
+    func doSomething {
         parent.someMethod()  // Безопасно с unowned
         optionalParent?.someMethod()  // Безопасно с weak
     }

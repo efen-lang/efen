@@ -197,20 +197,20 @@ class UserServiceTests {
     var database: Database
 
     @BeforeEach
-    fn setup() {
+    fn setup {
         database.clear()
     }
 
     @Test
     @Timeout(milliseconds: 1000)
-    fn testCreateUser() {
+    fn testCreateUser {
         let user = userService.create("test@example.com")
         assert(user.id > 0)
     }
 
     @Test
     @ExpectedException("ValidationError")
-    fn testInvalidEmail() {
+    fn testInvalidEmail {
         userService.create("invalid-email")
     }
 }
@@ -221,7 +221,7 @@ class UserServiceTests {
 ```efen
 @LogExecutionTime
 @NotifyOnError(channel: "slack")
-fn criticalOperation() -> Result {
+fn criticalOperation -> Result {
     // выполнение критической операции
     return performOperation()
 }
@@ -241,12 +241,12 @@ fn fastAdd(a: Int, b: Int) -> Int {
 }
 
 @NoInline
-fn debugHelper() {
+fn debugHelper {
     // код для отладки
 }
 
 @CompileTimeEvaluate
-fn constantCalculation() -> Int {
+fn constantCalculation -> Int {
     return 42 * 1024 * 1024
 }
 ```
@@ -255,13 +255,13 @@ fn constantCalculation() -> Int {
 
 ```efen
 @Deprecated("Use newFunction() instead", since: "2.0", removal: "3.0")
-fn oldFunction() {
+fn oldFunction {
     // устаревший код
 }
 
 @Experimental
 @Since("2.5")
-fn experimentalFeature() {
+fn experimentalFeature {
     // экспериментальная функциональность
 }
 ```

@@ -18,19 +18,19 @@
 ```efen
 // Декоратор без параметров
 @Deprecated
-fn oldFunction() {
+fn oldFunction {
     // код
 }
 
 // Декоратор с позиционными параметрами
 @Route("/api/users", method: "GET")
-fn getUsers() {
+fn getUsers {
     // код
 }
 
 // Декоратор с именованными параметрами
 @Cache(ttl: 3600, strategy: "LRU")
-fn expensiveOperation() {
+fn expensiveOperation {
     // код
 }
 
@@ -38,7 +38,7 @@ fn expensiveOperation() {
 @Trace
 @Benchmark
 @Transaction
-fn criticalOperation() {
+fn criticalOperation {
     // код
 }
 
@@ -59,7 +59,7 @@ class User {
 ```efen
 @Route("/api/data")
 @Authorization("admin")
-fn getData() -> Data {
+fn getData -> Data {
     return fetchData()
 }
 ```
@@ -83,7 +83,7 @@ class Service {
 
     @Cached
     @Public
-    fn fetchData() -> Data {
+    fn fetchData -> Data {
         return database.query()
     }
 }
@@ -118,7 +118,7 @@ param oldConfig: Config = defaultConfig
 ```efen
 @Serializable
 interface DataObject {
-    fn toJSON() -> String
+    fn toJSON -> String
 }
 
 @CompileTimeValidated
@@ -128,7 +128,7 @@ contract Comparable {
 
 @OptimizedDispatch
 strategy FastMath for Int {
-    fn square() -> Int {
+    fn square -> Int {
         return this * this
     }
 }
@@ -231,7 +231,7 @@ class User {
 
 ```efen
 // ✗ НЕЛЬЗЯ - как отдельный оператор
-fn test() {
+fn test {
     @something
     echo "test"
 }
@@ -250,7 +250,7 @@ let x = computeValue()
 @First      // Выполняется первым
 @Second     // Выполняется вторым
 @Third      // Выполняется третьим
-fn example() { }
+fn example { }
 ```
 
 ## Создание собственных декораторов

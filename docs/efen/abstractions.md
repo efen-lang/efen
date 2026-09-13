@@ -8,7 +8,7 @@
 class MyClass {
     var myProperty: Int = 0
 
-    fn myMethod() {
+    fn myMethod {
         print("Hello, Efen!")
     }
 }

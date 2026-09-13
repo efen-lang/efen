@@ -22,7 +22,7 @@ Efen решает эти проблемы через **автоматическ�
 class DatabaseError extends Exception { }
 class ValidationError extends Exception { }
 
-fn queryDatabase() {
+fn queryDatabase {
     throw DatabaseError("Connection failed")
 }
 
@@ -43,7 +43,7 @@ fn processData(data: String) {
 ### Без throws (автоматическое наследование)
 
 ```efen
-fn process() {
+fn process {
     operation()  // Наследует все исключения
 }
 ```
@@ -51,7 +51,7 @@ fn process() {
 ### nothrows (точка ответственности)
 
 ```efen
-fn handler() nothrows {
+fn handler nothrows {
     try {
         process()
     } catch (e: Error) {
@@ -63,7 +63,7 @@ fn handler() nothrows {
 ### throws (добавление исключения)
 
 ```efen
-fn processWithExtra() throws CustomError {
+fn processWithExtra throws CustomError {
     operation()          // Наследует исключения
     throw CustomError()  // Добавляет своё
 }
@@ -93,7 +93,7 @@ fn map<T, U, ...Errors>(
 ### throws only (ограничение исключений)
 
 ```efen
-fn limitExceptions() throws only NetworkError {
+fn limitExceptions throws only NetworkError {
     try {
         operation()  // Все исключения должны быть обработаны
     } catch (e: Exception) {
@@ -115,12 +115,12 @@ fn limitExceptions() throws only NetworkError {
 ```efen
 responsibility DatabaseLayer handles DatabaseError {
     
-    fn query() {
+    fn query {
         throw QueryError()  // Свободно внутри зоны
     }
     
     // На границе зоны - точка ответственности
-    fn publicAPI() nothrows {
+    fn publicAPI nothrows {
         try {
             query()
         } catch (e: DatabaseError) {
@@ -148,7 +148,7 @@ responsibility DatabaseLayer handles DatabaseError {
 ### isolated функция
 
 ```efen
-isolated fn load() throws IOError {
+isolated fn load throws IOError {
     readFile() // Допустимо: IOError объявлен явно.
 }
 ```
@@ -163,7 +163,7 @@ isolated fn load() throws IOError {
 ([`code-regions.md`](code-regions.md)):
 
 ```efen
-fn process() {
+fn process {
     validate()  // ValidationError
 
     region nothrows {
@@ -201,7 +201,7 @@ contract ErrorHandler extends CatchRules {
 
 ```efen
 @conforms ErrorHandler
-fn dataOperation() {
+fn dataOperation {
     try {
         queryDatabase()
     } catch (e: DatabaseError) {
@@ -245,15 +245,15 @@ class CancellationException extends Exception {
 ### Пример 1: Автоматическое распространение
 
 ```efen
-fn funcC() {
+fn funcC {
     throw ErrorC()
 }
 
-fn funcB() {
+fn funcB {
     funcC()  // ErrorC автоматически наследуется
 }
 
-fn main() nothrows {
+fn main nothrows {
     try {
         funcB()
     } catch (e: ErrorC) {
@@ -267,11 +267,11 @@ fn main() nothrows {
 ```efen
 // Слой данных
 responsibility DataLayer handles DataError {
-    fn query() {
+    fn query {
         throw DatabaseError()
     }
     
-    fn publicSave() -> Bool nothrows {
+    fn publicSave -> Bool nothrows {
         try {
             query()
             return true
@@ -283,12 +283,12 @@ responsibility DataLayer handles DataError {
 
 // Бизнес-логика
 responsibility BusinessLayer handles BusinessError {
-    fn register() {
+    fn register {
         DataLayer.publicSave()  // nothrows
         throw RegistrationError()
     }
     
-    fn publicRegister() nothrows {
+    fn publicRegister nothrows {
         try {
             register()
         } catch {
@@ -306,7 +306,7 @@ context ErrorHandler {
 }
 
 responsibility Service handles ServiceError in ErrorHandler {
-    fn process() {
+    fn process {
         try {
             operation()
         } catch (e: ServiceError) {
@@ -340,16 +340,16 @@ class UserRepository {
 
 ```efen
 interface Service {
-    fn process() throws only ErrorA, ErrorB
+    fn process throws only ErrorA, ErrorB
 }
 
 class ConcreteService implements Service {
-    fn process() throws only ErrorA {  // ✅ Убрали ErrorB
+    fn process throws only ErrorA {  // ✅ Убрали ErrorB
     }
 }
 
 class BrokenService implements Service {
-    fn process() throws only ErrorA, ErrorB, ErrorC {  // ❌ Добавили ErrorC
+    fn process throws only ErrorA, ErrorB, ErrorC {  // ❌ Добавили ErrorC
     }
 }
 ```
@@ -373,7 +373,7 @@ class CriticalError extends Exception {
 вызывающую сторону обработать его по описанному ниже правилу:
 
 ```efen
-fn critical() throws CriticalError {
+fn critical throws CriticalError {
     throw CriticalError()
 }
 ```
@@ -400,7 +400,7 @@ region handles CriticalError {
 сохраняет его `MustHandle` для следующего вызывающего:
 
 ```efen
-fn rethrowing() throws CriticalError {
+fn rethrowing throws CriticalError {
     try {
         critical()
     } catch e: CriticalError {
@@ -418,12 +418,12 @@ fn rethrowing() throws CriticalError {
 такое исключение дальше по стеку молча нельзя:
 
 ```efen
-fn caller() {
+fn caller {
     // ❌ Ошибка: CriticalError должен быть обработан немедленно
     critical()
 }
 
-fn correctCaller() {
+fn correctCaller {
     try {
         critical()
     } catch e: CriticalError {
@@ -511,7 +511,7 @@ handles` должны быть выполнены все; старшинства
 ## Диагностика
 
 ```efen
-fn handler() nothrows {
+fn handler nothrows {
     processData()
 }
 

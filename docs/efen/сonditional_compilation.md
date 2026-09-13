@@ -28,7 +28,7 @@ code
     use Posix
 #endif
 
-fn platformSpecificFunction() {
+fn platformSpecificFunction {
     #if os() == "windows"
         // Код для Windows
         WinAPI.doSomethingWindowsSpecific()
@@ -50,3 +50,4 @@ fn platformSpecificFunction() {
 #else // Ошибка: Нарушение целостности блока if
         // Код
     }
+```

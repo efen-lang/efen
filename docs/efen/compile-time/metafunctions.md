@@ -1152,7 +1152,7 @@ let result: Int = safeDivide(10, 2)
 #### Пример: функция без параметров
 
 ```efen
-meta fn getTimestamp() -> InlineClosure {
+meta fn getTimestamp -> InlineClosure {
     let file = location.file
     let line = location.line
 
@@ -1206,7 +1206,7 @@ info(123)  // ❌ ОШИБКА КОМПИЛЯЦИИ - ожидается String,
 #### Пример: generic с проверкой типов
 
 ```efen
-meta fn identity<T>() -> InlineClosure {
+meta fn identity<T> -> InlineClosure {
     return inline (value: T) -> T {
         // Inline closure принимает T и возвращает T
         value
@@ -1233,7 +1233,7 @@ inline (param1Type, param2Type) -> Result
 #### Пример с несовпадением типов (ошибка)
 
 ```efen
-meta fn badexample() -> InlineClosure {
+meta fn badexample -> InlineClosure {
     return inline (x: String) -> Int {  // Принимает String, возвращает Int
         x.length()
     }
@@ -1249,7 +1249,7 @@ let result = badexample()
 #### Корректный вариант
 
 ```efen
-meta fn goodexample() -> InlineClosure {
+meta fn goodexample -> InlineClosure {
     return inline (x: String) -> Int {
         x.length()
     }
@@ -1396,7 +1396,7 @@ meta fn lazy<T>(computation: inline -> T) -> InlineClosure {
         var cached: T? = null
         var isComputed = false
 
-        fn get() -> T {
+        fn get -> T {
             if !isComputed {
                 cached = computation()
                 isComputed = true
@@ -1635,14 +1635,14 @@ generateAccessors(Identifier.create("userName"), Type.string())
 Внутри метафункций доступен встроенный объект `location`, который содержит информацию о **месте вызова** метафункции:
 
 ```efen
-meta fn debugInfo() -> InlineClosure {
+meta fn debugInfo -> InlineClosure {
     return inline {
         println("Debug: ${location.file}:${location.line} in ${location.function}")
     }
 }
 
 // Использование
-fn processData() {
+fn processData {
     debugInfo()  // Debug: main.efen:42 in processData
 }
 ```
@@ -1877,7 +1877,7 @@ withFeature("experimental_api", code {
 ```efen
 use project::*
 
-meta fn platformSpecific() -> InlineClosure {
+meta fn platformSpecific -> InlineClosure {
     let target = project.target()
 
     if target == "windows" {
@@ -2001,7 +2001,7 @@ meta fn validateInterface(type: Type) -> InlineClosure {
 
 ✅ **Создавать локальные переменные** внутри inline closure
 ```efen
-meta fn example() -> InlineClosure {
+meta fn example -> InlineClosure {
     return inline {
         let temp = 42  // OK - локальная переменная
         temp * 2
@@ -2280,7 +2280,7 @@ meta fn stateMachine(
             handlers[currentState]?()
         }
 
-        fn getState() -> String {
+        fn getState -> String {
             return currentState
         }
 
@@ -2294,7 +2294,7 @@ meta fn stateMachine(
 ### С декораторами
 
 ```efen
-meta fn createLogDecorator() -> Decorator {
+meta fn createLogDecorator -> Decorator {
     return Decorator => (method: Method) {
         let methodName = method.getName()
 
@@ -2308,7 +2308,7 @@ meta fn createLogDecorator() -> Decorator {
 }
 
 @createLogDecorator()
-fn processData() {
+fn processData {
     // ...
 }
 ```
@@ -2373,7 +2373,7 @@ meta fn transform(value: Any, fn: inline) -> InlineClosure
 
 ```efen
 // ✅ Правильно - inline closure принимает String, возвращает Int
-meta fn stringLength() -> InlineClosure {
+meta fn stringLength -> InlineClosure {
     return inline (s: String) -> Int {
         s.length()
     }
@@ -2383,7 +2383,7 @@ let lengthFn = stringLength()  // Тип: (String) -> Int
 let len = lengthFn("hello")    // ✅ OK - 5
 
 // ❌ Ошибка - несоответствие типов
-meta fn badLength() -> InlineClosure {
+meta fn badLength -> InlineClosure {
     return inline (s: String) -> Int {
         s.length()
     }
@@ -2406,7 +2406,7 @@ meta fn logMessage(msg: String) -> InlineClosure {
 logMessage("test")  // ✅ OK - вызов как statement
 
 // Вариант B: Higher-order function - inline closure с параметрами
-meta fn createLogger() -> InlineClosure {
+meta fn createLogger -> InlineClosure {
     return inline (msg: String) -> Void {  // (String) -> Void
         println(msg)
     }
@@ -2500,7 +2500,7 @@ meta fn compileWarning(message: comptime String) -> InlineClosure  // Преду
 ### Отладка
 
 ```efen
-meta fn unreachable() -> InlineClosure  // Помечает недостижимый код
+meta fn unreachable -> InlineClosure  // Помечает недостижимый код
 meta fn todo(message: comptime String = "not implemented") -> InlineClosure  // Временная заглушка
 ```
 

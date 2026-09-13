@@ -320,7 +320,7 @@ flow generator numberStream() -> Int {
     }
 }
 
-fn main() {
+fn main {
     gen = numberStream()
     print(gen.next()) // 1
     print(gen.next()) // 2

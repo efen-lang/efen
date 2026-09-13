@@ -21,12 +21,12 @@
 
 ```efen
 interface Drawable {
-    fn draw()
+    fn draw
 }
 
 // Стратегия для сериализации объектов Drawable
 strategy Serialization for Drawable {
-    fn serialize() -> String {
+    fn serialize -> String {
         return "Serialized drawable object"
     }
 
@@ -112,7 +112,7 @@ public class Document {
 class Circle implements Drawable {
     var radius: Float
 
-    fn draw() {
+    fn draw {
         print("Drawing circle with radius ${radius}")
     }
 }
@@ -138,7 +138,7 @@ strategy Authentication for User {
         return true
     }
 
-    fn logout() {
+    fn logout {
         // Логика выхода
     }
 }
@@ -153,7 +153,7 @@ user.login(password: "secret")  // Метод из стратегии
 
 ```efen
 strategy Validation for User {
-    fn validate() -> Bool {
+    fn validate -> Bool {
         return !name.isEmpty && email.contains("@")
     }
 }
@@ -188,12 +188,12 @@ class DataStorage {
 
 // Стратегия сохранения в JSON
 strategy JSONPersistence for DataStorage {
-    fn save() {
+    fn save {
         print("Saving data as JSON")
         // Логика сохранения в JSON
     }
 
-    fn load() {
+    fn load {
         print("Loading data from JSON")
         // Логика загрузки из JSON
     }
@@ -201,12 +201,12 @@ strategy JSONPersistence for DataStorage {
 
 // Стратегия сохранения в XML
 strategy XMLPersistence for DataStorage {
-    fn save() {
+    fn save {
         print("Saving data as XML")
         // Логика сохранения в XML
     }
 
-    fn load() {
+    fn load {
         print("Loading data from XML")
         // Логика загрузки из XML
     }
@@ -319,7 +319,7 @@ strategy Logging for DataStorage {
 }
 
 strategy Validation for DataStorage {
-    fn validate() -> Bool {
+    fn validate -> Bool {
         return !data.isEmpty
     }
 }
@@ -348,12 +348,12 @@ storage.log(message: "Starting save")  // Из Logging
 
 ```efen
 interface Drawable {
-    fn draw()
+    fn draw
     fn resize(scale: Float)
 }
 
 strategy CircleDrawing for Drawable {
-    fn draw() {
+    fn draw {
         print("Drawing circle")
     }
 
@@ -363,7 +363,7 @@ strategy CircleDrawing for Drawable {
 }
 
 strategy SquareDrawing for Drawable {
-    fn draw() {
+    fn draw {
         print("Drawing square")
     }
 
@@ -488,7 +488,7 @@ class Application {
 
 ```efen
 static strategy DefaultDrawing for Drawable {
-    fn draw() {
+    fn draw {
         print("Default drawing")
     }
 }
