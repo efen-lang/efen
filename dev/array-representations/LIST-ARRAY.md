@@ -127,6 +127,30 @@ fn allocateMany(
 
 ```efen
 aspect List<Target> conforms Representation<Target> {
+    struct Node {
+        var value: Target.Element
+        var next: own other Target.Nodes.Pointer? = null
+    }
+
+    struct ReadCursor {
+        let owner: &read Target
+        var current: read Target.Nodes.Pointer?
+    }
+
+    strategy ReadCursorIteration for ReadCursor {
+        conforms Iterator<Item: &read[owner] Target.Element>
+
+        fn next -> (&read[owner] Target.Element)? {
+            if current == null {
+                return null
+            }
+
+            let node = current!
+            current = node.next
+            return &read[owner] node.value
+        }
+    }
+
     meta fn define(plan: compiler::DefinitionPlan) {
         plan.addConformance(Target, ResizableSequence<Target.Element>)
         plan.addConformance(Target, BorrowedElements<Target.Element>)
@@ -137,26 +161,6 @@ aspect List<Target> conforms Representation<Target> {
         set Nodes: Node {
             invariant reachable(node) {
                 node in head.next*
-            }
-        }
-
-        struct Node {
-            var value: Target.Element
-            var next: own other Nodes.Pointer? = null
-        }
-
-        struct ReadCursor {
-            let owner: &read Target
-            var current: read Nodes.Pointer?
-
-            fn next -> (&read[owner] Target.Element)? {
-                if current == null {
-                    return null
-                }
-
-                let node = current!
-                current = node.next
-                return &read[owner] node.value
             }
         }
 
