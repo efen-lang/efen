@@ -1,115 +1,114 @@
-# Paged file layout: design draft
+# Постраничный файл через layout: проект модели
 
-Status: discussion draft. None of the candidate syntax in this document is
-normative until Edmond approves its numbered syntax case.
+Статус: черновик для обсуждения. Предлагаемый синтаксис не является
+нормативным, пока Edmond не утвердит соответствующий пронумерованный кейс.
 
-## Purpose
+## Цель
 
-This document tests one idea through a complete example: a `layout` describes a
-logical memory space and the algorithms that realize it through several physical
-memory areas.
+Документ проверяет одну идею на полном примере: `layout` описывает логическое
+пространство памяти и алгоритмы, которые реализуют его через несколько областей
+физической памяти.
 
-The example treats an entire file as the logical population `Records`, while
-only two file pages may be resident in the RAM population `Frames`. Ordinary
-access through `Records.Pointer` may transparently load, pin, modify and release
-a frame. A logical write succeeds when the RAM copy becomes authoritative.
-Durability is requested separately through `flush()`.
+В примере весь файл образует логическое население `Records`, но одновременно в
+RAM помещаются только две страницы файла — население `Frames`. Обычное обращение
+через `Records.Pointer` может прозрачно загрузить и закрепить frame, прочитать или
+изменить его и затем отпустить. Логическая запись завершается, когда копия в RAM
+становится authoritative. Долговечность отдельно запрашивается через `flush()`.
 
-The example must account for:
+Пример должен покрыть полный цикл:
 
-1. opening and validating an existing file;
-2. constructing logical pointers only after validation;
-3. cache hits and misses;
-4. reading through a two-frame cache;
-5. modifying a record and making the frame authoritative;
-6. evicting clean and dirty frames;
-7. pinning a frame for the lifetime of a borrow;
-8. explicit durability through `flush()`;
-9. I/O failure at every fallible boundary;
-10. closing the layout under an explicit durability policy.
+1. открыть и проверить существующий файл;
+2. создать логические pointers только после проверки;
+3. обработать попадание и промах кеша;
+4. прочитать данные через кеш из двух frames;
+5. изменить запись и передать authority копии в RAM;
+6. вытеснить clean или dirty frame;
+7. закрепить frame на время жизни borrow;
+8. явно обеспечить долговечность через `flush()`;
+9. сохранить согласованное состояние при каждой ошибке I/O;
+10. закрыть layout согласно явно выбранной политике долговечности.
 
-## Fixed semantic premises
+## Уже согласованные семантические основания
 
-These premises come from the discussion and are not syntax proposals.
+Это результаты обсуждения, а не предложения синтаксиса.
 
-- A layout is a logical memory space, not one physical allocation or one
-  physical resource.
-- One layout may use file storage, RAM, DMA buffers, device memory and other
-  physical areas at the same time.
-- `Records.Pointer` is a logical pointer. It does not promise a machine address
-  or permanent residency in RAM.
-- A logical place may have several physical replicas. At most one replica is the
-  authoritative writable version. Other replicas are current read copies,
-  stale copies or unpublished copies in transit.
-- A transparent access implementation may consist of several functions.
-- Once that implementation is explicitly declared transparent, source code may
-  use ordinary `pointer.field` access. No additional marker is required at the
-  access site.
-- The complete effects, exceptions and possible suspension of transparent
-  access remain part of the containing function's contract.
-- A logical write completes when a RAM replica becomes authoritative. It need
-  not be durable yet. `flush()` requests durability separately.
-- Predicates on properties express logical conditions. The design does not
-  require built-in names for lists, trees, caches or replacement policies.
+- Layout является логическим пространством памяти, а не одной физической
+  аллокацией или одним физическим ресурсом.
+- Один layout может одновременно использовать файл, RAM, DMA-буферы, device
+  memory и другие физические области.
+- `Records.Pointer` — логический указатель. Он не обещает машинный адрес или
+  постоянное нахождение объекта в RAM.
+- Одно логическое место может иметь несколько физических копий. В каждый момент
+  не более одной копии является authoritative writable version. Остальные копии
+  могут быть согласованными для чтения, устаревшими или ещё не опубликованными.
+- Прозрачная реализация доступа может состоять из нескольких функций.
+- После явного объявления такой реализации transparent исходный код использует
+  обычный доступ `pointer.field`. Дополнительный знак в месте обращения не нужен.
+- Все эффекты, исключения и возможная приостановка transparent access входят в
+  контракт содержащей функции.
+- Логическая запись завершается после публикации authoritative-копии в RAM.
+  Файл может оставаться устаревшим до отдельного `flush()`.
+- Логические условия выражаются предикатами свойств. Модель не требует
+  встроенных в компилятор названий списков, деревьев, кешей или алгоритмов
+  вытеснения.
 
-## Logical model
+## Логическая модель
 
-For a fixed-size record type `R`, the file contains a header followed by pages.
-Each page contains `recordsPerPage` records.
+Для типа записи фиксированного размера `R` файл содержит заголовок и страницы.
+Каждая страница содержит `recordsPerPage` записей.
 
 ```text
 Records.Pointer
-    = origin of this PagedFile instance
-    + logical record identity
+    = origin этого экземпляра PagedFile
+    + логическая identity записи
 
-record identity
-    -> page number and index within page
-    -> resident frame, if one exists
-    -> bytes within that frame
+identity записи
+    -> номер страницы и позиция внутри страницы
+    -> resident frame, если страница сейчас находится в RAM
+    -> байты записи внутри frame
 ```
 
-`Records.Pointer` survives cache eviction and remapping of the file. A physical
-borrow into a frame keeps that frame pinned until the borrow ends.
+`Records.Pointer` переживает вытеснение страницы и remap файла. Физический
+borrow внутрь frame закрепляет этот frame до окончания borrow.
 
-The two-frame vertical slice permits at most one resident RAM frame for a given
-file page. The file and that frame are still two physical replicas. More general
-replication is a later counterexample, not an assumption hidden in this example.
+Минимальный пример разрешает не более одного resident frame для одной страницы
+файла. Файл и frame всё равно являются двумя физическими копиями. Несколько
+одновременных RAM-копий одной страницы остаются следующим проверочным сценарием.
 
-The logical value of page `p` is defined as follows:
+Логическое значение страницы `p` определяется так:
 
 ```text
-if p has a Dirty or Flushing frame:
+если у p есть Dirty или Flushing frame:
     Logical(p) = DirtyFrame(p)
-else:
+иначе:
     Logical(p) = FilePage(p)
 ```
 
-A clean resident frame is a current read replica:
+Для clean-копии:
 
 ```text
 CleanFrame(p) = FilePage(p) = Logical(p)
 ```
 
-A dirty resident frame is authoritative and the file is stale:
+Для dirty-копии:
 
 ```text
 DirtyFrame(p) = Logical(p)
-FilePage(p) may contain an older version, or an unknown torn version after a
-failed in-place flush
+FilePage(p) содержит старую версию либо неизвестную torn-версию после
+неудачного in-place flush
 ```
 
-## Candidate surface sketch
+## Общий эскиз исходного кода
 
-The following block shows the complete shape. Every uncertain construct is
-routed to a numbered syntax case later in this document.
+Каждая ещё не утверждённая форма ниже вынесена в отдельный синтаксический кейс.
 
 ```efen
 layout PagedFile<R> {
-    // Syntax case S1: physical areas inside one logical layout.
+    // S1: несколько физических областей внутри одного layout.
     source file: FileMemory
     source cache: RamMemory
 
-    // Syntax case S2: the logical contents of an existing file.
+    // S2: логическое содержимое всего файла.
     set Records: R
 
     enum ReplicaState {
@@ -150,7 +149,7 @@ layout PagedFile<R> {
             replica == Empty || version == logicalVersion(page)
         }
 
-        // Derived from live access leases; user code cannot modify it.
+        // Вычисляется по живым access leases; пользователь не меняет это поле.
         var pins: UInt { get { return liveLoans(to: self).count } }
     }
 
@@ -160,14 +159,14 @@ layout PagedFile<R> {
         frameLimit == 2
     }
 
-    // Syntax case S3: mapping validated external storage into a population.
+    // S3: отображение проверенного внешнего storage в population.
     constructor(path: Path) throws IOError | InvalidFile {
         file = FileMemory.open(path, access: exclusiveReadWrite)
         Records.map(file)
     }
 
-    // Syntax case S4: a group of operations hidden behind Records.Pointer
-    // reads, writes and borrows.
+    // S4: группа операций, скрытая за чтением, записью и borrow через
+    // Records.Pointer.
     transparent access Records {
         fn acquireRead(pointer: read Records.Pointer)
             -> ReadLease<R>
@@ -199,13 +198,374 @@ layout PagedFile<R> {
 }
 ```
 
-This is a semantic sketch. It does not assert that `source`, `Records.Page`,
-`ReadLease`, `WriteLease`, `transparent access` or `Records.map` are their final
-spellings.
+Это семантический эскиз. Он не утверждает окончательные написания `source`,
+`Records.Page`, `ReadLease`, `WriteLease`, `transparent access` или
+`Records.map`.
 
-## Runtime state for two frames
+## Полный кандидат Efen-кода
 
-Assume pages `4` and `9` are resident:
+Ниже намеренно дан один цельный вариант синтаксиса. Он нужен для оценки и ещё не
+является спецификацией.
+
+```efen
+struct UserRecord {
+    let id: UInt64
+
+    var balance: Int64 {
+        balance >= 0
+    }
+
+    var name: FixedString<48>
+}
+
+layout UserFile {
+    source file: FileMemory
+    source cache: RamMemory
+
+    set Records: UserRecord
+    set Frames: Frame from cache
+
+    enum ReplicaState {
+        Empty
+        Clean
+        Dirty
+    }
+
+    enum IoState {
+        Idle
+        Loading
+        Flushing
+    }
+
+    struct Frame {
+        var page: Records.Page? {
+            (replica == Empty) == (page == null) &&
+            (page == null || Frames.count(where: it.page == page) == 1)
+        }
+
+        var bytes: [Byte] {
+            bytes.count == pageSize
+        }
+
+        var replica: ReplicaState
+        var io: IoState {
+            io != Flushing || replica == Dirty
+        }
+
+        var version: Version
+        var lastUse: UInt64
+
+        // Значение выводится из живых leases, присваивать ему нельзя.
+        var pins: UInt {
+            get { return liveLoans(to: self).count }
+        }
+    }
+
+    let pageSize: Size = 4096
+    let frameLimit: Size = 2
+    let format: UserRecordFormatV1
+    var clock: UInt64 = 0
+
+    constructor(path: Path) throws IOError | InvalidFile {
+        file = FileMemory.open(path, access: exclusiveReadWrite)
+
+        format.validateHeader(file)
+        format.validateAll(file, bufferSize: pageSize * frameLimit)
+
+        Records.map(file)
+    }
+
+    fn findResident(page: Records.Page) -> read write Frames.Pointer? {
+        for frame in Frames {
+            if frame.page == page && frame.io == Idle {
+                return frame
+            }
+        }
+
+        return null
+    }
+
+    fn chooseVictim() -> read write Frames.Pointer throws CacheBusy {
+        var result: read write Frames.Pointer? = null
+
+        for frame in Frames {
+            if frame.pins == 0 &&
+               (result == null || frame.lastUse < result.lastUse) {
+                result = frame
+            }
+        }
+
+        if result == null {
+            throw CacheBusy()
+        }
+
+        return result
+    }
+
+    fn emptyFrame() -> read write Frames.Pointer throws OutOfMemory {
+        if Frames.count < frameLimit {
+            return Frames.create(
+                page: null,
+                bytes: [Byte](count: pageSize),
+                replica: Empty,
+                io: Idle,
+                version: Version.initial,
+                lastUse: 0
+            )
+        }
+
+        return chooseVictim()
+    }
+
+    fn flush(frame: read write Frames.Pointer) throws IOError {
+        if frame.replica != Dirty {
+            return
+        }
+
+        require frame.pins == 0
+
+        let page = frame.page
+        let version = frame.version
+        let snapshot = frame.bytes.copy()
+
+        frame.io = Flushing
+
+        try {
+            file.writePage(
+                page: page,
+                bytes: snapshot,
+                version: version
+            )
+            file.sync(page)
+
+            if frame.version == version {
+                frame.replica = Clean
+            }
+
+            frame.io = Idle
+        } catch error: IOError {
+            frame.replica = Dirty
+            frame.io = Idle
+            throw error
+        }
+    }
+
+    fn evict(frame: read write Frames.Pointer) throws IOError {
+        require frame.pins == 0
+
+        if frame.replica == Dirty {
+            flush(frame)
+        }
+
+        frame.page = null
+        frame.replica = Empty
+        frame.io = Idle
+    }
+
+    fn load(
+        page: Records.Page,
+        into frame: read write Frames.Pointer
+    ) throws IOError | InvalidFile {
+        require frame.pins == 0
+
+        if frame.replica != Empty {
+            evict(frame)
+        }
+
+        frame.io = Loading
+
+        try {
+            let bytes = file.readPage(page, size: pageSize)
+            format.validatePage(page, bytes)
+
+            frame.bytes = take bytes
+            frame.version = file.version(page)
+            frame.page = page
+            frame.replica = Clean
+            frame.io = Idle
+        } catch error: IOError | InvalidFile {
+            frame.page = null
+            frame.replica = Empty
+            frame.io = Idle
+            throw error
+        }
+    }
+
+    fn acquireFrame(page: Records.Page)
+        -> read write Frames.Pointer
+        throws IOError | InvalidFile | CacheBusy | OutOfMemory
+    {
+        let resident = findResident(page)
+
+        if resident != null {
+            clock += 1
+            resident.lastUse = clock
+            return resident
+        }
+
+        let frame = emptyFrame()
+        load(page, into: frame)
+
+        clock += 1
+        frame.lastUse = clock
+
+        return frame
+    }
+
+    transparent access Records {
+        fn acquireRead(pointer: read Records.Pointer)
+            -> ReadLease<UserRecord>
+            throws IOError | InvalidFile | CacheBusy | OutOfMemory
+        {
+            let page = Records.page(of: pointer)
+            let frame = acquireFrame(page)
+            let offset = Records.offset(of: pointer, in: page)
+            let place = format.project<UserRecord>(frame.bytes, offset)
+
+            return ReadLease(
+                logical: pointer,
+                physical: place,
+                pin: frame
+            )
+        }
+
+        fn acquireWrite(pointer: read write Records.Pointer)
+            -> WriteLease<UserRecord>
+            throws IOError | InvalidFile | CacheBusy | OutOfMemory
+        {
+            let page = Records.page(of: pointer)
+            let frame = acquireFrame(page)
+            let offset = Records.offset(of: pointer, in: page)
+            let place = format.project<UserRecord>(frame.bytes, offset)
+
+            return WriteLease(
+                logical: pointer,
+                physical: place,
+                pin: frame,
+                originalVersion: frame.version
+            )
+        }
+
+        fn prepareWrite<Field>(
+            lease: read WriteLease<UserRecord>,
+            field: Field,
+            value: field.Type
+        ) -> PreparedWrite throws InvalidValue | OutOfMemory {
+            return format.prepare(
+                place: lease.physical,
+                field: field,
+                value: value
+            )
+        }
+
+        fn commitWrite(
+            lease: read write WriteLease<UserRecord>,
+            prepared: take PreparedWrite
+        ) {
+            format.commit(lease.physical, take prepared)
+
+            lease.pin.version = lease.pin.version.next()
+            lease.pin.replica = Dirty
+        }
+
+        fn release(lease: take AccessLease<UserRecord>) {
+            // Drop lease завершает borrow и снимает pin.
+        }
+    }
+
+    fn flush() throws IOError {
+        for frame in Frames {
+            if frame.replica == Dirty {
+                flush(frame)
+            }
+        }
+    }
+
+    fn find(id: UInt64)
+        -> read write Records.Pointer?
+        throws IOError | InvalidFile | CacheBusy | OutOfMemory
+    {
+        for record in Records {
+            if record.id == id {
+                return record
+            }
+        }
+
+        return null
+    }
+
+    fn close() throws IOError {
+        flush()
+        file.close()
+    }
+}
+
+fn renameUser(
+    users: read write UserFile,
+    user: read write users.Records.Pointer,
+    name: FixedString<48>
+) throws IOError | InvalidFile | CacheBusy | OutOfMemory | InvalidValue {
+    // Эта строка может выполнить cache lookup, readPage и suspension.
+    // Право скрыть их дано transparent access Records.
+    user.name = name
+}
+
+fn updateAndSave(
+    users: read write UserFile,
+    user: read write users.Records.Pointer,
+    name: FixedString<48>
+) throws IOError | InvalidFile | CacheBusy | OutOfMemory | InvalidValue {
+    renameUser(users, user, name)
+
+    // До этой строки новое имя уже является логическим значением.
+    // После успешного flush оно долговечно.
+    users.flush()
+}
+
+var users = UserFile(path: "users.dat")
+let user = users.find(id: 42)!
+
+echo user.name
+renameUser(users, user, "Alice")
+echo user.name
+users.flush()
+users.close()
+```
+
+Ожидаемый физический trace для первого `echo user.name`, если нужной страницы
+нет в RAM:
+
+```text
+Records.page(user)
+-> findResident: miss
+-> Frames.create либо chooseVictim
+-> evict dirty victim при необходимости
+-> file.readPage
+-> format.validatePage
+-> publish Clean frame
+-> create ReadLease and pin frame
+-> format.project(UserRecord.name)
+-> read
+-> release lease and unpin frame
+```
+
+Для `user.name = "Alice"`:
+
+```text
+acquireWrite and pin frame
+-> format.prepare new field encoding
+-> no-throw format.commit
+-> increment frame.version
+-> publish Dirty authority
+-> release lease
+```
+
+Именно этот цельный пример является материалом для утверждения кейсов S1–S13.
+Пояснения ниже фиксируют смысл каждой части и найденные failure boundaries.
+
+## Состояние кеша из двух frames
+
+Пусть в RAM находятся страницы `4` и `9`:
 
 ```text
 Frames
@@ -213,245 +573,242 @@ Frames
     F1 = { page: 9, replica: Dirty, io: Idle, version: 8, pins: 1 }
 
 Page 4
-    file version 12
-    frame version 12
-    either copy may satisfy a read
+    версия файла 12
+    версия frame 12
+    обе копии допустимы для чтения
 
 Page 9
-    file version 7
-    frame version 8
-    F1 is authoritative
-    F1 cannot be evicted because it is dirty and pinned
+    версия файла 7
+    версия frame 8
+    F1 является authoritative
+    F1 нельзя вытеснить: он dirty и pinned
 ```
 
-The implementation may keep versions only as proof or debug metadata when a
-cheaper representation proves the same facts. Versions are part of this model,
-not necessarily bytes stored beside every production frame.
+Реализация может хранить версии только как proof/debug metadata, если более
+дешёвое представление доказывает те же свойства. Модель не требует отдельного
+runtime-счётчика возле каждого production frame.
 
-## Operation A: open an existing file
+## Операция A: открытие существующего файла
 
-Opening is not logical creation of records. The bytes already exist.
-
-The operation performs:
+Открытие не создаёт логические записи: их байты уже существуют.
 
 ```text
-open the physical file with exclusive ownership or a stable snapshot
--> validate magic, format version and codec witness
--> validate file length, record count and arithmetic overflow
--> scan and validate every encoded R through the bounded frame buffer
--> establish which logical identities are valid records
--> publish Records and its origin
+открыть файл с exclusive ownership или как стабильный snapshot
+-> проверить magic, версию формата и codec witness
+-> проверить размер файла, число записей и арифметические переполнения
+-> последовательно проверить каждое encoded R через ограниченный frame buffer
+-> установить множество допустимых identities
+-> опубликовать Records и его origin
 ```
 
-No `Records.Pointer` may be constructed before bounds, structural validation and
-decoding validation make it a live `R`. This vertical slice uses eager validation
-at open while retaining only two frames. A possible lazy design is a separate
-future semantic case: it cannot call unvalidated slots a `set Records: R`.
+До проверки bounds, структуры и encoding нельзя создать `Records.Pointer`.
+Минимальный пример использует eager validation, но удерживает только два frames.
+Lazy-вариант рассматривается отдельно: непроверенные slots нельзя заранее
+объявить населением `R`.
 
-Candidate syntax:
+Внешний вызов:
 
 ```efen
 var records = PagedFile<User>(path: "users.dat")
 ```
 
-Inside the layout, the draft writes the decisive operation as:
+Решающая внутренняя операция пока записана так:
 
 ```efen
 Records.map(file)
 ```
 
-Its semantic distinction from the other population operations is:
+Её место среди остальных операций population:
 
 ```efen
-Records.create(...)       // create one new logical member
-Records.create(count: n)  // create several new logical members
+Records.create(...)       // создать один логический элемент
+Records.create(count: n)  // создать несколько логических элементов
 Records.reserve(capacity: n)
-Records.map(bytes)        // recognize existing physical contents as members
+Records.map(bytes)        // признать существующие bytes элементами после проверки
 ```
 
-`map` borrows the file source owned by the layout; it does not consume the
-source binding. Rehoming an already typed population changes origin and is left
-out of this slice until its pointer and ownership semantics are designed.
+`map` заимствует file source, принадлежащий layout, и не потребляет binding
+`file`. Перенос уже типизированного населения меняет origin и не входит в этот
+пример.
 
-## Operation B: transparent read on a cache hit
+## Операция B: transparent read при попадании в кеш
 
-User code remains ordinary:
+Пользовательский код остаётся обычным:
 
 ```efen
 let name = user.name
 ```
 
-The transparent implementation performs:
+Transparent implementation выполняет:
 
 ```text
 page = pageOf(user)
 frame = findResident(page)
-require frame.replica is Clean or Dirty
-require frame.io == Idle
-increment frame.pins
-project user.name through frame.bytes
-read the projected place
-decrement frame.pins when the logical borrow ends
+проверить, что replica равна Clean или Dirty, а io равен Idle
+увеличить frame.pins
+спроецировать user.name через frame.bytes
+прочитать logical place
+уменьшить frame.pins после окончания logical borrow
 ```
 
-Cache metadata may change. The logical value does not.
+Метаданные кеша могут измениться, но логическое значение не меняется.
 
-## Operation C: transparent read on a cache miss
+## Операция C: transparent read при промахе кеша
 
-The same user code:
+Та же строка:
 
 ```efen
 let name = user.name
 ```
 
-may perform:
+может выполнить:
 
 ```text
 page = pageOf(user)
 frame = acquireFrame(page)
 load(page, into: frame)
-publish frame as Clean
-pin frame
-project and read user.name
-release the pin
+опубликовать frame как Clean
+закрепить frame
+спроецировать и прочитать user.name
+освободить pin
 ```
 
-`acquireFrame` reuses an unpinned frame or, while `Frames.count < frameLimit`,
-creates one through `Frames.create(...)`. `reserve` alone would not create a
-frame. All fallible work occurs before the frame is published as a current
-replica. If the read fails, the previous cache mappings and the logical file
-remain valid.
+`acquireFrame` переиспользует незакреплённый frame либо, пока
+`Frames.count < frameLimit`, создаёт новый через `Frames.create(...)`.
+`reserve` сам по себе frame не создаёт.
 
-## Operation D: logical write
+Вся fallible-работа завершается до публикации frame как current replica. Ошибка
+чтения не меняет прежние отображения кеша и логическое состояние файла.
 
-User code:
+## Операция D: логическая запись
 
 ```efen
 user.name = "Alice"
 ```
 
-performs:
+понижается в следующую последовательность:
 
 ```text
-acquire or load the page for write
-obtain exclusive logical write authority
-pin its frame
-project the selected field
-prepare the encoded replacement and every fallible auxiliary allocation
-perform a no-throw physical commit of the prepared replacement
-advance the logical version without wrap
-publish the frame as Dirty and authoritative in the same commit
-release the pin at the end of the borrow
+получить либо загрузить страницу для записи
+получить исключительное logical write authority
+закрепить frame
+спроецировать выбранное поле
+подготовить encoding нового значения и выполнить все fallible allocations
+выполнить no-throw physical commit подготовленного значения
+без wrap увеличить логическую версию
+тем же commit опубликовать frame как Dirty и authoritative
+освободить pin после окончания borrow
 ```
 
-An implementation may update in place only when it proves that the physical
-write and the publication of `Dirty` cannot throw or suspend. A fallible field
-encoding never mutates a frame still described as `Clean`.
+In-place update допустим, только если реализация доказывает, что физическая
+запись и публикация `Dirty` не бросают и не приостанавливаются. Fallible encoding
+не может изменить bytes, всё ещё помеченные `Clean`.
 
-When the assignment returns, later reads through this layout observe `Alice`.
-The durable file may still contain the earlier value.
+После завершения assignment все дальнейшие reads через этот layout видят
+`Alice`. Долговечный файл всё ещё может содержать прежнее значение.
 
-## Operation E: borrow and pin
+## Операция E: borrow и pin
 
 ```efen
 let name = &read user.name
 consume(name)
 ```
 
-The borrow's origin includes the logical record and the access lease. The frame
-remains pinned until the last use of `name`. During that interval the layout
-rejects or delays operations that would evict, remap or destructively rewrite
-the frame.
+Origin borrow включает логическую запись и access lease. Frame остаётся pinned
+до последнего использования `name`. В это время layout отклоняет или задерживает
+операции, которые потребовали бы вытеснить, переместить или разрушительно
+перезаписать frame.
 
-The lease itself need not be user-visible. It is the lowering evidence carried
-by the ordinary Efen borrow.
+Lease не обязан быть виден пользователю. При lowering его доказательство несёт
+обычный Efen borrow.
 
-## Operation F: select an eviction victim
+## Операция F: выбор жертвы для вытеснения
 
-Replacement policy is ordinary layout code. An LRU implementation may inspect
-access metadata and select any unpinned frame.
-
-```text
-candidate.pins must equal 0
-
-candidate.replica == Clean and candidate.io == Idle:
-    remove the page-to-frame mapping
-    reuse the frame
-
-candidate.replica == Dirty and candidate.io == Idle:
-    flush the candidate
-    remove the mapping only after successful flush
-    reuse the frame
-```
-
-If every frame is pinned, transparent access may wait, suspend or return an
-error according to its published effect contract. Storage may not silently
-invalidate a live borrow.
-
-## Operation G: flush one dirty frame
+Политика вытеснения является обычным кодом layout. Например, LRU выбирает любой
+незакреплённый frame.
 
 ```text
-require frame.replica == Dirty
-capture version v and immutable bytes for that version
-mark frame.io as Flushing while the frame remains authoritative
-write version v to a fresh page image or through the chosen recovery protocol
-wait for the requested durability boundary
-if frame.version == v on success, publish frame as Clean and io as Idle
-if a later write produced version v+1, retain Dirty authority and publish io as Idle
-on failure, retain Dirty authority, publish io as Idle and mark durable state
-    Unknown if the protocol cannot prove that the old durable image survived
+candidate.pins обязан быть равен 0
+
+candidate.replica == Clean и candidate.io == Idle:
+    удалить page-to-frame mapping
+    переиспользовать frame
+
+candidate.replica == Dirty и candidate.io == Idle:
+    выполнить flush(candidate)
+    удалить mapping только после успешного flush
+    переиспользовать frame
 ```
 
-The destination file page must not become current merely because the operating
-system accepted part of a write. Publication follows the source's declared
-durability boundary. A plain in-place page write may tear on failure; a layout
-that promises reopen after failure must supply journal, copy-on-write or an
-equivalent recovery protocol.
+Если все frames закреплены, transparent access может ждать, приостановиться или
+вернуть ошибку согласно своему публичному effect contract. Storage не может
+молча инвалидировать живой borrow.
 
-## Operation H: flush the layout
+## Операция G: flush одного dirty frame
 
-User code explicitly requests durability:
+```text
+потребовать frame.replica == Dirty
+зафиксировать версию v и неизменяемые bytes этой версии
+поставить frame.io = Flushing, сохранив authority за frame
+записать v в новый page image либо через выбранный recovery protocol
+дождаться заявленной границы durability
+
+успех и frame.version == v:
+    опубликовать replica = Clean, io = Idle
+
+успех, но появилась версия v + 1:
+    сохранить replica = Dirty, опубликовать io = Idle
+
+ошибка:
+    сохранить replica = Dirty, опубликовать io = Idle
+    поставить durable state = Unknown, если протокол не доказал сохранность
+    прежнего file image
+```
+
+File page не становится current только потому, что ОС приняла часть записи.
+Публикация следует заявленной границе durability. Обычная in-place page write
+может порваться при ошибке. Layout, обещающий корректное повторное открытие,
+должен реализовать journal, copy-on-write либо другой recovery protocol.
+
+## Операция H: flush всего layout
+
+Пользователь явно запрашивает долговечность:
 
 ```efen
 records.flush()
 ```
 
-The operation flushes every dirty authoritative frame. With exclusive write
-authority for the duration, success establishes:
+При исключительном write authority успешная операция устанавливает:
 
 ```text
-for every logical page p:
+для каждой логической страницы p:
     FilePage(p) == Logical(p)
 ```
 
-A concurrent variant must repeat until no newer dirty version remains, or state
-a weaker snapshot durability guarantee. A multi-page `flush()` does not
-automatically promise crash-atomic replacement of all pages. That stronger
-property requires a journal, copy-on-write root or another persistent
-transaction algorithm inside the layout.
+Concurrent-вариант должен повторять работу до отсутствия более новых dirty
+versions либо обещать более слабую snapshot durability. Один `flush()` не
+гарантирует crash-atomic замену нескольких страниц. Для неё нужен journal,
+copy-on-write root или другой транзакционный алгоритм внутри layout.
 
-## Operation I: close and destruction
+## Операция I: close и destruction
 
-The semantic choices are deliberately left open for approval:
+Здесь остаётся самостоятельное семантическое решение:
 
-- `close()` may flush and report `IOError`;
-- destruction may require that no dirty frame remains;
-- an explicit discard operation may abandon non-durable logical writes only
-  when the type's public contract permits it;
-- a journaled layout may commit or roll back according to its own protocol.
+- `close()` может выполнить flush и вернуть `IOError`;
+- destruction может требовать отсутствия dirty frames;
+- отдельная операция discard может отказаться от недолговечных изменений,
+  только если публичный контракт типа это разрешает;
+- journaled layout может commit или rollback согласно своему протоколу.
 
-An ordinary destructor cannot silently discard acknowledged logical writes and
-cannot report an asynchronous flush failure. A likely safe shape is an explicit
-fallible `close()` that reaches a clean closed typestate, followed by no-throw
-resource destruction. Exact policy remains a semantic case below. Whatever
-policy is selected, frame memory, mappings and the file handle are released
-after all outstanding access leases end.
+Обычный destructor не может молча отбросить подтверждённые логические записи и
+не может сообщить ошибку асинхронного flush. Вероятная безопасная модель — явный
+fallible `close()`, переводящий значение в clean closed typestate, после чего
+no-throw destructor освобождает ресурсы. Точная политика пока не выбрана.
 
-## Extension case J: append records
+## Дополнительный кейс J: append
 
-Append is deliberately outside the read/write/flush vertical slice. It exposes
-an additional persistent-publication problem rather than a new cache-access
-primitive. Candidate logical creation remains:
+Append не входит в минимальный цикл read/write/flush: он открывает отдельную
+задачу persistent publication.
 
 ```efen
 var user = Records.create(
@@ -460,7 +817,7 @@ var user = Records.create(
 )
 ```
 
-Bulk creation uses the same population operation:
+Bulk creation:
 
 ```efen
 var users = Records.create(
@@ -472,24 +829,25 @@ var users = Records.create(
 )
 ```
 
-The result contains the new `Records.Pointer` identities. Whether those pointers
-own removal of their records or merely carry authority to access a population-
-owned persistent member is an unresolved semantic case below. Physical code may
-grow the file once, but a batch larger than the two-frame cache cannot retain
-every new logical value solely as dirty RAM authority. It must stream provisional
-pages to non-authoritative file space and atomically publish a new header/root,
-or use a journal. Until that publication protocol is selected, the document does
-not claim all-or-none persistent bulk `create`.
+Результат содержит новые identities `Records.Pointer`. Пока не решено, дают ли
+эти pointers право удаления либо только доступ к persistent members, которыми
+владеет population.
 
-## Lowering outline
+Batch больше двух страниц нельзя целиком удержать только как dirty authority в
+двух RAM frames. Реализация должна последовательно записать provisional pages в
+неавторитетную область файла, затем атомарно опубликовать новый header/root либо
+использовать journal. До выбора этого протокола документ не обещает all-or-none
+persistent bulk `create`.
 
-The expression:
+## Схема lowering
+
+Выражение:
 
 ```efen
 user.name = "Alice"
 ```
 
-has a lowering equivalent to:
+семантически эквивалентно:
 
 ```text
 lease = PagedFile.Records.access.acquireWrite(user)
@@ -499,8 +857,8 @@ commitWriteAndPublishDirty(lease, place, replacement)
 lease.release()
 ```
 
-`release()` is placed on every normal and exceptional exit. The actual emitted
-code may inline the hit path and move the miss path into a cold helper:
+`release()` ставится на каждый обычный и исключительный выход. Реальный код
+может встроить быстрый путь и вынести cache miss в cold helper:
 
 ```text
 if directory[page].resident:
@@ -509,123 +867,116 @@ else:
     loadPageSlow(page)
 ```
 
-The semantic contract is the same for both forms.
+Семантический контракт обеих форм одинаков.
 
-## Safety obligations
+## Обязательства безопасности
 
-The compiler or verification backend must establish all of the following.
+### Логическая безопасность
 
-### Logical safety
+- Каждый `Records.Pointer` принадлежит этому экземпляру layout.
+- Его identity обозначает живую запись.
+- Identity сохраняется при движении кеша и remap файла.
+- Read наблюдает текущую логическую версию.
+- Write требует исключительного logical authority.
 
-- Every `Records.Pointer` belongs to this layout instance.
-- Its identity denotes a live record.
-- A record identity remains stable across cache movement and file remapping.
-- Reads observe the current logical version.
-- Writes require exclusive logical authority.
+### Физическая безопасность
 
-### Physical safety
+- Frame одновременно содержит не более одной страницы.
+- Одна logical page имеет не более одной resident writable authority.
+- `Clean` idle frame совпадает с соответствующей долговечной страницей.
+- `Dirty` или `Flushing` frame является authority своей logical page.
+- В минимальном примере на одну page опубликован не более чем один RAM frame.
+- Неопубликованный loading frame не может обслужить read.
+- Pinned frame нельзя вытеснить или несовместимо переместить.
+- Failed load не публикует неинициализированные bytes.
+- Failed flush не теряет dirty authority.
 
-- A frame contains at most one page at a time.
-- A logical page has at most one resident writable authority.
-- A `Clean` idle frame matches the corresponding durable page.
-- A `Dirty` or `Flushing` frame is the authority for its logical page.
-- At most one RAM frame is published for one logical page in this slice.
-- An unpublished loading frame cannot satisfy a read.
-- A pinned frame cannot be evicted or moved incompatibly with its borrows.
-- Failed loading does not publish uninitialized bytes.
-- Failed flushing does not discard dirty authority.
+### Создание и уничтожение
 
-### Construction and destruction
+- Проверка файла предшествует публикации addressable identities.
+- Encoded value проверяется до публикации как значение `R`.
+- Частично инициализированная запись не является живым member.
+- Каждое опубликованное поле инициализировано ровно один раз.
+- Каждое logical value уничтожается ровно один раз при удалении.
+- Физические копии не вызывают повторный logical destruction.
+- Close ждёт завершения leases либо отклоняется согласно своему контракту.
 
-- Structural file validation precedes publication of addressable identities.
-- Encoded values are validated before they are published as values of `R`.
-- Partially initialized records are not live members.
-- Every published field is initialized exactly once.
-- Every logical value is destroyed exactly once when removed.
-- Physical replicas do not cause duplicate logical destruction.
-- Closing waits for or rejects outstanding leases according to its contract.
+## Семантические вопросы до окончательного синтаксиса
 
-## Semantic cases that precede final syntax
+### P1. Ownership persistent members
 
-The example exposed questions that cannot be settled by renaming methods.
+Уничтожение локального pointer, возвращённого `Records.create(...)`, не должно
+молча удалять долговечную запись. Population contract должен различать authority
+доступа/удаления и lifetime persistent member. Точный result type `create` пока
+не выбран.
 
-### P1. Ownership of persistent population members
+### P2. Eager и lazy validation
 
-Dropping a local pointer returned by `Records.create(...)` must not silently
-delete a durable record. The eventual population contract must distinguish
-access/removal authority from the lifetime of a member owned by persistent
-storage. This document does not yet choose the exact return type of `create`.
+Минимальный пример выбирает eager validation: open последовательно читает файл
+ограниченным буфером и публикует `Records` только после проверки всех encoded
+values. Lazy-варианту нужно отдельное население encoded slots; успешный decode
+может создать `R`, но непроверенное население нельзя назвать `set Records: R`.
 
-### P2. Eager and lazy value validation
+### P3. Внешнее изменение файла
 
-This slice chooses eager validation: open scans the file with bounded RAM and
-publishes `Records` only after every encoded value is known to be an `R`. A lazy
-variant requires a separate population of encoded slots; successful decoding
-may then produce an `R`. It cannot publish the unvalidated population itself as
-`set Records: R`.
+Минимальный пример открывает файл эксклюзивно либо использует immutable snapshot.
+При внешних writers нужны epochs, invalidation и повторная validation. Иначе
+предикат равенства clean frame и file page становится ложным.
 
-### P3. External mutation of the file
+### P4. Ошибка persistent write
 
-This slice opens an exclusive file or immutable snapshot. A source that permits
-external writers needs epochs, invalidation and repeated validation; otherwise
-the predicate equating a clean frame with its file page is false.
+После failed flush dirty RAM остаётся logical authority. Но in-place запись могла
+оставить torn file image. Повторное открытие требует journal, copy-on-write или
+другой recovery algorithm.
 
-### P4. Failure of persistent writes
+### P5. Закрытие
 
-Dirty RAM remains the logical authority after a failed flush. An in-place file
-write may nevertheless leave a torn durable image. Reopening after such failure
-requires a journal, copy-on-write publication or another recovery algorithm.
+Явный fallible close может выполнить flush и перейти в clean closed typestate.
+После этого no-throw destructor освобождает ресурсы. Explicit discard, retry
+после failed flush и recovery после process crash являются разными политиками.
 
-### P5. Closing
+## Синтаксические кейсы для последовательного утверждения
 
-An explicit fallible close can flush and enter a clean closed typestate. A
-no-throw destructor can then release resources. Explicit discard, retry after
-failed flush and process-crash recovery remain separate policies.
+### S1. Несколько физических областей
 
-## Syntax cases for sequential approval
-
-The semantic example above leaves these surface questions independent.
-
-### S1. Declaring several physical areas
-
-Candidate:
+Кандидат:
 
 ```efen
 source file: FileMemory
 source cache: RamMemory
 ```
 
-Required meaning: both areas participate in one logical layout. `layout` is not
-identified with either source.
+Обе области участвуют в одном логическом layout. Layout не отождествляется ни с
+одной из них.
 
-### S2. Declaring logical and physical populations
+### S2. Логические и физические populations
 
-Candidate:
+Кандидат:
 
 ```efen
 set Records: R
 set Frames: Frame
 ```
 
-Required meaning: both are high-level populations with their own pointer types.
-Their role as logical contents or physical realization follows from the
-algorithms and relations, not from two different kinds of `set`.
+Оба являются высокоуровневыми populations со своими pointer types. Роль
+логического содержимого или физической реализации следует из алгоритмов и
+отношений, а не из двух разных видов `set`.
 
-### S3. Accepting existing physical contents
+### S3. Принятие существующих физических данных
 
-Candidates:
+Кандидат:
 
 ```efen
 Records.map(file)
 ```
 
-Required meaning: `map` validates/interprets physical contents through a source
-that remains owned by the layout. Transfer and rehoming of an already typed
-population is a separate future case because it changes origin.
+`map` проверяет и интерпретирует физическое содержимое через source, которым
+продолжает владеть layout. Перенос typed population с изменением origin —
+отдельный будущий кейс.
 
-### S4. Declaring a transparent access implementation
+### S4. Объявление transparent access implementation
 
-Candidate:
+Кандидат:
 
 ```efen
 transparent access Records {
@@ -635,24 +986,24 @@ transparent access Records {
 }
 ```
 
-Required meaning: the whole operation group, rather than one function, may be
-used to realize ordinary pointer field access.
+Вся группа операций, а не одна функция, может реализовать обычный field access
+через pointer.
 
-### S5. User syntax for transparent access
+### S5. Использование transparent access
 
-Direction agreed in the current discussion:
+Направление уже согласовано:
 
 ```efen
 let value = pointer.field
 pointer.field = value
 ```
 
-No marker is required at the use site. Effects and suspension remain visible in
-the containing function's inferred or declared contract.
+В месте использования нет дополнительного marker. Effects и suspension входят
+в inferred или declared contract содержащей функции.
 
-### S6. The internal access result
+### S6. Внутренний результат access
 
-Candidates:
+Кандидаты:
 
 ```efen
 ReadLease<R>
@@ -660,13 +1011,12 @@ WriteLease<R>
 AccessLease<R, Mode>
 ```
 
-Required meaning: the result keeps physical storage pinned for the logical
-borrow lifetime and provides field projection. It need not be nameable by
-ordinary user code.
+Результат удерживает physical storage pinned на время logical borrow и даёт
+field projection. Обычный пользовательский код не обязан уметь назвать его тип.
 
-### S7. Logical creation and capacity
+### S7. Logical creation и capacity
 
-Direction agreed in the current discussion:
+Направление уже согласовано:
 
 ```efen
 Records.create(...)
@@ -674,56 +1024,57 @@ Records.create(count: n, initializer: ...)
 Records.reserve(capacity: n)
 ```
 
-`create` changes logical membership. `reserve` changes only available physical
+`create` меняет logical membership. `reserve` меняет только доступную physical
 capacity.
 
 ### S8. Durability
 
-Direction agreed in the current discussion:
+Направление уже согласовано:
 
 ```efen
 pointer.field = value
 records.flush()
 ```
 
-The assignment completes after a RAM replica becomes logically authoritative.
-`flush()` separately requests durability.
+Assignment завершается после публикации authoritative RAM replica. `flush()`
+отдельно запрашивает durability.
 
-### S9. Closing policy
+### S9. Политика close
 
-Candidates:
+Кандидаты:
 
 ```efen
 records.close() throws IOError
 records.close(discard: true)
 ```
 
-Required decision: whether ordinary close flushes, rejects dirty state or may
-explicitly discard it.
+Нужно определить, выполняет ли обычный close flush, отклоняет dirty state либо
+может явно отказаться от него.
 
-### S10. Observable waiting for a frame
+### S10. Ожидание свободного frame
 
-Required decision: when all frames are pinned, transparent access may suspend,
-throw a resource error or use a policy chosen by the access implementation. The
-selected behaviour must remain in the public effect contract.
+Если все frames pinned, transparent access может приостановиться, вернуть
+resource error либо применить policy своей реализации. Выбранное поведение
+обязательно входит в публичный effect contract.
 
-### S11. File representation witness
+### S11. Witness файлового представления
 
-`R` alone cannot describe bytes in a file. The layout needs a retained witness
-that supplies encoded size, alignment, endian, valid bit patterns, field
-projections and lifecycle rules. Candidate shape:
+Одного `R` недостаточно для интерпретации bytes. Нужен retained witness, который
+задаёт encoded size, alignment, endian, допустимые bit patterns, field
+projections и lifecycle rules.
+
+Кандидат:
 
 ```efen
 generic Format: RecordFormat<R>
 let format: Format
 ```
 
-The exact generic placement and name remain open; the semantic requirement does
-not.
+Точное размещение generic-параметра и имя контракта пока не выбраны.
 
-### S12. Relational predicates on physical properties
+### S12. Предикаты отношений физических свойств
 
-The frame sketch uses property predicates such as:
+Эскиз frame использует property predicate:
 
 ```efen
 var page: Records.Page? {
@@ -731,52 +1082,50 @@ var page: Records.Page? {
 }
 ```
 
-Required meaning: a frame page is unique among the live `Frames`; the condition
-is attached to the property whose mutation can break it. The exact spelling for
-quantifying another population remains open.
+Он требует уникальности page среди живых `Frames` и прикреплён к свойству,
+изменение которого способно нарушить условие. Точный синтаксис квантификации по
+другому population остаётся открытым.
 
-### S13. Stable page identity
+### S13. Стабильная identity страницы
 
-The sketch writes `Records.Page` for the stable page containing a logical
-record. It is not an array index invalidated by append or file growth. The exact
-derived-type spelling remains open; its required semantics are stable identity,
-origin in this layout and checked conversion to the current file range.
+Эскиз использует `Records.Page` как стабильную страницу логической записи. Это
+не array index, инвалидируемый append или ростом файла. Точный derived-type
+syntax открыт; обязательная семантика — стабильная identity, origin данного
+layout и проверяемый переход к текущему file range.
 
-## Validation scenarios
+## Проверочные сценарии
 
-The design is acceptable only if its eventual implementation passes at least
-these behaviour tests.
+Будущая реализация должна пройти как минимум следующие behaviour tests:
 
-1. Repeated reads of one record load its page once and return the same value.
-2. Reading records on three pages through two frames performs a valid eviction.
-3. A dirty unpinned victim is flushed before reuse.
-4. A failed victim flush leaves the dirty page logically authoritative.
-5. A live field borrow prevents eviction of its frame.
-6. A failed page load publishes neither a mapping nor initialized records.
-7. A logical write is immediately visible to later reads before `flush()`.
-8. A successful exclusive `flush()` makes every acknowledged logical write
-   durable.
-9. A remap preserves `Records.Pointer` identities.
-10. A raw or address-dependent borrow prevents an incompatible remap.
-11. A fallible field encoding never leaves mutated bytes marked `Clean`.
-12. A flush of version `v` cannot mark a later version `v + 1` clean.
-13. An external writer cannot invalidate a live clean-frame predicate.
-14. Closing with dirty frames follows the selected and documented policy.
+1. Повторные reads одной записи загружают её страницу один раз.
+2. Чтение трёх страниц через два frames корректно вытесняет одну страницу.
+3. Dirty unpinned victim сбрасывается перед переиспользованием.
+4. Failed flush сохраняет dirty page как logical authority.
+5. Живой field borrow запрещает вытеснить его frame.
+6. Failed load не публикует mapping или неинициализированные records.
+7. Logical write немедленно виден дальнейшим reads до `flush()`.
+8. Успешный exclusive `flush()` делает подтверждённые writes долговечными.
+9. Remap сохраняет identities `Records.Pointer`.
+10. Raw или address-dependent borrow запрещает несовместимый remap.
+11. Fallible field encoding не оставляет изменённые bytes в состоянии `Clean`.
+12. Flush версии `v` не может объявить clean появившуюся версию `v + 1`.
+13. Внешний writer не может разрушить предикат живого clean frame.
+14. Close с dirty frames следует выбранной и документированной policy.
 
-Bulk `create` receives its own validation cases after its header/root publication
-protocol is selected.
+Bulk `create` получает собственные проверки после выбора протокола публикации
+header/root.
 
-## Generalization boundary
+## Граница обобщения
 
-The same structure is a hypothesis to test against the following cases before
-adding new language primitives:
+Следующие применения являются гипотезами, которыми нужно проверить общий
+механизм до добавления новых языковых primitives:
 
-- register allocation: logical values realized by registers and spill slots;
-- DMA: logical buffers realized by host, in-flight and device copies;
-- GPU memory: host and device replicas with explicit authority transfer;
-- NUMA: one logical object with node-local read replicas;
-- compressed storage: logical fields realized by decoded cache blocks;
-- database pages: RAM frames backed by journaled or copy-on-write file pages.
+- register allocation: logical values реализуются registers и spill slots;
+- DMA: logical buffers реализуются host-, in-flight- и device-копиями;
+- GPU memory: host/device replicas с явной передачей authority;
+- NUMA: один logical object с node-local read replicas;
+- compressed storage: logical fields через decoded cache blocks;
+- database pages: RAM frames поверх journaled или copy-on-write file pages.
 
-Only the physical populations, access functions and predicates change. Logical
-pointers, ownership, borrows, effects and publication rules remain the same.
+Меняются physical populations, access functions и predicates. Logical pointers,
+ownership, borrows, effects и publication rules остаются общими.
