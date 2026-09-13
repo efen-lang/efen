@@ -286,25 +286,20 @@ aspect List<Target> conforms Representation<Target> {
 
         public fn append(value: own Target.Element) {
             let nextLength = checkedAdd(length, 1)
+            let node = Node.allocate(
+                value: Node(value: take value, next: null),
+                alignment: Node.alignment
+            )
 
-            region suspend Nodes.reachable {
-                region suspend tail {
-                    let node = Node.allocate(
-                        value: Node(value: take value, next: null),
-                        alignment: Node.alignment
-                    )
-
-                    if tail == null {
-                        head = take node
-                        tail = head
-                    } else {
-                        tail!.next = take node
-                        tail = tail!.next
-                    }
-
-                    length = nextLength
-                }
+            if tail == null {
+                head = take node
+                tail = head
+            } else {
+                tail!.next = take node
+                tail = tail!.next
             }
+
+            length = nextLength
         }
 
         public fn insert(index: Size, value: own Target.Element) {
@@ -320,33 +315,25 @@ aspect List<Target> conforms Representation<Target> {
             let nextLength = checkedAdd(length, 1)
 
             if index == 0 {
-                region suspend Nodes.reachable {
-                    region suspend tail {
-                        let node = Node.allocate(
-                            value: Node(value: take value, next: null),
-                            alignment: Node.alignment
-                        )
-                        node.next = take head
-                        head = take node
-                        length = nextLength
-                    }
-                }
+                let node = Node.allocate(
+                    value: Node(value: take value, next: null),
+                    alignment: Node.alignment
+                )
+                node.next = take head
+                head = take node
+                length = nextLength
                 return
             }
 
             let before = nodeAt(index - 1)
+            let node = Node.allocate(
+                value: Node(value: take value, next: null),
+                alignment: Node.alignment
+            )
 
-            region suspend Nodes.reachable {
-                region suspend tail {
-                    let node = Node.allocate(
-                        value: Node(value: take value, next: null),
-                        alignment: Node.alignment
-                    )
-                    node.next = take before.next
-                    before.next = take node
-                    length = nextLength
-                }
-            }
+            node.next = take before.next
+            before.next = take node
+            length = nextLength
         }
 
         public fn remove(index: Size) -> Target.Element {
@@ -356,39 +343,30 @@ aspect List<Target> conforms Representation<Target> {
             var result: Target.Element
 
             if index == 0 {
-                region suspend Nodes.reachable {
-                    region suspend tail {
-                        let victim = take head!
-                        head = take victim.next
+                let victim = take head!
+                head = take victim.next
 
-                        if head == null {
-                            tail = null
-                        }
-
-                        length -= 1
-                        result = take victim.value
-                        Node.free(take victim)
-                    }
+                if head == null {
+                    tail = null
                 }
+
+                length -= 1
+                result = take victim.value
+                Node.free(take victim)
                 return take result
             }
 
             let before = nodeAt(index - 1)
+            let victim = take before.next!
+            before.next = take victim.next
 
-            region suspend Nodes.reachable {
-                region suspend tail {
-                    let victim = take before.next!
-                    before.next = take victim.next
-
-                    if before.next == null {
-                        tail = before
-                    }
-
-                    length -= 1
-                    result = take victim.value
-                    Node.free(take victim)
-                }
+            if before.next == null {
+                tail = before
             }
+
+            length -= 1
+            result = take victim.value
+            Node.free(take victim)
 
             return take result
         }
@@ -472,18 +450,18 @@ aspect List<Target> conforms Representation<Target> {
 алгоритм переносит в него `head` или `before.next`. Поэтому отказ создания не
 может забрать и уничтожить уже опубликованный суффикс списка.
 
-`region suspend` не отменяет проверку памяти, происхождения ссылки или прав. Он
-временно разрешает нарушить два явно названных логических условия и требует
-восстановить их на каждом выходе. Если `Node.allocate` бросает, старые `head`,
-`tail` и множество `Nodes` остаются согласованными.
+После успешного выделения код не вызывает операций, способных бросить
+исключение, приостановиться или вызвать пользовательский код. Предикаты
+`ListData` проверяются на границе операции. Специальное окно временного
+отключения предикатов для этого алгоритма не требуется.
 
 При удалении владеющий указатель сначала переносится из `head` или
 `before.next`, продолжение цепочки занимает освободившееся место, затем
 `take victim.value` переносит `Element` из отсоединённого узла. После этого
 `Node.free(take victim)` потребляет владеющий `Node.item` и возвращает память
 распределителю. Отсоединённый узел больше не входит в логическое `Nodes`.
-Пользовательский деструктор результата работает после выхода из окон и не видит
-промежуточную цепочку.
+Пользовательский деструктор результата работает после восстановления списка и
+не видит промежуточную цепочку.
 
 ## Срезы, ссылки и обход
 
