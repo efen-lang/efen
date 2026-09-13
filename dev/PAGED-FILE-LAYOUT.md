@@ -1,89 +1,233 @@
-# Layout и representation-aspect: файловая база данных
+# Layout и representation-aspect
 
-Статус: черновик для обсуждения. Семантические решения, уже принятые в
-обсуждении, отделены от кандидатов синтаксиса. Синтаксис становится нормативным
-только после последовательного утверждения Edmond.
+Статус: проект модели для обсуждения. Здесь зафиксирована семантика, принятая в
+разговоре, и приведён кандидат синтаксиса. Нормативные документы Efen пока не
+изменены.
 
-## Задача
+Документ проверен на двух разных задачах:
 
-Сначала программист описывает базу данных как обычную логическую структуру
-памяти. Она содержит пользователей, их identities, свойства, pointers,
-предикаты и операции. Она ничего не знает о heap, файле, страницах или кеше.
+1. логическая база данных, реализованная в RAM или через файл с кешем;
+2. реальный memory manager Limelight, который получает большие области памяти и
+   динамически делит их на blocks, slots, arena allocations и отдельные runs.
 
-Затем generic-параметр самой базы принимает representation-aspect. Разные
-аспекты создают разные concrete types из одной логической структуры:
+## 1. Основная модель
+
+`layout` и representation отвечают на разные вопросы.
 
 ```text
+layout
+    Что логически существует?
+    Какие есть populations, values, pointers, predicates и операции?
+
+representation-aspect
+    Как конкретная generic-инстанциация реализована физически?
+    Где лежат данные и каким кодом выполняются primitive operations?
+```
+
+Representation является aspect. Компилятор вызывает его во время компиляции и
+передаёт definition конкретного типа или layout. Aspect регистрирует physical
+state, implementations и handlers в обычном aspect definition plan. После
+фиксации плана компилятор собирает logical methods через эти handlers и запускает
+обычные type, CFG, effect, ownership и predicate checks.
+
+Тип должен сам предусмотреть representation в своих generics:
+
+```efen
+layout Database {
+    generic Physical: Representation = InMemory
+    use Physical
+
+    // logical definition
+}
+```
+
+Внешний код не может заменить representation типа, который не объявил такую
+точку. Эти generic-инстанциации являются разными concrete types:
+
+```efen
 Database<InMemory>
 Database<BufferedFile>
 ```
 
-`InMemory` размещает данные непосредственно в RAM. `BufferedFile` считает весь
-файл логической памятью, но держит в RAM только две страницы. Оба аспекта
-реализуют один logical contract `Database`, поэтому исходные операции базы не
-меняются.
+Обычные правила generics определяют фиксированные aspect-параметры и packs. Тип
+сам задаёт допустимое число, роли и порядок aspects.
 
-## Принятые основания
+## 2. Три разных области реализации
 
-- `layout` описывает логическое понимание структур данных памяти, их
-  взаимодействие, pointers и адресные операции высокого уровня.
-- Representation является аспектом, вызываемым компилятором во время
-  компиляции.
-- Representation-aspect получает конкретную структуру данных или layout, к
-  которому он применён.
-- Аспект может менять внутренние handlers и тела методов, создавать private
-  physical state и сообщать компилятору, как вычислять physical places.
-- Тип сам предусматривает representation в своих generics. Внешний код не
-  может заменить representation у типа, который не объявил такую точку.
-- Разные generic-инстанциации с разными representations являются разными
-  concrete types.
-- Representation может состоять из списка аспектов, если generic-объявление
-  целевого типа явно предусмотрело соответствующие параметры или aspect pack.
-  Здесь действуют обычные правила generics и аспектов.
-- Применимость к структуре или классу определяет сам representation-aspect.
-  Компилятор не навязывает ему exact-type, closed-world или AoS ограничения.
-- Opaque type использует ту же representation, что и скрытый за ним тип.
-- Representation не может нарушить явно объявленный логический контракт. Код
-  representation и сгенерированный им HIR проходят обычные проверки.
-- Если функция не объявила закрытый набор исключений или эффектов, они
-  наследуются и выводятся автоматически по графу вызовов.
-- Suspension также наследуется автоматически.
-- Representation-aspect может добавлять realized type собственные публичные
-  операции, например `flush`, `prefetch` или `compact`.
-- Transparent access является группой функций. После явного объявления группы
-  пользователь пишет обычное `pointer.field`; отдельный знак в месте доступа не
-  требуется.
-- Один layout может использовать несколько физических областей одновременно.
-- Population владеет lifetime своих members. Уничтожение локального
-  `Users.Pointer` не удаляет member; удаление выполняется явной операцией
-  population. Ownership pointer задаёт authority, а не скрытый persistent drop.
-- Одно logical place может иметь несколько физических replicas. В каждый момент
-  не более одной replica является authoritative для записи.
-- Логическая запись в файловой representation завершается после публикации
-  authoritative-копии в RAM. Durability отдельно запрашивается через `flush()`.
-- Минимальный `BufferedFile` не является shared representation. Transparent
-  access удерживает исключительный borrow private cache state через suspension,
-  поэтому две загрузки или flush одной page не interleave. Concurrent
-  representation обязана заменить эту сериализацию собственным directory и
-  coherence protocol.
+Aspect, применённый к layout, видит несколько возможных получателей. Поэтому
+голый блок `implementation` и голый constructor неоднозначны.
 
-Контракт `Representation` связывает compile-time имя `target` со структурой
-текущей generic-инстанциации на всё время исполнения аспекта. Member templates
-аспекта могут использовать `target.User` и `target.Users.Pointer` в сигнатурах:
-при применении эти имена заменяются конкретными типами. Runtime capture объекта
-`lang::Layout` не возникает. Объявленные аспектом `source`, private fields,
-populations и constructors материализуются как физическая часть нового realized
-type через обычный aspect definition plan.
+### 2.1. Реализация конкретного типа
 
-## Часть 1. Логическая база данных
+```efen
+type implementation target {
+    // physical members корневого realized type
+    // constructors и methods корневого realized type
+}
+```
 
-Ниже нет файлового кода. `Database` описывает только структуру данных и
-логические операции.
+Для вложенного типа получатель называется отдельно:
+
+```efen
+type implementation target.User {
+    // implementation именно User
+}
+```
+
+`Self` внутри каждого блока означает явно названный type. Constructor корневого
+блока создаёт `Database<BufferedFile>`. Constructor блока `target.User` создаёт
+отдельный `User`.
+
+### 2.2. Реализация population
+
+Population не является типом и не имеет constructor. Она предоставляет
+primitive operations логической памяти:
+
+```efen
+population implementation target.Users {
+    reserve = owner.reserveUser
+    access = owner.accessUser
+    retire = owner.retireUser
+    enumerate = owner.enumerateUsers
+}
+```
+
+Здесь `owner` — runtime-экземпляр realized layout, а `population` — конкретное
+население этого экземпляра. Точные имена handlers являются кандидатами.
+`enumerate` может предоставить эффективный physical order, но core сверяет его с
+`Live`; handler не создаёт membership и не может пропустить live identity в
+операции, обещающей полный logical обход.
+
+### 2.3. Физический источник
+
+`source` — специальный physical member с явным ownership mode:
+
+```efen
+source file: own File
+source ram: own Ram
+source system: read write VirtualMemory
+```
+
+Source хранится в realized type и задаёт границу происхождения физических
+grants. Он может быть файлом, RAM provider, `VirtualMemory`, другим layout или
+адаптером FFI. Source не связывает один logical type с одним allocator.
+
+## 3. Кто отвечает за identity и lifetime
+
+Core layout владеет логическими identities и membership. Representation не
+может самостоятельно опубликовать произвольную identity или удалить её из
+`Live`.
+
+Логическое создание выполняется так:
+
+```text
+core выбирает exact logical constructor
+→ core резервирует fresh identity, ещё не входящую в Live
+→ representation резервирует provisional physical grants
+→ logical constructor инициализирует значение в этих grants
+→ проверяются logical predicates
+→ core одним no-throw commit публикует identity, Live и mappings
+→ возвращается Population.Pointer
+```
+
+Ошибка до commit уничтожает только уже инициализированные части, возвращает
+physical reservations и не создаёт member.
+
+`Population.Pointer` является logical pointer. Его identity не обязана быть
+physical address. Relocation, cache eviction, remap и смена allocator authority
+не меняют identity.
+
+Population владеет lifetime members. Уничтожение локального pointer не удаляет
+member. Удаление — явная логическая операция population. Representation
+возвращает physical storage только после того, как core завершил logical
+lifecycle и разрешил reclamation.
+
+## 4. Граница власти representation
+
+Representation может менять только compiler-defined realization seams:
+
+- physical reservation и reclamation;
+- logical identity → physical place;
+- field и whole-value projection;
+- create/remove preparation;
+- iteration и enumeration;
+- copy/move/drop lowering;
+- transparent access;
+- private physical state;
+- representation-specific public API, если контракт `Representation` даёт это
+  право.
+
+Representation не заменяет произвольные logical methods. Иначе aspect мог бы
+заменить:
+
+```efen
+balance += amount
+```
+
+на:
+
+```efen
+balance += amount * 2
+```
+
+и обычные type/ownership checks не доказали бы эквивалентность. Logical method
+bodies сохраняются; representation реализует только зафиксированные seams, через
+которые они обращаются к памяти.
+
+Обычные aspects работают через checked compiler seams. Доступ к raw/native
+physical primitives требует явной trusted boundary соответствующего backend или
+source.
+
+## 5. Стадии применения
+
+Representation не создаёт параллельный compilation pipeline.
+
+```text
+generic substitution и immutable logical definition
+→ non-mutating registration в общем aspect plan
+→ фиксация type/population implementation recipients и порядка
+→ materialization private physical state и public surface
+→ binding primitive population/access handlers
+→ compilation logical method bodies через зафиксированные handlers
+→ effects, throws, suspension, ownership и predicates
+→ publication realized type
+```
+
+Поздняя замена handler после анализа зависимого body является ошибкой.
+
+Кандидат регистрационной формы:
+
+```efen
+aspect BufferedFile conforms Representation {
+    meta fn register(
+        target: lang::TypeDefinition,
+        plan: lang::DefinitionPlan
+    ) {
+        requireDatabaseShape(target)
+
+        plan.define {
+            type implementation target {
+                // runtime implementation root type
+            }
+
+            population implementation target.Users {
+                // primitive population handlers
+            }
+        }
+    }
+}
+```
+
+`target` существует только во время compile time. `self` появляется только в
+runtime body конкретного `type implementation`. Declarative blocks понижаются в
+тот же definition plan, что и остальные aspect transformations.
+
+## 6. Логическая база данных
+
+В logical layout нет файла, RAM, страниц или кеша.
 
 ```efen
 layout Database {
-    // Кандидат синтаксиса G1: representation-aspect является generic-параметром
-    // самого типа и применяется самим типом.
     generic Physical: Representation = InMemory
     use Physical
 
@@ -132,591 +276,433 @@ layout Database {
         user.balance += amount
         return true
     }
-
-    fn createUser(
-        id: UInt64,
-        name: FixedString<48>,
-        balance: Int64 = 0
-    ) -> Users.Pointer {
-        require balance >= 0
-
-        return Users.create(
-            id: id,
-            name: name,
-            balance: balance
-        )
-    }
 }
 ```
 
-Логическая модель обещает:
+Минимальный пример deliberately read/update-only: membership `Users` фиксируется
+при construction/import. Append/remove требуют отдельного persistent directory,
+tombstones/generations и publication/recovery protocol; заглушки не выдаются за
+реализацию.
 
-- `Users.Pointer` называет пользователя этого экземпляра `Database`;
-- `findUser`, `renameUser`, `deposit` и `createUser` имеют один смысл при любой
-  representation;
-- значение `balance` никогда не становится отрицательным;
-- representation может изменить физический алгоритм каждой операции, но не её
-  логический результат.
+Freeze membership является обязательством logical contract этого примера, а не
+решением `BufferedFile`. Точный surface syntax такого обязательства будет
+утверждаться отдельно.
 
-`Database` сам предусмотрел параметр `Physical` и применил его через
-`use Physical`. Поэтому representation имеет разрешение аспекта. Та же операция
-была бы незаконна для типа без такого generic-параметра.
-
-## Часть 2. Простая representation в RAM
-
-`InMemory` является compile-time aspect, а не runtime wrapper.
+## 7. InMemory representation
 
 ```efen
 aspect InMemory conforms Representation {
-    source ram: Ram
+    meta fn register(
+        target: lang::TypeDefinition,
+        plan: lang::DefinitionPlan
+    ) {
+        requireDatabaseShape(target)
 
-    constructor(ram: own Ram) {
-        self.ram = take ram
-    }
+        plan.define {
+            type implementation target {
+                source ram: own Ram
 
-    meta fn apply() {
-        for population in target.populations {
-            population.setCreateHandler(createInRam)
-            population.setRemoveHandler(removeFromRam)
-            population.setPointerHandler(directPointer)
-            population.setAccessHandler(directAccess)
-            population.setIterationHandler(iterateInRam)
+                let locations: IdentityMap<PhysicalPlace>
+
+                @constructor
+                public fn init(
+                    ram: own Ram,
+                    users: [target.User]
+                ) -> Self {
+                    self.ram = take ram
+                    self.locations = IdentityMap()
+                    self.Users.import(take users)
+                    return self
+                }
+
+                fn reserveUser(request: PlacementRequest)
+                    -> PhysicalReservation
+                {
+                    let place = self.ram.reserve(
+                        bytes: request.size,
+                        alignment: request.alignment
+                    )
+
+                    return PhysicalReservation(
+                        place: place,
+                        rollback: () => self.ram.release(place)
+                    )
+                }
+
+                fn accessUser(pointer: read self.Users.Pointer)
+                    -> AccessLease<self.User>
+                {
+                    return AccessLease(
+                        logical: pointer,
+                        physical: self.locations[pointer.identity]
+                    )
+                }
+
+                fn enumerateUsers() -> Iterator<self.Users.Pointer> {
+                    return self.Users.liveIdentities()
+                }
+            }
+
+            population implementation target.Users {
+                reserve = owner.reserveUser
+                access = owner.accessUser
+                enumerate = owner.enumerateUsers
+            }
         }
-    }
-
-    private fn createInRam(plan: CreatePlan) -> LogicalPointer {
-        let place = ram.allocate(plan.size, alignment: plan.alignment)
-
-        try {
-            plan.construct(into: place)
-
-            // Logical identity свежая и не равна physical address.
-            return plan.publish(
-                identity: plan.population.nextIdentity(),
-                physical: place
-            )
-        } catch error {
-            plan.destroyInitializedFields(place)
-            ram.release(place)
-            throw error
-        }
-    }
-
-    private fn removeFromRam(pointer: LogicalPointer) {
-        let place = directPointer(pointer)
-        pointer.type.destroy(place)
-        ram.release(place)
-    }
-
-    private fn directPointer(pointer: LogicalPointer) -> PhysicalPlace {
-        return pointer.population.resolve(pointer.identity)
-    }
-
-    private fn directAccess(pointer: LogicalPointer) -> AccessLease {
-        return AccessLease(
-            logical: pointer,
-            physical: directPointer(pointer)
-        )
-    }
-
-    private fn iterateInRam(plan: IteratePlan) -> Iterator<LogicalPointer> {
-        return plan.publishedPointers()
     }
 }
 ```
 
-После применения компилятор создаёт concrete type:
+`Users.import` остаётся core logical transaction. Aspect предоставляет
+physical reservations; core выполняет constructors, публикует `Live` и
+заполняет `locations`. Удаление identity также сначала проходит core lifecycle,
+после чего representation получает право вернуть RAM grant.
 
-```efen
-alias MemoryDatabase = Database<InMemory>
+## 8. BufferedFile representation
+
+Формат фиксирован для минимального примера:
+
+```text
+page size:       4096 bytes
+encoded User:      64 bytes
+records per page:  64
+cache:              2 resident pages
 ```
 
-Его пользовательский код остаётся логическим:
-
-```efen
-var db = MemoryDatabase(ram: Ram.system)
-
-let user = db.createUser(
-    id: 42,
-    name: "Ada"
-)
-
-user.balance += 100
-echo user.name
-```
-
-`user.balance` понижается в прямой доступ к RAM, потому что handlers
-`InMemory` вернули direct physical place.
-
-## Часть 3. Файловая representation с кешем
-
-`BufferedFile` применяется к тому же логическому `Database`. Весь файл хранит
-логическое население `Users`, а два RAM frames являются его текущими физическими
-replicas.
+Одна запись не пересекает page boundary. `UserFileV1` задаёт offsets и encoding
+полей, а не использует native ABI структуры `User`.
 
 ```efen
 aspect BufferedFile conforms Representation {
-    // Кандидат F1: несколько физических областей принадлежат одному
-    // representation-aspect.
-    source file: File
-    source ram: Ram
-
-    // Representation contract связывает compile-time `target` со структурой
-    // Database текущей generic-инстанциации. В runtime его объекта нет.
-
-    private type Page: UInt64
-
-    enum ReplicaState {
-        Empty
-        Clean
-        Dirty
-    }
-
-    enum IoState {
-        Idle
-        Loading
-        Flushing
-    }
-
-    // Private population добавляется аспектом только в realized type.
-    private set Frames: Frame from ram
-
-    private struct Frame {
-        var page: Page? {
-            (replica == Empty) == (page == null) &&
-            (page == null || Frames.count(where: it.page == page) == 1)
-        }
-
-        var bytes: [Byte] {
-            bytes.count == pageSize
-        }
-
-        var replica: ReplicaState
-
-        var io: IoState {
-            io != Flushing || replica == Dirty
-        }
-
-        var version: Version
-        var lastUse: UInt64
-
-        // Вычисляется из живых access leases и недоступно для присваивания.
-        var pins: UInt {
-            get { return liveLoans(to: self).count }
-        }
-    }
-
-    let pageSize: Size = 4096
-    let frameLimit: Size = 2
-    let format: DatabaseFileV1 = DatabaseFileV1()
-    var clock: UInt64 = 0
-
-    // Кандидат F2: representation-aspect может добавить constructor своему
-    // realized type.
-    constructor(file: own File, ram: own Ram) throws IOError | InvalidFile {
-        self.file = take file
-        self.ram = take ram
-
-        format.validateHeader(self.file)
-        format.validateAllRecords(
-            self.file,
-            bufferSize: pageSize * frameLimit
-        )
-
-        // Кандидат F3: связать уже существующие bytes с logical population,
-        // не создавая заново каждого User.
-        self.Users.map(self.file)
-    }
-
-    meta fn apply() {
-        if !target.hasPopulation("Users") ||
-           target.Users.elementType != target.User {
-            compileError("BufferedFile requires Database.Users: Database.User")
-        }
-
-        target.Users.setCreateHandler(createUser)
-        target.Users.setRemoveHandler(removeUser)
-        target.Users.setIterationHandler(iterateUsers)
-
-        target.Users.setTransparentAccess(
-            acquireRead: acquireRead,
-            acquireWrite: acquireWrite,
-            prepareWrite: prepareWrite,
-            commitWrite: commitWrite,
-            release: release
-        )
-
-        target.addMethod(flush)
-        target.addMethod(close)
-        target.addMethod(prefetch)
-    }
-
-    private fn findResident(page: Page)
-        -> read write Frames.Pointer?
-    {
-        for frame in Frames {
-            if frame.page == page && frame.io == Idle {
-                return frame
-            }
-        }
-
-        return null
-    }
-
-    private fn chooseVictim()
-        -> read write Frames.Pointer
-        throws CacheBusy
-    {
-        var result: read write Frames.Pointer? = null
-
-        for frame in Frames {
-            if frame.pins == 0 && frame.io == Idle &&
-               (result == null || frame.lastUse < result.lastUse) {
-                result = frame
-            }
-        }
-
-        if result == null {
-            throw CacheBusy()
-        }
-
-        return result
-    }
-
-    private fn acquireEmptyFrame()
-        -> read write Frames.Pointer
-        throws CacheBusy | OutOfMemory
-    {
-        if Frames.count < frameLimit {
-            return Frames.create(
-                page: null,
-                bytes: ram.bytes(count: pageSize),
-                replica: Empty,
-                io: Idle,
-                version: Version.initial,
-                lastUse: 0
-            )
-        }
-
-        return chooseVictim()
-    }
-
-    private fn flushFrame(frame: read write Frames.Pointer) throws IOError {
-        if frame.replica != Dirty {
-            return
-        }
-
-        require frame.pins == 0
-
-        let page = frame.page
-        let version = frame.version
-        let snapshot = frame.bytes.copy()
-
-        frame.io = Flushing
-
-        try {
-            file.writePage(
-                page: page,
-                bytes: snapshot,
-                version: version
-            )
-            file.sync(page)
-
-            if frame.version == version {
-                frame.commitState(replica: Clean, io: Idle)
-            } else {
-                frame.commitState(replica: Dirty, io: Idle)
-            }
-        } catch error: IOError {
-            frame.commitState(replica: Dirty, io: Idle)
-            throw error
-        }
-    }
-
-    private fn evict(frame: read write Frames.Pointer) throws IOError {
-        require frame.pins == 0
-
-        if frame.replica == Dirty {
-            flushFrame(frame)
-        }
-
-        publishEmpty(frame)
-    }
-
-    private fn load(
-        page: Page,
-        into frame: read write Frames.Pointer
-    ) throws IOError | InvalidFile {
-        require frame.pins == 0
-
-        if frame.replica != Empty {
-            evict(frame)
-        }
-
-        frame.io = Loading
-
-        try {
-            let bytes = file.readPage(page, size: pageSize)
-            format.validatePage(page, bytes)
-
-            publishClean(
-                frame: frame,
-                page: page,
-                bytes: take bytes,
-                version: file.version(page)
-            )
-        } catch error: IOError | InvalidFile {
-            publishEmpty(frame)
-            throw error
-        }
-    }
-
-    private fn publishEmpty(frame: read write Frames.Pointer) {
-        // Один no-throw commit меняет связанные свойства Frame.
-        frame.commitState(
-            page: null,
-            replica: Empty,
-            io: Idle
-        )
-    }
-
-    private fn publishClean(
-        frame: read write Frames.Pointer,
-        page: Page,
-        bytes: own [Byte],
-        version: Version
+    meta fn register(
+        target: lang::TypeDefinition,
+        plan: lang::DefinitionPlan
     ) {
-        // Validation и allocation завершены до этого no-throw commit.
-        frame.commitState(
-            page: page,
-            bytes: take bytes,
-            replica: Clean,
-            io: Idle,
-            version: version
-        )
-    }
+        requireDatabaseShape(target)
 
-    private fn acquireFrame(page: Page)
-        -> read write Frames.Pointer
-        throws IOError | InvalidFile | CacheBusy | OutOfMemory
-    {
-        let resident = findResident(page)
+        plan.define {
+            type implementation target {
+                source file: own File
+                source ram: own Ram
 
-        if resident != null {
-            clock += 1
-            resident.lastUse = clock
-            return resident
-        }
+                type Page: UInt64
 
-        let frame = acquireEmptyFrame()
-        load(page, into: frame)
+                enum FrameState {
+                    Empty
+                    Clean
+                    Dirty
+                    Loading
+                    Flushing
+                }
 
-        clock += 1
-        frame.lastUse = clock
-        return frame
-    }
+                struct Frame {
+                    var page: Page? {
+                        (page == null) ==
+                            (state == Empty || state == Loading)
+                    }
+                    var bytes: PageBytes<4096>
+                    var state: FrameState
+                    var version: Version
+                    var lastUse: UInt64
 
-    private fn acquireRead(pointer: read target.Users.Pointer)
-        -> ReadLease<target.User>
-        throws IOError | InvalidFile | CacheBusy | OutOfMemory
-    {
-        let page = pageOf(pointer)
-        let frame = acquireFrame(page)
-        let offset = offsetOf(pointer, in: page)
-        let place = format.project<target.User>(frame.bytes, offset)
+                    var pins: UInt {
+                        get { return liveLoans(to: self).count }
+                    }
+                }
 
-        return ReadLease(
-            logical: pointer,
-            physical: place,
-            pin: frame
-        )
-    }
+                let format: UserFileV1 = UserFileV1()
+                let cache: PhysicalGrant
+                var frames: [Frame] {
+                    .count == 2 && unique(
+                        .filter((frame) => frame.page != null)
+                            .map((frame) => frame.page)
+                    )
+                }
+                var clock: UInt64 = 0
 
-    private fn acquireWrite(pointer: read write target.Users.Pointer)
-        -> WriteLease<target.User>
-        throws IOError | InvalidFile | CacheBusy | OutOfMemory
-    {
-        let page = pageOf(pointer)
-        let frame = acquireFrame(page)
-        let offset = offsetOf(pointer, in: page)
-        let place = format.project<target.User>(frame.bytes, offset)
+                @constructor
+                public fn init(file: own File, ram: own Ram) -> Self {
+                    self.file = take file
+                    self.ram = take ram
 
-        return WriteLease(
-            logical: pointer,
-            physical: place,
-            pin: frame,
-            originalVersion: frame.version
-        )
-    }
+                    self.cache = self.ram.reserve(
+                        bytes: 8192,
+                        alignment: 4096
+                    )
 
-    private fn prepareWrite<Field>(
-        lease: read WriteLease<target.User>,
-        field: Field,
-        value: field.Type
-    ) -> PreparedWrite throws InvalidValue | OutOfMemory {
-        return format.prepareEncoding(
-            place: lease.physical,
-            field: field,
-            value: value
-        )
-    }
+                    // Один grant разбит на две непересекающиеся page areas.
+                    let pages = self.cache.split<PageBytes<4096>>(
+                        count: 2,
+                        stride: 4096
+                    )
 
-    private fn commitWrite(
-        lease: read write WriteLease<target.User>,
-        prepared: take PreparedWrite
-    ) {
-        // Encoding и authority metadata публикуются одним no-throw commit.
-        lease.pin.commitWrite(
-            place: lease.physical,
-            encoding: take prepared,
-            version: lease.pin.version.next(),
-            replica: Dirty
-        )
-    }
+                    // Frame metadata лежит отдельно; bytes являются view grant.
+                    self.frames = pages.map((bytes) =>
+                        Frame(
+                            page: null,
+                            bytes: bytes,
+                            state: Empty,
+                            version: Version.initial,
+                            lastUse: 0
+                        )
+                    )
 
-    private fn release(lease: take AccessLease<target.User>) {
-        // Drop lease завершает borrow и снимает pin.
-    }
+                    self.format.validateHeader(self.file)
+                    self.format.validateAll(
+                        self.file,
+                        through: self.frames
+                    )
 
-    private fn iterateUsers() -> Iterator<target.Users.Pointer> {
-        // Header содержит число проверенных logical identities. Iterator
-        // создаёт pointers по этим identities; доступ к полям идёт через
-        // transparent handlers и загружает страницы по требованию.
-        return logicalPointers(
-            population: self.Users,
-            count: file.header.userCount
-        )
-    }
+                    // Core публикует проверенные logical identities Users.
+                    self.Users.import(
+                        count: self.file.header.userCount
+                    )
 
-    private fn createUser(plan: CreatePlan) -> target.Users.Pointer {
-        // Append требует отдельного persistent publication protocol.
-        // До его утверждения этот handler намеренно неполон.
-        return appendAndPublish(plan)
-    }
+                    return self
+                }
 
-    private fn removeUser(pointer: target.Users.Pointer) {
-        removeAndPublish(pointer)
-    }
+                fn findResident(page: Page) -> read write Frame? {
+                    for frame in self.frames {
+                        if frame.page == page &&
+                           (frame.state == Clean || frame.state == Dirty) {
+                            return frame
+                        }
+                    }
 
-    fn prefetch(pointer: read target.Users.Pointer)
-        throws IOError | InvalidFile | CacheBusy | OutOfMemory
-    {
-        acquireFrame(pageOf(pointer))
-    }
+                    return null
+                }
 
-    fn flush() throws IOError {
-        // Write authority на realized instance исключает живые access leases
-        // минимальной non-shared representation.
-        assert Frames.all(where: it.pins == 0)
+                fn chooseVictim() -> read write Frame throws CacheBusy {
+                    var result: read write Frame? = null
 
-        for frame in Frames {
-            if frame.replica == Dirty {
-                flushFrame(frame)
+                    for frame in self.frames {
+                        if frame.pins == 0 &&
+                           (frame.state == Empty ||
+                            frame.state == Clean ||
+                            frame.state == Dirty) &&
+                           (result == null || frame.lastUse < result.lastUse) {
+                            result = frame
+                        }
+                    }
+
+                    if result == null {
+                        throw CacheBusy()
+                    }
+
+                    return result
+                }
+
+                fn flushFrame(frame: read write Frame) throws IOError {
+                    if frame.state != Dirty {
+                        return
+                    }
+
+                    require frame.pins == 0
+
+                    let page = frame.page
+                    let version = frame.version
+                    frame.state = Flushing
+
+                    try {
+                        // Exclusive access сериализует эту минимальную
+                        // representation, поэтому snapshot-copy не нужен.
+                        self.file.writePage(
+                            page: page,
+                            from: frame.bytes
+                        )
+                        self.file.sync(page)
+                        frame.state = Clean
+                    } catch error: IOError {
+                        // RAM остаётся logical authority. Файл мог стать torn;
+                        // повторное открытие требует recovery representation.
+                        frame.state = Dirty
+                        throw error
+                    }
+
+                    assert frame.version == version
+                }
+
+                fn evict(frame: read write Frame) throws IOError {
+                    require frame.pins == 0
+
+                    if frame.state == Dirty {
+                        flushFrame(frame)
+                    }
+
+                    frame.commitState(
+                        page: null,
+                        state: Empty
+                    )
+                }
+
+                fn load(page: Page, into frame: read write Frame)
+                    throws IOError | InvalidFile
+                {
+                    if frame.state != Empty {
+                        evict(frame)
+                    }
+
+                    frame.state = Loading
+
+                    try {
+                        // File читает прямо в заранее выбранный cache frame.
+                        self.file.readPage(
+                            page: page,
+                            into: frame.bytes
+                        )
+                        self.format.validatePage(page, frame.bytes)
+
+                        frame.commitState(
+                            page: page,
+                            state: Clean,
+                            version: self.file.version(page)
+                        )
+                    } catch error: IOError | InvalidFile {
+                        frame.commitState(
+                            page: null,
+                            state: Empty
+                        )
+                        throw error
+                    }
+                }
+
+                fn acquireFrame(page: Page)
+                    -> read write Frame
+                    throws IOError | InvalidFile | CacheBusy
+                {
+                    let resident = findResident(page)
+
+                    if resident != null {
+                        self.clock += 1
+                        resident.lastUse = self.clock
+                        return resident
+                    }
+
+                    let frame = chooseVictim()
+                    load(page, into: frame)
+                    self.clock += 1
+                    frame.lastUse = self.clock
+                    return frame
+                }
+
+                fn accessUser(pointer: read self.Users.Pointer)
+                    -> AccessLease<self.User>
+                    throws IOError | InvalidFile | CacheBusy
+                {
+                    let record = self.format.location(pointer.identity)
+                    let frame = acquireFrame(record.page)
+
+                    return AccessLease(
+                        logical: pointer,
+                        physical: self.format.project(
+                            frame.bytes,
+                            record.offset
+                        ),
+                        pin: frame
+                    )
+                }
+
+                fn prepareUserWrite<Field>(
+                    lease: read AccessLease<self.User>,
+                    field: Field,
+                    value: field.Type
+                ) -> PreparedFieldWrite {
+                    return self.format.prepareWrite(
+                        place: lease.physical,
+                        field: field,
+                        value: value
+                    )
+                }
+
+                fn commitUserWrite(
+                    lease: read write AccessLease<self.User>,
+                    prepared: own PreparedFieldWrite
+                ) {
+                    // Encoding, version и Dirty authority меняются одним
+                    // no-throw commit после всех fallible preparations.
+                    lease.pin.commitWrite(
+                        place: lease.physical,
+                        encoding: take prepared,
+                        version: lease.pin.version.next(),
+                        state: Dirty
+                    )
+                }
+
+                fn releaseUserAccess(
+                    lease: own AccessLease<self.User>
+                ) {
+                    // Drop lease завершает borrow и снимает pin.
+                }
+
+                fn enumerateUsers() -> Iterator<self.Users.Pointer> {
+                    return self.Users.liveIdentities()
+                }
+
+                public fn prefetch(pointer: read self.Users.Pointer)
+                    throws IOError | InvalidFile | CacheBusy
+                {
+                    acquireFrame(
+                        self.format.location(pointer.identity).page
+                    )
+                }
+
+                public fn flush() throws IOError {
+                    // Exclusive receiver authority запрещает живые leases.
+                    assert self.frames.all(where: it.pins == 0)
+
+                    for frame in self.frames {
+                        flushFrame(frame)
+                    }
+                }
+
+                public fn close() throws IOError {
+                    flush()
+                    self.file.close()
+                }
+            }
+
+            population implementation target.Users {
+                access = owner.accessUser
+                prepareWrite = owner.prepareUserWrite
+                commitWrite = owner.commitUserWrite
+                release = owner.releaseUserAccess
+                enumerate = owner.enumerateUsers
             }
         }
-    }
-
-    fn close() throws IOError {
-        flush()
-        file.close()
     }
 }
 ```
 
-Весь кеш, I/O и physical mapping находятся в `BufferedFile`, а не в
-`Database`. Representation-aspect добавляет private `Frames`, заменяет handlers
-`Users` и добавляет realized type методы `prefetch`, `flush` и `close`.
+В minimal slice `BufferedFile` не shared. Exclusive borrow его cache state живёт
+через suspension, поэтому два load/flush одной page не interleave. Concurrent
+aspect должен добавить directory и coherence protocol.
 
-## Часть 4. Использование двух concrete types
+Transparent access не требует отдельного marker:
 
 ```efen
-alias MemoryDatabase = Database<InMemory>
 alias FileDatabase = Database<BufferedFile>
 
-var temporary = MemoryDatabase(
-    ram: Ram.system
-)
-
-var persistent = FileDatabase(
+var database = FileDatabase(
     file: File.open("users.db", access: readWrite),
     ram: Ram(size: 8192)
 )
 
-temporary.createUser(
-    id: 1,
-    name: "Temporary"
-)
+let user = database.findUser(42)!
 
-let user = persistent.findUser(42)!
+echo user.name       // может загрузить page и приостановить функцию
+user.name = "Alice" // RAM frame становится Dirty authority
 
-// Обычный logical access. BufferedFile может выполнить cache lookup,
-// file.readPage и suspension. Эффекты выводятся автоматически.
-echo user.name
-
-// Assignment завершается после публикации Dirty RAM frame как authority.
-user.name = "Alice"
-
-// Representation-specific API виден на точном типе FileDatabase.
-persistent.prefetch(user)
-persistent.flush()
-persistent.close()
+database.flush()    // отдельная durability boundary
+database.close()
 ```
 
-`MemoryDatabase` и `FileDatabase` являются разными типами. Общий алгоритм явно
-параметризуется representation:
+Effects, exceptions и suspension наследуются автоматически. Explicitly closed
+contract, несовместимый с handlers выбранной representation, даёт compile error.
 
-```efen
-fn depositBonus(
-    generic Physical: Representation,
-    database: read write Database<Physical>,
-    userId: UInt64,
-    amount: Int64
-) -> Bool {
-    return database.deposit(userId, amount)
-}
-```
+## 9. Columnar как representation-aspect
 
-Для `Database<InMemory>` функция не получает I/O effects. Для
-`Database<BufferedFile>` effects, `throws` и suspension наследуются из handlers
-аспекта. Если внешний контракт функции закрыт и не допускает их, компилятор
-выдаёт ошибку.
-
-## Как компилятор применяет representation-aspect
-
-Для `Database<BufferedFile>`:
-
-```text
-1. Подставить generic Physical = BufferedFile.
-2. Построить логический Database: Users, User, predicates и methods.
-3. Вызвать compile-time аспект BufferedFile с target = этот Database.
-4. Аспект добавляет private physical state и регистрирует handlers.
-5. Скомпилировать logical methods через новые handlers.
-6. Проверить generated HIR обычными type, CFG, effect, ownership и predicate
-   passes.
-7. Опубликовать новый concrete type Database<BufferedFile>.
-```
-
-Например:
-
-```efen
-user.name = "Alice"
-```
-
-понижается через handlers аспекта:
-
-```text
-lease = BufferedFile.acquireWrite(user)
-place = lease.project(field: User.name)
-replacement = BufferedFile.prepareWrite(place, "Alice")
-BufferedFile.commitWrite(lease, replacement)
-BufferedFile.release(lease)
-```
-
-На каждом normal и exceptional exit borrow завершается, а pin освобождается.
-
-## Пример representation-aspect для Columnar
-
-Та же модель применяется к обычному контейнеру.
+`Columnar` получает конкретный контейнер и logical structure его element type.
+Он сам решает applicability.
 
 ```efen
 struct X {
@@ -732,95 +718,62 @@ struct Array {
     fn append(value: Element)
     fn get(index: Index) -> read write Element
 }
+```
 
+```efen
 aspect Columnar conforms Representation {
-    meta fn apply() {
-        if !target.hasGenericArgument("Element") {
-            compileError("Columnar requires a container with Element")
-        }
-
+    meta fn register(
+        target: lang::TypeDefinition,
+        plan: lang::DefinitionPlan
+    ) {
         let element = target.genericArgument("Element")
 
         if !supportsColumnProjection(element) {
-            compileError(
-                "Columnar cannot realize the fields and lifecycle of ${element}"
-            )
+            compileError("Columnar cannot represent ${element}")
         }
 
-        for field in element.fields {
-            target.addPrivateStorage(
-                name: field.name,
-                type: Array<field.type>
+        plan.define {
+            type implementation target {
+                // По одному physical storage на logical field Element.
+                let columns: Columns<element> = Columns<element>()
+
+                fn prepareAppend(value: element)
+                    -> PreparedColumns<element>
+                {
+                    // Резервирует все columns и сохраняет ownership уже
+                    // подготовленных частей для no-throw rollback.
+                    return self.columns.prepare(value)
+                }
+
+                fn commitAppend(prepared: own PreparedColumns<element>) {
+                    // No-throw commit всех columns и общего count.
+                    self.columns.commit(take prepared)
+                }
+
+                fn acquireElement(index: self.Index)
+                    -> CompositeLease<element>
+                {
+                    return self.columns.lease(index)
+                }
+            }
+
+            plan.bind(
+                target.elementOperations,
+                prepareAppend: target.prepareAppend,
+                commitAppend: target.commitAppend,
+                access: target.acquireElement
             )
         }
-
-        target.replaceHandler("append", appendFields)
-        target.setElementAccessHandler(
-            acquire: acquireElement,
-            project: projectField,
-            release: releaseElement
-        )
-        target.replaceHandler("copy", copyColumns)
-        target.replaceHandler("move", moveColumns)
-        target.replaceHandler("drop", dropColumns)
-    }
-
-    private fn appendFields(value: target.Element) throws OutOfMemory {
-        // Сначала каждая column резервирует место и готовит своё значение.
-        // Ни одна логическая строка ещё не опубликована.
-        var prepared = PreparedColumns()
-
-        for field in target.Element.fields {
-            prepared.add(
-                target.storage(field).prepareAppend(value[field])
-            )
-        }
-
-        // Все последующие append и увеличение общего count не бросают.
-        target.commitRow(take prepared)
-    }
-
-    private fn acquireElement(index: target.Index) -> ElementLease {
-        return ElementLease(
-            owner: target,
-            index: index
-        )
-    }
-
-    private fn projectField(
-        lease: read ElementLease,
-        field: target.Element.Field
-    ) -> PhysicalPlace {
-        return target.storage(field)[lease.index]
-    }
-
-    private fn releaseElement(lease: take ElementLease) {
-        // Завершает logical borrow всех затронутых columns.
-    }
-
-    private fn copyColumns() -> Self {
-        return target.copyEachStorage()
-    }
-
-    private fn moveColumns() -> Self {
-        return target.moveEachStorage()
-    }
-
-    private fn dropColumns() {
-        target.dropEachLogicalValueOnce()
-        target.releaseAllStorages()
     }
 }
 ```
 
-Применение:
+`CompositeLease<X>` является logical place над несколькими columns:
 
 ```efen
-alias XRows = Array<X, Contiguous>
 alias XColumns = Array<X, Columnar>
 
 var values = XColumns()
-
 values.append(X(a: 1, b: 2.0))
 values.append(X(a: 3, b: 4.0))
 
@@ -828,261 +781,436 @@ values[1].a = 10
 echo values[0].b
 ```
 
-Логически:
-
-```text
-[X(a: 1, b: 2.0), X(a: 10, b: 4.0)]
-```
-
-Физически:
-
-```text
-a = [1, 10]
-b = [2.0, 4.0]
-```
-
-`Columnar` сам решает, применим ли он к переданному element type, структуре,
-классу или открытому набору runtime-видов. Это compile-time решение самого
-аспекта.
-
-## Непрозрачные типы
-
-Opaque меняет nominal identity и visibility, но не representation:
+Whole-element operations имеют определённую семантику:
 
 ```efen
-opaque type UserId = UInt64
+let copy: X = values[0]       // gather logical fields
+values[1] = copy              // prepare all fields, then scatter commit
+mutate(&values[0])            // composite borrow, не fabricated contiguous &X
+swap(values[0], values[1])    // transaction over all columns
 ```
+
+Код, требующий native-contiguous `&X`, неприменим к composite place. Компилятор
+не создаёт скрытый pointer на несуществующий цельный объект.
+
+Opaque type наследует exact physical representation underlying type. Это не
+раскрывает его public API и не создаёт отдельный encoding.
+
+## 10. Limelight memory manager как решающий пример
+
+Фактическая архитектура `/home/edmond/limelight/model`:
 
 ```text
-Representation<UserId> == Representation<UInt64>
+OS / VirtualMemory
+    2 MiB regions
+        BlockPool: 64 KiB blocks
+            256-byte tagged header
+            65 280-byte payload
+
+Physical routing одного entity:
+    small counted, <= 8192 B     → size-class slot
+    medium, <= 65 280 B          → один pooled block
+    huge                         → OS-direct aligned run
+    request-scoped small         → arena bump
+    request-scoped huge          → logged direct run
+
+Out-of-line body:
+    request category             → request arena
+    counted/long-lived           → buffer arena
+    huge                         → direct run
 ```
 
-Если representation-aspect работает с physical form `UserId`, компилятор
-проверяет совпадение с типом за opaque-границей. Opaque не требует отдельного
-boxing или нового encoding.
+Один type не соответствует одному source. Один entity может иметь inline header
+в entity slot и отдельно размещённый body в buffer arena. Один 64 KiB block в
+разное время становится heap, entity, arena, buffer, retained или free block.
 
-## Несколько representation-aspects
-
-Representation использует обычные возможности generic-параметров. Тип сам
-задаёт число, роли и порядок aspects.
-
-Фиксированный набор:
+Логический owner должен быть долгоживущим runtime layout. Thread heaps и request
+arenas являются его components. Иначе thread-exit adoption ложно уничтожило бы
+entities, а arena promotion потребовала бы перетипизировать все pointers.
 
 ```efen
-struct StoredArray {
-    generic Element: Type
-    generic Storage: Representation
-    generic Codec: Aspect = Plain
-    generic Protection: Aspect = None
+layout RuntimeMemory {
+    generic Physical: Representation = LimelightNative
+    use Physical
 
-    use Storage
-    use Codec
-    use Protection
+    set Entities: Entity
+
+    // Logical lifetime, reset, escape и collection algorithms.
 }
 ```
 
-Aspect pack, когда он нужен самому generic:
-
 ```efen
-struct ExtensibleStore {
-    generic Element: Type
-    generic ...Physical: Aspect
+aspect LimelightNative conforms Representation {
+    meta fn register(
+        target: lang::TypeDefinition,
+        plan: lang::DefinitionPlan
+    ) {
+        requireRuntimeMemoryShape(target)
 
-    use ...Physical
+        plan.define {
+            type implementation target {
+                source system: own VirtualMemory
+
+                let pool: BlockPoolState
+                let entityHeaps: EntityHeapStates
+                let requestArenas: RequestArenaStates
+                let bodyArenas: BufferArenaStates
+                let runs: RunRegistry
+
+                @constructor
+                public fn init(system: own VirtualMemory) -> Self {
+                    self.system = take system
+                    self.pool = BlockPoolState()
+                    self.entityHeaps = EntityHeapStates()
+                    self.requestArenas = RequestArenaStates()
+                    self.bodyArenas = BufferArenaStates()
+                    self.runs = RunRegistry()
+                    return self
+                }
+
+                fn reserveEntity(request: EntityPlacementRequest)
+                    -> EntityReservation
+                {
+                    match request.category {
+                        RequestArena => {
+                            return self.requestArenas.reserveEntity(
+                                request,
+                                pool: self.pool,
+                                backing: self.system
+                            )
+                        }
+
+                        GcHeap | LongLived => {
+                            if request.bytes <= 8192 {
+                                return self.entityHeaps.reserveSlot(
+                                    request,
+                                    pool: self.pool,
+                                    backing: self.system
+                                )
+                            }
+
+                            if request.bytes <= 65280 {
+                                return self.pool.reserveWholeBlock(
+                                    request,
+                                    backing: self.system
+                                )
+                            }
+
+                            return self.runs.reserve(
+                                request,
+                                backing: self.system,
+                                alignment: 65536
+                            )
+                        }
+
+                        Immortal => {
+                            return self.reserveImmortal(request)
+                        }
+                    }
+                }
+
+                fn reserveBody(request: BodyPlacementRequest)
+                    -> BodyReservation
+                {
+                    match request.category {
+                        RequestArena => {
+                            return self.requestArenas.reserveBody(
+                                request,
+                                pool: self.pool,
+                                backing: self.system
+                            )
+                        }
+
+                        GcHeap | LongLived => {
+                            return self.bodyArenas.reserveBody(
+                                request,
+                                pool: self.pool,
+                                backing: self.system
+                            )
+                        }
+
+                        Immortal => {
+                            return self.reserveImmortalBody(request)
+                        }
+                    }
+                }
+
+                fn accessEntity(pointer: read self.Entities.Pointer)
+                    -> AccessLease<self.Entity>
+                {
+                    let grant = self.Entities.physicalGrant(pointer.identity)
+                    let block = grant.place.mask(alignment: 65536)
+                    return block.kind.access(pointer, grant)
+                }
+
+                fn retireEntity(retirement: EntityRetirement) {
+                    // Logical death уже завершена core. Физический возврат
+                    // может быть отложен remote-free, trace window или hold.
+                    retirement.grant.owner.retire(retirement.grant)
+                }
+
+                fn scanCountedEntityGrants()
+                    -> Iterator<PhysicalGrant>
+                {
+                    let pooled = self.pool.regions()
+                        .blocks()
+                        .flatMap((block) => match block.kind {
+                            Entity => block.occupiedSizeClassSlots()
+                            EntityLarge => [block.soleOccupant()]
+                            Retained => block.retainedOccupantInventory()
+                            _ => []
+                        })
+
+                    return pooled + self.runs.registeredEntityLargeRuns()
+                }
+            }
+
+            population implementation target.Entities {
+                reserve = owner.reserveEntity
+                access = owner.accessEntity
+                retire = owner.retireEntity
+            }
+        }
+    }
 }
 ```
 
-Произвольная внешняя запись вида
-`Encrypted<Compressed<Columnar>>` не создаёт pipeline сама по себе. Композиция
-допустима только через generic-параметры и применение аспектов, предусмотренные
-автором типа.
+`reserveBody` не регистрируется как implementation отдельного logical
+population. Это physical seam, который вызывает representation конкретного
+entity type, когда его logical value требует out-of-line payload. Body остаётся
+частью одного entity lifecycle.
 
-## Обязательства representation
+Обычный обход `Entities` перечисляет core `Live`.
+`scanCountedEntityGrants` является отдельной physical operation collector-а:
+она обходит entity size-class blocks, pooled large entities, retained occupant
+inventories и registry OS-direct entity runs. Активные request-arena entities не
+становятся counted heap rows. Physical census не получает права изобретать
+logical membership.
 
-### Логическая семантика
+`EntityReservation` и `BodyReservation` обязаны хранить или доказывать:
 
-- Каждый logical pointer принадлежит правильному экземпляру realized type.
-- Logical identity сохраняется при physical relocation, cache eviction и remap.
-- Read возвращает текущее logical value.
-- Write меняет ровно разрешённое logical place.
-- Predicates исходной структуры сохраняются.
-- Representation-specific API не отменяет исходный logical contract.
+- granted size и alignment;
+- physical provenance;
+- единственное право rollback;
+- ownership всех provisional fragments;
+- no-throw commit в опубликованный object;
+- возврат каждой части ровно один раз при failure.
 
-### Порожденный код
+Для body free используется granted capacity, а не requested size. Category
+определяет, освобождается ли body отдельно вообще; block kind затем выбирает
+механизм внутри разрешённого domain.
 
-- Constructors не публикуют частично инициализированные values.
-- Copy, move и drop выполняют lifecycle каждого logical value ровно один раз.
-- Код аспекта и generated HIR проходят обычные проверки.
-- Explicitly closed effects нельзя расширить.
-- Inferred effects, exceptions и suspension распространяются автоматически.
+### Разбиение одного block
 
-### Файловая representation
+Representation может получить один physical grant и разбить его как угодно при
+проверяемой arithmetic:
 
-- Минимальный вариант не shared: exclusive borrow private cache state живёт
-  через suspension и сериализует load/flush одной page.
-- На одну page опубликован не более чем один RAM frame в минимальном примере.
-- Clean frame совпадает с file page.
-- Dirty или Flushing frame является logical authority.
-- Loading frame не обслуживает read до publication.
-- Pinned frame нельзя вытеснить или несовместимо переместить.
-- Failed load не публикует invalid bytes.
-- Fallible encoding не оставляет изменённые bytes помеченными Clean.
-- Failed flush не теряет dirty authority.
-- Успешный flush версии `v` не может объявить clean более новую версию.
+```efen
+fn commissionBlock(
+    block: own Block<65536>,
+    stride: Size
+) -> SlotBlock {
+    let header = block.take(range: 0..<256)
+    let payload = block.take(range: 256..<65536)
 
-## Открытые семантические вопросы
+    let slots = payload.split(
+        stride: stride,
+        alignment: 16
+    )
 
-Эти вопросы нельзя закрыть только выбором другого имени.
+    return SlotBlock(
+        header: take header,
+        slots: take slots,
+        bump: 0,
+        free: null
+    )
+}
+```
 
-### P1. Предварительная и отложенная проверка
+Compiler проверяет bounds, alignment, непересечение частей и то, что ownership
+исходного block полностью распределён между результатами. Intrusive free-list
+может хранить link в bytes свободного slot: после logical death эти bytes больше
+не принадлежат прежнему entity value и становятся allocator metadata. В
+Limelight link entity free-list лежит в bytes `8..16`; bytes `0..8` сохраняют
+финальный нулевой refcount/flags, который collector использует как occupancy
+stamp.
 
-Минимальный `BufferedFile` использует eager validation с ограниченным RAM
-buffer. Lazy-варианту требуется отдельное население encoded slots: до успешного
-decode их нельзя объявить значениями `User`.
+### Promotion и adoption
 
-### P2. Ошибка долговечной записи
+```text
+arena survivor promotion:
+    logical identity сохраняется
+    native address может сохраниться
+    меняются lifetime category и reclamation state
 
-После failed flush RAM остаётся logical authority, но in-place file page может
-быть torn. Повторное открытие требует journal, copy-on-write либо другого
-recovery aspect.
+thread exit adoption:
+    logical entities сохраняются
+    physical blocks сохраняются
+    меняется authority над allocator-private state
+```
 
-### P3. Закрытие
+Representation не имеет права тайно изменить `Live`. Решение о survival,
+escape, reset и logical destruction принимает `RuntimeMemory`; aspect реализует
+требуемые physical transitions.
 
-Вероятная модель — explicit fallible `close`, переходящий в clean closed
-typestate, и следующий за ним no-throw destructor. Retry, explicit discard и
-process-crash recovery являются разными политиками.
+## 11. Transparent access и effects
 
-### P4. Внешняя запись
+Transparent access реализует logical place, а не обязательно native `&T`:
 
-Минимальная модель открывает файл эксклюзивно. Shared mutable file требует
-epochs, coherence, invalidation и повторной validation.
+```text
+acquire logical authority
+→ representation lease
+→ field либо composite projection
+→ fallible prepare
+→ predicate check
+→ no-throw publication
+→ release lease на всех exits
+```
 
-## Кандидаты синтаксиса для последовательного утверждения
+`&pointer.field` удерживает lease и необходимые pins до конца borrow. Eviction,
+relocation и reclamation не могут нарушить этот borrow. Effects, exceptions и
+suspension handlers должны быть известны до анализа caller и автоматически
+распространяются по графу вызовов.
 
-### G1. Representation как generic aspect
+Representation не может удерживать exclusive borrow allocator state через вызов
+пользовательского destructor, collector callback или другой reentrant code. Она
+завершает structural mutation, отпускает borrow, вызывает user code, затем снова
+получает state и перечитывает предположения.
+
+При destruction порядок один:
+
+```text
+завершить logical lifetimes
+→ закончить либо передать physical grants и holds
+→ уничтожить allocator/cache metadata
+→ отпустить sources
+```
+
+Owning source уничтожается последним. Borrowed source только освобождает свой
+borrow/reference.
+
+Имена `DefinitionPlan`, `PhysicalReservation`, `AccessLease`,
+`IdentityMap`, `CompositeLease`, `EntityRetirement` и методы `plan.define` в
+примерах обозначают ещё не выписанные library/compiler contracts. Код является
+архитектурным Efen sketch. В частности, core commit `Users.import` заполняет
+`IdentityMap` через зарегистрированный mapping seam; aspect не мутирует `Live`
+самостоятельно.
+
+## 12. Что уже решено без отдельного вопроса
+
+- `Array<X>` означает exact default generic-instantiation.
+- `Array<X, Columnar>` является другим concrete type.
+- Общая функция явно параметризуется representation generic.
+- Aspect composition следует обычным fixed generic parameters или packs.
+- Applicability определяет representation-aspect.
+- Representation может работать со структурами и классами.
+- Opaque type наследует exact representation underlying type.
+- Representation-specific public API разрешается контрактом `Representation`.
+- Default visibility остаётся private; `private` в примерах не дублируется.
+- Constructor записывается `@constructor fn init(...) -> Self`.
+- Suspension, effects и exceptions могут выводиться автоматически.
+- Mixed placement является внутренним алгоритмом population implementation.
+
+## 13. Кандидаты синтаксиса для утверждения
+
+### S1. Generic representation-aspect
 
 ```efen
 generic Physical: Representation = InMemory
 use Physical
 ```
 
-Требуемый смысл: generic type сам объявляет и применяет representation-aspect.
-
-### G2. Конкретные реализованные типы
+### S2. Регистрация в общем definition plan
 
 ```efen
-alias MemoryDatabase = Database<InMemory>
-alias FileDatabase = Database<BufferedFile>
-```
-
-Это разные concrete types. `alias` только даёт им короткие имена.
-
-### A1. Объявление representation-aspect
-
-```efen
-aspect BufferedFile conforms Representation {
-    // compile-time and generated runtime code
-}
-```
-
-### A2. Точка входа времени компиляции
-
-```efen
-meta fn apply()
-```
-
-`Representation` связывает compile-time имя `target` с определением текущей
-generic-инстанциации. Ссылки вида `target.User` в типах специализируются и не
-создают runtime capture. Entry point нужно сопоставить с уже принятым
-aspect/ClassDefinition plan вместо параллельного механизма вызова.
-
-### F1. Несколько физических областей
-
-```efen
-source file: File
-source ram: Ram
-```
-
-Обе области принадлежат одной representation одного logical layout.
-
-### F2. Конструктор representation
-
-```efen
-constructor(file: take File, ram: take Ram)
-```
-
-### F3. Принятие существующих байтов
-
-```efen
-target.Users.map(file)
-```
-
-`map` использует file source, но не создаёт заново каждый logical User.
-
-### F4. Регистрация прозрачных обработчиков
-
-```efen
-target.Users.setTransparentAccess(
-    acquireRead: acquireRead,
-    acquireWrite: acquireWrite,
-    prepareWrite: prepareWrite,
-    commitWrite: commitWrite,
-    release: release
+meta fn register(
+    target: lang::TypeDefinition,
+    plan: lang::DefinitionPlan
 )
 ```
 
-### F5. Обычный пользовательский доступ
+### S3. Реализация конкретного type
+
+```efen
+type implementation target {
+    // members, constructors, methods
+}
+```
+
+### S4. Реализация конкретного population
+
+```efen
+population implementation target.Users {
+    reserve = owner.reserveUser
+    access = owner.accessUser
+    enumerate = owner.enumerateUsers
+}
+```
+
+### S5. Physical source member
+
+```efen
+source file: own File
+source ram: own Ram
+```
+
+### S6. Constructor точного realized type
+
+```efen
+type implementation target {
+    @constructor
+    public fn init(file: own File, ram: own Ram) -> Self {
+        self.file = take file
+        self.ram = take ram
+        return self
+    }
+}
+```
+
+### S7. Обычный transparent access
 
 ```efen
 echo user.name
 user.name = "Alice"
 ```
 
-Дополнительный marker в месте доступа не нужен.
+Дополнительный marker на месте доступа не нужен.
 
-### F6. API конкретной representation
+## 14. Проверочные сценарии
 
-```efen
-persistent.prefetch(user)
-persistent.flush()
-persistent.close()
-```
+1. `Database<InMemory>` и `Database<BufferedFile>` проходят одинаковые logical
+   read/update tests.
+2. Representation не может зарегистрировать handler после анализа logical body.
+3. Failed physical prepare не публикует logical identity.
+4. Remove инвалидирует identity до физического reuse.
+5. Cache hit не читает файл повторно.
+6. Cache miss читает прямо в выбранный frame.
+7. Три pages через два frames вызывают корректное eviction.
+8. Field borrow удерживает frame pinned.
+9. Logical write виден до `flush()`.
+10. Failed flush сохраняет RAM authority и честно отмечает неопределённость
+    durable image.
+11. `Array<X, Columnar>` поддерживает field и whole-element operations через
+    composite place.
+12. Failed column prepare откатывает уже подготовленные fields ровно один раз.
+13. Limelight small entity идёт в size-class slot.
+14. Limelight medium entity занимает один pooled block.
+15. Limelight huge entity получает OS-direct run.
+16. Entity body использует отдельный routing и granted capacity.
+17. Arena promotion сохраняет logical identity.
+18. Thread adoption меняет physical authority без изменения logical membership.
 
-### C1. Колоночный контейнер
+## 15. Документы, которые новая модель заменит после утверждения
 
-```efen
-alias XColumns = Array<X, Columnar>
-```
+Текущие нормативные документы всё ещё описывают прежнюю модель representation
+как enum/value, принадлежащую типу, а physical `storage` — внутри logical layout.
+После утверждения синтаксиса нужно синхронно обновить:
 
-`Columnar` получает конкретный `Array<X>` и структуру element type `X`, затем
-заменяет physical handlers контейнера.
-
-## Проверочные сценарии
-
-1. `Database<InMemory>` выполняет logical tests базы без I/O.
-2. `Database<BufferedFile>` проходит те же logical tests.
-3. Cache hit не читает файл повторно.
-4. Cache miss загружает страницу до publication.
-5. Чтение трёх pages через два frames корректно вытесняет victim.
-6. Dirty victim сбрасывается перед reuse.
-7. Field borrow удерживает frame pinned.
-8. Failed load не меняет logical state.
-9. Logical write виден до flush.
-10. Successful flush делает соответствующую version durable.
-11. Failed flush сохраняет RAM authority.
-12. `Array<X, Columnar>` и `Array<X, Contiguous>` проходят одинаковые logical
-    tests массива.
-13. Columnar access `values[i].field` обращается к соответствующей field column.
-14. Неприменимая representation отклоняется при проверке generic-instantiation.
-
-## Граница обобщения
-
-После файлового примера ту же модель нужно проверить без новых языковых
-primitives на:
-
-- register allocation: logical values через registers и spill slots;
-- DMA: logical buffers через host, in-flight и device replicas;
-- GPU: host/device copies с authority transfer;
-- NUMA: node-local read replicas;
-- compressed storage: logical fields через decoded cache blocks;
-- journaled database: RAM pages поверх WAL или copy-on-write file pages.
+- `docs/efen/representations.md`;
+- `docs/efen/generics.md`;
+- `docs/efen/memory/addresses.md`;
+- `docs/efen/memory/columnar-layouts.md`;
+- `docs/efen/memory/layout-representations.md`;
+- документы аспектов и compile-time API;
+- Amber `dev/DECISIONS.md`, `dev/PLAN.md`, HIR generics/declarations и
+  compilation plan.
