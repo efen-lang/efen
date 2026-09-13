@@ -55,20 +55,34 @@ layout Array {
 
 ## Что становится частью `Target`
 
-Объявление внутри `implementation Target` становится членом самого конечного
-типа. Оно не хранится в отдельном экземпляре аспекта. Поэтому следующий блок:
+`set` является свойством `layout`, поэтому данные списка сначала объявляются в
+отдельной компоновке:
 
 ```efen
-implementation Target {
+layout ListData {
+    generic Element: Type
+
     set Nodes: Node
+
+    struct Node {
+        var value: Element
+        var next: own Node.item? = null
+    }
+
     var head: own Node.item? = null
     var tail: read Node.item? = null
     var length: Size = 0
 }
+
+implementation Target {
+    ListData<Target.Element>
+}
 ```
 
-означает, что каждый экземпляр `Array<Element, List>` содержит своё логическое
-множество `Nodes` и свои поля `head`, `tail` и `length`.
+`implementation Target` не объявляет `set`. Он включает уже определённый
+`ListData<Target.Element>` в конечный тип. Поэтому каждый экземпляр
+`Array<Element, List>` получает своё логическое множество `Nodes` и свои поля
+`head`, `tail` и `length`.
 
 Все четыре члена имеют начальное состояние: `Nodes` пусто, ссылки равны `null`,
 длина равна нулю. Поэтому Efen может синтезировать создание пустого значения по
@@ -93,7 +107,7 @@ Node.allocateArea(count: ...)
 Node.free(...)
 ```
 
-Поэтому `implementation Target` может добавить в конечный тип член `set Nodes`.
+`set Nodes` существует только внутри `layout ListData`.
 
 `Nodes` задаёт только логическое множество узлов. Оно не является аллокатором и
 не владеет физической памятью автоматически. `Nodes.Pointer` указывает на один
@@ -169,11 +183,32 @@ fn free(area: own Node.Area)
 ## Полный эскиз
 
 ```efen
-aspect List<Target> conforms Representation<Target> {
+layout ListData {
+    generic Element: Type
+
+    set Nodes: Node {
+        invariant reachable(node) {
+            node in head.next*
+        }
+    }
+
     struct Node {
-        var value: Target.Element
+        var value: Element
         var next: own Node.item? = null
     }
+
+    var head: own Node.item? = null
+    var tail: read Node.item? = null {
+        (head == null) == (tail == null) &&
+        (tail == null || tail!.next == null)
+    }
+
+    var length: Size = 0
+}
+
+aspect List<Target> conforms Representation<Target> {
+    alias Data = ListData<Target.Element>
+    alias Node = Data.Node
 
     struct ReadCursor {
         let owner: &read Target
@@ -201,38 +236,16 @@ aspect List<Target> conforms Representation<Target> {
     }
 
     implementation Target {
-        set Nodes: Node {
-            invariant reachable(node) {
-                node in head.next*
-            }
-        }
-
-        var head: own Node.item? = null
-        var tail: read Node.item? = null {
-            (head == null) == (tail == null) &&
-            (tail == null || tail!.next == null)
-        }
-
-        var length: Size = 0
+        Data
 
         public fn count -> Size {
             return length
         }
 
-        fn checkIndex(index: Size) {
+        fn nodeAt(index: Size) -> read Node.item {
             if index >= length {
                 throw BoundsError(index, length)
             }
-        }
-
-        fn checkInsertIndex(index: Size) {
-            if index > length {
-                throw BoundsError(index, length)
-            }
-        }
-
-        fn nodeAt(index: Size) -> read Node.item {
-            checkIndex(index)
 
             var current = head!
             var position: Size = 0
@@ -295,7 +308,9 @@ aspect List<Target> conforms Representation<Target> {
         }
 
         public fn insert(index: Size, value: own Target.Element) {
-            checkInsertIndex(index)
+            if index > length {
+                throw BoundsError(index, length)
+            }
 
             if index == length {
                 append(take value)
@@ -335,7 +350,9 @@ aspect List<Target> conforms Representation<Target> {
         }
 
         public fn remove(index: Size) -> Target.Element {
-            checkIndex(index)
+            if index >= length {
+                throw BoundsError(index, length)
+            }
             var result: Target.Element
 
             if index == 0 {
@@ -418,7 +435,7 @@ aspect List<Target> conforms Representation<Target> {
                 element: Node.value,
                 allocation: Node.item,
                 logicalPointer: Nodes.Pointer,
-                physicalPointer: Node.Pointer
+                physicalPointer: Node.item
             )
         }
 
