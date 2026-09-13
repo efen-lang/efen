@@ -61,40 +61,39 @@ layout Array {
 set Nodes: Node
 Nodes.Pointer
 Nodes.allocate(...)
-Nodes.create(...)
-Nodes.take(...)
+Nodes.allocateMany(count: ...)
 ```
 
 Поэтому `implementation Target` может добавить в конечный тип член `set Nodes`.
 
-Семантика `set`, указателей, `create` и `take` описана в
+Семантика `set` и указателей описана в
 [адресах и структурах данных](../../docs/efen/memory/addresses.md). `Nodes`
-задаёт логические идентификаторы и время жизни узлов. `Nodes.create` атомарно
-создаёт члена множества, а `Nodes.take` исключает его и возвращает владеющее
-значение `Node`. Выделение, освобождение и физическая форма указателя остаются
-работой представления; отдельный пользовательский распределитель памяти в
-алгоритме списка не появляется.
+задаёт логические идентификаторы и время жизни узлов. Его две функции выделения
+создают элементы этого множества. Владеющий `Nodes.Pointer` отвечает за время
+жизни выделения; когда последний владелец уничтожается, представление возвращает
+память тому же физическому распределителю.
 
-Физическое выделение показано двумя перегрузками `Nodes.allocate`:
+Выделение выполняют две разные функции:
 
 ```efen
 fn allocate(
+    value: own Node,
     zeroed: Bool = false,
     alignment: Alignment = Node.alignment
-) -> own Nodes.Reservation
+) -> own Nodes.Pointer
 
-fn allocate(
+fn allocateMany(
     count: Size,
+    make: (Size) -> Node,
     zeroed: Bool = false,
     alignment: Alignment = Node.alignment
-) -> own Nodes.RangeReservation
+) -> own Nodes.Range
 ```
 
-Первая резервирует память для одного `Node`, вторая — для `count` узлов.
-Результат ещё не является членом `Nodes` и не имеет `Nodes.Pointer`.
-`Nodes.create` принимает одноэлементную резервацию, инициализирует в ней `Node`
-и только затем включает его в логическое множество. Неиспользованная резервация
-сама возвращает память своему представлению.
+`Nodes.allocate` создаёт один `Node` и возвращает `Nodes.Pointer`.
+`Nodes.allocateMany` создаёт `count` узлов и возвращает `Nodes.Range`. Обе
+функции выделяют память, инициализируют значения и включают их в логическое
+множество. При ошибке ни один частично созданный элемент не остаётся в `Nodes`.
 
 `zeroed: true` зануляет физическую память до инициализации. Оно допустимо только
 тогда, когда контракт типа разрешает нулевое представление. `alignment` не может
@@ -229,14 +228,11 @@ aspect List<Target> conforms Representation<Target> {
         }
 
         public fn append(value: own Target.Element) {
-            let memory = Nodes.allocate(alignment: Node.alignment)
-
             region suspend Nodes.reachable {
                 region suspend tail {
-                    let node = Nodes.create(
-                        take memory,
-                        value: take value,
-                        next: null
+                    let node = Nodes.allocate(
+                        value: Node(value: take value, next: null),
+                        alignment: Node.alignment
                     )
 
                     if tail == null {
@@ -259,14 +255,11 @@ aspect List<Target> conforms Representation<Target> {
             }
 
             if index == 0 {
-                let memory = Nodes.allocate(alignment: Node.alignment)
-
                 region suspend Nodes.reachable {
                     region suspend tail {
-                        let node = Nodes.create(
-                            take memory,
-                            value: take value,
-                            next: null
+                        let node = Nodes.allocate(
+                            value: Node(value: take value, next: null),
+                            alignment: Node.alignment
                         )
                         node.next = take head
                         head = take node
@@ -276,14 +269,12 @@ aspect List<Target> conforms Representation<Target> {
             }
 
             let before = nodeAt(index - 1)
-            let memory = Nodes.allocate(alignment: Node.alignment)
 
             region suspend Nodes.reachable {
                 region suspend tail {
-                    let node = Nodes.create(
-                        take memory,
-                        value: take value,
-                        next: null
+                    let node = Nodes.allocate(
+                        value: Node(value: take value, next: null),
+                        alignment: Node.alignment
                     )
                     node.next = take before.next
                     before.next = take node
@@ -305,8 +296,7 @@ aspect List<Target> conforms Representation<Target> {
                             tail = null
                         }
 
-                        var removed = Nodes.take(take victim)
-                        result = take removed.value
+                        result = take victim.value
                     }
                 }
                 return take result
@@ -323,8 +313,7 @@ aspect List<Target> conforms Representation<Target> {
                         tail = before
                     }
 
-                    var removed = Nodes.take(take victim)
-                    result = take removed.value
+                    result = take victim.value
                 }
             }
 
@@ -399,23 +388,24 @@ aspect List<Target> conforms Representation<Target> {
 ## Почему операции безопасны при ошибках
 
 Проверка индекса выполняется до изменения структуры. `Nodes.allocate` может
-бросить исключение, но в этот момент список ещё не изменён. `Nodes.create`
-принимает готовую резервацию; при ошибке он не публикует узел. После успешного
-`create` остаются только безотказные переносы указателей.
+бросить исключение, но при ошибке не оставляет частично созданный узел в
+`Nodes`. После успешного `allocate` остаются только безотказные переносы
+указателей.
 
-Новый узел сначала создаётся с пустым `next`. Только после успешного `create`
+Новый узел сначала создаётся с пустым `next`. Только после успешного `allocate`
 алгоритм переносит в него `head` или `before.next`. Поэтому отказ создания не
 может забрать и уничтожить уже опубликованный суффикс списка.
 
 `region suspend` не отменяет проверку памяти, происхождения ссылки или прав. Он
 временно разрешает нарушить два явно названных логических условия и требует
-восстановить их на каждом выходе. Если `Nodes.create` бросает, старые `head`,
+восстановить их на каждом выходе. Если `Nodes.allocate` бросает, старые `head`,
 `tail` и множество `Nodes` остаются согласованными.
 
 При удалении владеющий указатель сначала переносится из `head` или
 `before.next`, продолжение цепочки занимает освободившееся место, затем
-`Nodes.take` исключает узел из множества. Затем `take removed.value` переносит
-`Element` из уже изъятого узла. Пользовательский деструктор результата работает
+`take victim.value` переносит `Element` из отсоединённого узла. При уничтожении
+опустевшего владеющего указателя узел исключается из `Nodes`, а его память
+возвращается распределителю. Пользовательский деструктор результата работает
 после выхода из окон и не видит промежуточную цепочку.
 
 ## Срезы, ссылки и обход
@@ -448,16 +438,16 @@ iterator выдаёт позиции 0 ..< count
 ```
 
 Индексирование стоит `O(index + 1)`, последовательный обход — `O(count)`, а
-`append` после успешного `Nodes.create` — `O(1)`. Эти различия допустимы;
+`append` после успешного `Nodes.allocate` — `O(1)`. Эти различия допустимы;
 изменение логической последовательности недопустимо.
 
 ## Оставшиеся открытые формы
 
-В коде нет дополнительной синтаксической формы для управления узлами: `set`,
-`Nodes.Pointer`, `Nodes.create`, `Nodes.take`, `take removed.value` и предикат
-достижимости уже показаны в нормативных примерах памяти.
+В коде нет отдельного логического протокола `create/take`. `Nodes.allocate` и
+`Nodes.allocateMany` образуют типизированный интерфейс выделения памяти, а
+время жизни полученного места следует из владения `Nodes.Pointer`.
 
-Открыты точные сигнатуры предложенного `Nodes.allocate` и общих кандидатных
+Открыты точные сигнатуры `Nodes.allocate`, `Nodes.allocateMany` и общих кандидатных
 программных интерфейсов представления: `implementation Target`,
 `DefinitionPlan`, `PhysicalSchema`, `ArrayPlace`, `PreparedReplacement`,
 `HardConstraints` и `CostHints`.
