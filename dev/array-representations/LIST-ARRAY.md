@@ -38,6 +38,21 @@ contract BorrowedElements<Element> {
 `List` выполняет оба дополнительных контракта. Другое представление массива
 может их не выполнять.
 
+Сам массив явно объявлен как обобщённый `layout`:
+
+```efen
+layout Array {
+    generic Element: Type
+    generic R<Target>: Representation<Target>
+
+    conforms IndexedSequence<Element>
+    use R<Self>
+}
+```
+
+До применения `R` это определение намеренно неполно. Аспект достраивает конечный
+тип через `implementation Target`, после чего компилятор проверяет контракт.
+
 ## Какие средства используются
 
 Внутренняя память узлов описывается обычным Efen `layout`:
@@ -45,15 +60,12 @@ contract BorrowedElements<Element> {
 ```efen
 set Nodes: Node
 Nodes.Pointer
+Nodes.allocate(...)
 Nodes.create(...)
 Nodes.take(...)
 ```
 
-В этом эскизе предполагается, что `Array<Element, R>` является обобщённым
-`layout`. Поэтому `implementation Target` может добавить в конечный тип член
-`set Nodes`. Если `Array` будет объявлен как `struct`, такой код незаконен и
-вместо него понадобится обычное поле с отдельным внутренним `layout`. Этот выбор
-ещё не утверждён и теперь виден в примере напрямую.
+Поэтому `implementation Target` может добавить в конечный тип член `set Nodes`.
 
 Семантика `set`, указателей, `create` и `take` описана в
 [адресах и структурах данных](../../docs/efen/memory/addresses.md). `Nodes`
@@ -63,7 +75,33 @@ Nodes.take(...)
 работой представления; отдельный пользовательский распределитель памяти в
 алгоритме списка не появляется.
 
-В примере `Nodes` использует физическое представление по умолчанию. Позже
+Физическое выделение показано двумя перегрузками `Nodes.allocate`:
+
+```efen
+fn allocate(
+    zeroed: Bool = false,
+    alignment: Alignment = Node.alignment
+) -> own Nodes.Reservation
+
+fn allocate(
+    count: Size,
+    zeroed: Bool = false,
+    alignment: Alignment = Node.alignment
+) -> own Nodes.RangeReservation
+```
+
+Первая резервирует память для одного `Node`, вторая — для `count` узлов.
+Результат ещё не является членом `Nodes` и не имеет `Nodes.Pointer`.
+`Nodes.create` принимает одноэлементную резервацию, инициализирует в ней `Node`
+и только затем включает его в логическое множество. Неиспользованная резервация
+сама возвращает память своему представлению.
+
+`zeroed: true` зануляет физическую память до инициализации. Оно допустимо только
+тогда, когда контракт типа разрешает нулевое представление. `alignment` не может
+быть меньше естественного выравнивания `Node` и должен иметь допустимое для
+источника памяти значение.
+
+В этом примере физическое представление `Nodes` выбирается по умолчанию. Позже
 `List` сможет открыть его как ещё один обобщённый параметр. Это позволит тем же
 логическим узлам жить в непрерывном пуле, блоках, файле или другой памяти без
 изменения алгоритма списка.
@@ -191,9 +229,15 @@ aspect List<Target> conforms Representation<Target> {
         }
 
         public fn append(value: own Target.Element) {
+            let memory = Nodes.allocate(alignment: Node.alignment)
+
             region suspend Nodes.reachable {
                 region suspend tail {
-                    let node = Nodes.create(value: take value)
+                    let node = Nodes.create(
+                        take memory,
+                        value: take value,
+                        next: null
+                    )
 
                     if tail == null {
                         head = take node
@@ -215,9 +259,15 @@ aspect List<Target> conforms Representation<Target> {
             }
 
             if index == 0 {
+                let memory = Nodes.allocate(alignment: Node.alignment)
+
                 region suspend Nodes.reachable {
                     region suspend tail {
-                        let node = Nodes.create(value: take value)
+                        let node = Nodes.create(
+                            take memory,
+                            value: take value,
+                            next: null
+                        )
                         node.next = take head
                         head = take node
                     }
@@ -226,10 +276,15 @@ aspect List<Target> conforms Representation<Target> {
             }
 
             let before = nodeAt(index - 1)
+            let memory = Nodes.allocate(alignment: Node.alignment)
 
             region suspend Nodes.reachable {
                 region suspend tail {
-                    let node = Nodes.create(value: take value)
+                    let node = Nodes.create(
+                        take memory,
+                        value: take value,
+                        next: null
+                    )
                     node.next = take before.next
                     before.next = take node
                 }
@@ -343,9 +398,10 @@ aspect List<Target> conforms Representation<Target> {
 
 ## Почему операции безопасны при ошибках
 
-Проверка индекса выполняется до изменения структуры. `Nodes.create` может
-выделять память и вызывать конструктор элемента. При ошибке он не публикует
-узел. После успешного `create` остаются только безотказные переносы указателей.
+Проверка индекса выполняется до изменения структуры. `Nodes.allocate` может
+бросить исключение, но в этот момент список ещё не изменён. `Nodes.create`
+принимает готовую резервацию; при ошибке он не публикует узел. После успешного
+`create` остаются только безотказные переносы указателей.
 
 Новый узел сначала создаётся с пустым `next`. Только после успешного `create`
 алгоритм переносит в него `head` или `before.next`. Поэтому отказ создания не
@@ -392,15 +448,16 @@ iterator выдаёт позиции 0 ..< count
 ```
 
 Индексирование стоит `O(index + 1)`, последовательный обход — `O(count)`, а
-append после успешного `Nodes.create` — `O(1)`. Эти различия допустимы;
+`append` после успешного `Nodes.create` — `O(1)`. Эти различия допустимы;
 изменение логической последовательности недопустимо.
 
 ## Оставшиеся открытые формы
 
-В коде нет дополнительной синтаксической формы для управления узлами:
-`set`, `Nodes.Pointer`, `Nodes.create`, `Nodes.take`, `take removed.value` и
-предикат достижимости уже показаны в нормативных memory-примерах. Открыты только
-названия и точные сигнатуры общих кандидатных программных интерфейсов
-представления:
-`implementation Target`, `DefinitionPlan`, `PhysicalSchema`, `ArrayPlace`,
-`PreparedReplacement`, `HardConstraints` и `CostHints`.
+В коде нет дополнительной синтаксической формы для управления узлами: `set`,
+`Nodes.Pointer`, `Nodes.create`, `Nodes.take`, `take removed.value` и предикат
+достижимости уже показаны в нормативных примерах памяти.
+
+Открыты точные сигнатуры предложенного `Nodes.allocate` и общих кандидатных
+программных интерфейсов представления: `implementation Target`,
+`DefinitionPlan`, `PhysicalSchema`, `ArrayPlace`, `PreparedReplacement`,
+`HardConstraints` и `CostHints`.
