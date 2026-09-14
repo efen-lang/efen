@@ -1,134 +1,143 @@
 # `Array` в виде двусвязного списка
 
 Статус: теоретический пример для
-[модели компоновки и представления](../PAGED-FILE-LAYOUT.md). Приведён эскиз
-библиотеки на `Efen`, а не программа для уже существующего компилятора. Имена
-вспомогательных типов и методов являются кандидатами программного интерфейса.
-Новых ключевых слов они не вводят.
+[модели компоновки и представления](../PAGED-FILE-LAYOUT.md). Это эскиз языка и
+memory API, а не программа для существующего компилятора.
 
-## Задача представления
+## Смысл представления
 
-`Array<Element, DoubleLinkedList>` сохраняет ту же логическую упорядоченную
-последовательность, что `Array<Element, Contiguous>` и `Array<Element, List>`.
-Физически каждый элемент лежит в отдельном узле с переходами `next` и `prev`.
+`Array<Target, DoubleLinkedList>` хранит каждый элемент в отдельном узле.
+`next` задаёт логический порядок массива, а `prev` позволяет начинать поиск с
+ближайшего конца.
 
-Представление получает следующие свойства:
+- прямой и обратный обход: `O(count)`;
+- поиск позиции: `O(min(index + 1, count - index))`;
+- добавление после найденного узла: `O(1)`;
+- адрес узла не является логическим индексом.
 
-- последовательный обход вперёд и назад имеет `O(count)`;
-- поиск позиции `i` имеет `O(min(i + 1, count - i))`;
-- добавление и удаление уже найденного узла имеют `O(1)`;
-- физический адрес узла не является логическим индексом;
-- изменение связей не меняет смысл позиций массива.
+`Target` — тип элемента. Конкретный массив неявно входит в аспект как `Self`,
+а его текущий экземпляр называется `self`.
 
-## Кандидаты программного интерфейса
-
-Следующие имена являются кандидатами библиотечных контрактов или контрактов,
-известных компилятору:
-
-- `Representation<Target>` и `implementation Target`;
-- `NodePool<Node>` и его устойчивый `Pointer`;
-- `ArrayPlace<Element>`;
-- `IndexedSequence<Element>` и `ResizableSequence<Element>`;
-- `ArrayReadSlice<Array>` и `ArraySlice<Array>`;
-- `compiler::DefinitionPlan` — кандидат API добавления соответствий обычным
-  контрактам;
-- `PreparedNode`, `PreparedReplacement` и `PreparedLinks`;
-- `Mutation.commit`;
-- `CostHints` и `HardConstraints`.
-
-`PreparedLinks` получает право записи во все затрагиваемые узлы и корни,
-запоминает конечные значения `head`, `tail`, `next`, `prev` и `length`, а затем
-публикует их одной фиксацией без возможности отказа. Это кандидат общего
-механизма подготовленного изменения, а не специальная инструкция двусвязного
-списка.
-
-Базовый `Array` уже требует `IndexedSequence`. Этот аспект отдельно добавляет
-`ResizableSequence<Element>` с `append`, `insert(Size, own Element)` и
-`remove(Size) -> Element`, а также `BorrowedElements<Element>` с читающим и
-изменяемым заимствованием элемента.
-
-## Полный эскиз аспекта
+## Layout
 
 ```efen
 aspect DoubleLinkedList<Target> conforms Representation<Target> {
-    meta fn define(plan: compiler::DefinitionPlan) {
-        plan.addConformance(Target, ResizableSequence<Target.Element>)
-        plan.addConformance(Target, BorrowedElements<Target.Element>)
+    layout {
+        set Items: Item {
+            value reachable from self.head by Item.next
+        }
+
+        struct Item {
+            Target
+
+            var prev: read other Items.Item? = null {
+                if value != null {
+                    value.next == self
+                }
+            }
+
+            var next: own other Items.Item? = null {
+                if value != null {
+                    value.prev == self
+                }
+            }
+        }
+
+        struct Self {
+            var head: own Items.Item? = null {
+                if value != null {
+                    value.prev == null
+                }
+            }
+
+            var tail: read Items.Item? = null {
+                (self.head == null) == (value == null)
+
+                if value != null {
+                    value reachable from self.head by Item.next
+                    value.next == null
+                }
+            }
+
+            var length: Size = 0 {
+                value == Items.count
+            }
+        }
     }
 
-    implementation Target {
-        struct Node {
-            var value: Target.Element
+    implementation {
+        // Операции приведены ниже.
+    }
+}
+```
 
-            var next: own NodePool<Node>.Pointer? = null {
-                next == null || next!.prev == self
-            }
+`set Items: Item` — дескриптор памяти узлов. `Items.allocate` создаёт
+`own Items.Item`, а `Items.free` принимает владеющий handle отсоединённого
+узла.
 
-            var prev: read NodePool<Node>.Pointer? = null {
-                prev == null || prev!.next == self
-            }
+`Target` встроен в начало `Item`. Выражение `item.Target` обозначает всё
+встроенное место. Обычное поле `var value: Target` могло бы иметь косвенную
+representation и не давало бы обещания inline-размещения.
+
+В условиях полей `Item` имя `self` означает текущий узел. В условиях
+`struct Self` оно означает текущий массив. Условия `prev` и `next`
+декларативно задают взаимную согласованность обеих связей.
+
+## Основные операции
+
+```efen
+aspect DoubleLinkedList<Target> conforms Representation<Target> {
+    layout {
+        set Items: Item {
+            value reachable from self.head by Item.next
         }
 
-        struct ReadCursor {
-            let owner: &read Target
-            var left: read NodePool<Node>.Pointer?
-            var right: read NodePool<Node>.Pointer?
+        struct Item {
+            Target
 
-            fn next -> (&read[owner] Target.Element)? {
-                if right == null {
-                    return null
+            var prev: read other Items.Item? = null {
+                if value != null {
+                    value.next == self
                 }
-
-                let node = right!
-                left = node
-                right = node.next
-                return &read[owner] node.value
             }
 
-            fn prev -> (&read[owner] Target.Element)? {
-                if left == null {
-                    return null
+            var next: own other Items.Item? = null {
+                if value != null {
+                    value.prev == self
                 }
-
-                let node = left!
-                right = node
-                left = node.prev
-                return &read[owner] node.value
             }
         }
 
-        let nodes: NodePool<Node>
-        var head: own NodePool<Node>.Pointer? = null
-        var tail: read write NodePool<Node>.Pointer? = null
-        var length: Size = 0
+        struct Self {
+            var head: own Items.Item? = null {
+                if value != null {
+                    value.prev == null
+                }
+            }
 
-        @constructor
-        public fn init -> Self {
-            self.nodes = NodePool<Node>()
-            return self
-        }
+            var tail: read Items.Item? = null {
+                (self.head == null) == (value == null)
 
-        public fn count -> Size {
-            return length
-        }
+                if value != null {
+                    value reachable from self.head by Item.next
+                    value.next == null
+                }
+            }
 
-        fn checkIndex(index: Size) {
-            if index >= length {
-                throw BoundsError(index, length)
+            var length: Size = 0 {
+                value == Items.count
             }
         }
+    }
 
-        fn checkInsertIndex(index: Size) {
-            if index > length {
-                throw BoundsError(index, length)
+    implementation {
+        fn itemAt(index: Size) -> Items.Item {
+            if index >= self.length {
+                throw BoundsError(index, self.length)
             }
-        }
 
-        fn nodeAt(index: Size) -> read write NodePool<Node>.Pointer {
-            checkIndex(index)
-
-            if index <= length / 2 {
-                var current = head!
+            if index <= self.length / 2 {
+                var current = self.head!
                 var position: Size = 0
 
                 while position < index {
@@ -139,8 +148,8 @@ aspect DoubleLinkedList<Target> conforms Representation<Target> {
                 return current
             }
 
-            var current = tail!
-            var position = length - 1
+            var current = self.tail!
+            var position = self.length - 1
 
             while position > index {
                 current = current.prev!
@@ -150,307 +159,177 @@ aspect DoubleLinkedList<Target> conforms Representation<Target> {
             return current
         }
 
-        fn place(index: Size) -> ArrayPlace<Target.Element> {
-            let node = nodeAt(index)
-            return ArrayPlace(
-                owner: self,
-                logicalIndex: index,
-                physical: node
-            )
+        public fn count -> Size {
+            return self.length
         }
 
-        public fn read(index: Size) -> Target.Element
-            where Target.Element: Copyable
+        public fn read(index: Size) -> Target
+            where Target: Copyable
         {
-            return place(index).value.copy()
+            return itemAt(index).Target
         }
 
-        public fn replace(
-            index: Size,
-            value: own Target.Element
-        ) -> Target.Element {
-            let replacement = PreparedReplacement(
-                destination: place(index),
-                value: take value
-            )
-
-            return Mutation.commit(take replacement)
+        public fn replace(index: Size, value: own Target) -> Target {
+            let item = itemAt(index)
+            let previous = take item.Target
+            item.Target = take value
+            return take previous
         }
 
-        public fn append(value: own Target.Element) {
-            let nextCount = checkedAdd(length, 1)
-            let prepared = nodes.prepare(
-                Node(value: take value)
-            )
-
-            var links = PreparedLinks(
-                owner: self,
-                before: tail,
-                inserted: prepared.pointer,
-                after: null,
-                nextCount: nextCount
-            )
-
-            Mutation.commit {
-                let node = nodes.publish(take prepared)
-                PreparedLinks.publish(
-                    take links,
-                    inserted: take node
+        public fn append(value: own Target) {
+            let nextCount = checkedAdd(self.length, 1)
+            let item = Items.allocate(
+                Item(
+                    take value,
+                    prev: self.tail,
+                    next: null
                 )
+            )
+
+            if self.tail == null {
+                self.head = take item
+                self.tail = self.head
+            } else {
+                self.tail!.next = take item
+                self.tail = self.tail!.next
             }
+
+            self.length = nextCount
         }
 
-        public fn insert(
-            index: Size,
-            value: own Target.Element
-        ) {
-            checkInsertIndex(index)
+        public fn insert(index: Size, value: own Target) {
+            if index > self.length {
+                throw BoundsError(index, self.length)
+            }
 
-            if index == length {
+            if index == self.length {
                 append(take value)
                 return
             }
 
-            let after = nodeAt(index)
-            let before = after.prev
-            let nextCount = checkedAdd(length, 1)
-            let prepared = nodes.prepare(
-                Node(value: take value)
-            )
-            var links = PreparedLinks(
-                owner: self,
-                before: before,
-                inserted: prepared.pointer,
-                after: after,
-                nextCount: nextCount
-            )
+            let nextCount = checkedAdd(self.length, 1)
 
-            Mutation.commit {
-                let node = nodes.publish(take prepared)
-                PreparedLinks.publish(
-                    take links,
-                    inserted: take node
+            if index == 0 {
+                let item = Items.allocate(
+                    Item(
+                        take value,
+                        prev: null,
+                        next: null
+                    )
                 )
-            }
-        }
 
-        public fn remove(index: Size) -> Target.Element {
-            let victim = nodeAt(index)
-            var links = PreparedLinks.removal(
-                owner: self,
-                before: victim.prev,
-                removed: victim,
-                after: victim.next,
-                nextCount: length - 1
-            )
-
-            Mutation.commit {
-                let removed = PreparedLinks.publishRemoval(take links)
-                return nodes.takeValueAndRetire(take removed)
-            }
-        }
-
-        public fn slice(first: Size, last: Size) -> ArraySlice<Self> {
-            if first > last || last > length {
-                throw RangeError(first, last, length)
+                item.next = take self.head
+                item.next!.prev = item
+                self.head = take item
+                self.length = nextCount
+                return
             }
 
-            return ArraySlice(owner: &self, first: first, last: last)
+            let before = itemAt(index - 1)
+            let item = Items.allocate(
+                Item(
+                    take value,
+                    prev: before,
+                    next: null
+                )
+            )
+
+            item.next = take before.next
+            item.next!.prev = item
+            before.next = take item
+            self.length = nextCount
         }
 
-        public fn readSlice(first: Size, last: Size)
-            -> ArrayReadSlice<Self>
-        {
-            if first > last || last > length {
-                throw RangeError(first, last, length)
+        public fn remove(index: Size) -> Target {
+            if index >= self.length {
+                throw BoundsError(index, self.length)
             }
 
-            return ArrayReadSlice(
-                owner: &read self,
-                first: first,
-                last: last
-            )
-        }
+            var victim: own Items.Item
 
-        public fn borrowRead(index: Size)
-            -> &read[self] Target.Element
-        {
-            return &read[self] nodeAt(index).value
-        }
+            if index == 0 {
+                victim = take self.head!
+                self.head = take victim.next
 
-        public fn borrowWrite(index: Size) -> &[self] Target.Element {
-            return &[self] nodeAt(index).value
-        }
+                if self.head == null {
+                    self.tail = null
+                } else {
+                    self.head!.prev = null
+                }
+            } else {
+                let before = itemAt(index - 1)
+                victim = take before.next!
+                before.next = take victim.next
 
-        public fn iterator -> ReadCursor {
-            return ReadCursor(
-                owner: self,
-                left: null,
-                right: head
-            )
-        }
+                if before.next == null {
+                    self.tail = before
+                } else {
+                    before.next!.prev = before
+                }
+            }
 
-        public fn reverseIterator -> ReadCursor {
-            return ReadCursor(
-                owner: self,
-                left: tail,
-                right: null
-            )
-        }
+            self.length -= 1
 
-        meta fn hardConstraints -> HardConstraints {
-            return HardConstraints(
-                forwardTraversal: true,
-                backwardTraversal: true,
-                stableNodeWhileBorrowed: true,
-                structuralMutationWhileBorrowed: false,
-                reciprocalLinks: true
-            )
-        }
-
-        meta fn costHints -> CostHints {
-            return CostHints(
-                index: linearFromNearestEnd,
-                sequentialForward: linearTotal,
-                sequentialBackward: linearTotal,
-                append: constant,
-                insertAfterLocatedNode: constant,
-                removeLocatedNode: constant
-            )
+            let result = take victim.Target
+            Items.free(take victim)
+            return take result
         }
     }
 }
 ```
 
-Методы без параметров записаны без `()`: `init`, `next`, `prev`, `iterator`,
-`reverseIterator`, `hardConstraints` и `costHints`.
+Все проверки и потенциально падающее выделение выполняются до изменения
+опубликованных связей. После успешного `Items.allocate` остаются переносы
+владеющих ссылок, обновление невладеющего `prev` и счётчика. Условия могут быть
+временно открыты внутри операции, но должны быть восстановлены до любой
+наблюдаемой границы.
 
-Публичные методы принимают общий для `IndexedSequence` индекс `Size`.
-Происхождение и права появляются у `ArrayPlace` и среза после проверки границ;
-число индекса не является физическим адресом или номером узла `NodePool`.
+`take victim.Target` оставляет embedded-компонент изъятым. Последующий
+`Items.free(take victim)` освобождает память узла и не уничтожает перенесённый
+`Target` повторно; memory manager получает от компилятора состояние
+инициализации компонентов.
 
-## Согласованность `next` и `prev`
+Прямые `replace` и `remove` требуют, чтобы перенос `Target`, запись служебных
+полей и освобождение опустошённого узла не бросали исключений, не
+приостанавливались и не вызывали наблюдающий код.
 
-Физический закон узлов имеет две стороны:
+## Итератор
 
-```text
-a.next == b  =>  b.prev == a
-b.prev == a  =>  a.next == b
-head != null => head.prev == null
-tail != null => tail.next == null
+Курсор должен хранить ссылку на массив, а не на `Target`. Чтобы вложенный
+`Self` не стал двусмысленным, тип владельца передаётся явно:
+
+```efen
+struct ReadCursor<Owner> {
+    let owner: &read Owner
+    var left: read Items.Item?
+    var right: read Items.Item?
+}
+
+public fn iterator -> ReadCursor<Self> {
+    return ReadCursor(
+        owner: &read self,
+        left: null,
+        right: self.head
+    )
+}
 ```
 
-Обычная последовательность присваиваний временно нарушила бы этот закон.
-`PreparedLinks` сначала вычисляет конечную конфигурацию и получает все нужные
-права. `publish` меняет обе стороны и корни в окне без возможности отказа,
-после которого компилятор повторно проверяет предикаты.
+Живой курсор удерживает structural borrow массива и запрещает удаление или
+перестройку связей.
 
-Для вставки между `before` и `after` конечное состояние равно:
+## Проверяемые свойства
 
-```text
-before.next = inserted   или head = inserted
-inserted.prev = before
-inserted.next = after
-after.prev = inserted    или tail = inserted
-length = old length + 1
-```
+На публичной границе компилятор должен доказать:
 
-Для удаления выполняется обратная операция. `PreparedLinks` не владеет
-`Element`; он управляет только физическими ссылками и правами на их места.
+- каждый `Items.Item` достижим из `self.head` по `next`;
+- соседние `next` и `prev` взаимно согласованы;
+- `head.prev == null` и `tail.next == null`;
+- пустота `head` и `tail` совпадает;
+- `self.length == Items.count`;
+- `itemAt(i).Target` является элементом логической позиции `i`.
 
-## Создание, исключения и владение
+## Граница предложения
 
-`nodes.prepare` выделяет память и конструирует значение до изменения списка. При
-ошибке он уничтожает уже инициализированные части. После подготовки
-`nodes.publish`, `links.publish` и изменение `length` не бросают, не
-приостанавливаются и не вызывают пользовательский код.
-
-`next` является владеющей связью цепочки. `prev` — невладеющая обратная ссылка.
-`head` владеет первым узлом, `tail` только читает последний. Такое распределение
-не создаёт цикла владения.
-
-`remove` переносит `Element` из исключённого узла и возвращает его вызывающему.
-Копирование не требуется. Разрушитель отброшенного результата запускается после
-восстановления связей и освобождения внутренних изменяемых заимствований.
-
-`replace` также возвращает вытесненное значение. Поверхностное присваивание
-уничтожает его после публикации нового элемента. Это сохраняет корректность при
-повторном входе из разрушителя.
-
-## Индексация и логическое место
-
-`nodeAt` выбирает путь во время выполнения:
-
-```text
-index <= length / 2 → head, затем next
-иначе               → tail, затем prev
-```
-
-Результатом `place` остаётся логическое место позиции массива. Оно не раскрывает
-`NodePool.Pointer` пользователю. `read`, `replace`, доступ к полю и `take`
-используют это место по контракту `Array`.
-
-Базовый контракт чтения и записи не обещает сохранить `&Element`.
-Представление отдельно предоставляет `BorrowedElements` и логическую ссылку на
-поле `value` узла. Живое заимствование запрещает структурное изменение массива;
-поэтому удаление узла не может обесценить ссылку. Возможность устойчивого
-дескриптора потребовала бы отдельного контракта и не выводится из
-двусвязности.
-
-`ArrayReadSlice` и `ArraySlice` являются представлениями диапазона позиций с
-происхождением массива и границами. Их `read` и `replace` не требуют
-`BorrowedElements`; методы выдачи ссылок доступны условно. Пока срез жив,
-изменение порядка запрещено. Представление может использовать первый и
-последний узлы для быстрого двунаправленного обхода, но это физическая
-оптимизация: логический смысл среза остаётся диапазоном позиций.
-
-## Итераторы `next` и `prev`
-
-`ReadCursor` соответствует обычному `Iterator` через `next` и дополнительному
-контракту двунаправленного курсора через `prev`. `iterator` начинает перед
-прямым обходом с `head`, `reverseIterator` — перед обратным обходом с `tail`.
-
-Сохранённый курсор является обычным значением `Efen`. При непосредственном цикле
-компилятор может встроить переход и убрать объект курсора. Он не синтезирует
-`prev`: наличие обратного перехода является обязательной возможностью
-представления.
-
-Для операции над диапазоном компилятор получает граф требуемых чтений и записей.
-Оценки стоимости позволяют выбрать начало, ближайшее к диапазону, и направление
-обхода. Если программа требует установленный порядок эффектов, граф запрещает
-его обратить. В `flow` независимые вычисления могут иметь меньше рёбер, но
-предикаты связей, происхождение и заимствование остаются обязательными
-ограничениями.
-
-## Сравнение с другими представлениями
-
-| Операция | `Contiguous` | `List` | `DoubleLinkedList` | `Columnar` | файл |
-|---|---:|---:|---:|---:|---:|
-| индекс | `O(1)` | `O(i)` | `O(min(i, n-i))` | `O(1)` по колонке | зависит от кеша/I/O |
-| прямой обход | `O(n)` | `O(n)` | `O(n)` | `O(n)` по нужным колонкам | поток страниц |
-| обратный обход | `O(n)` | нет возможности | `O(n)` | зависит от аспекта | зависит от схемы |
-| добавление после подготовки | недоступно | `O(1)` | `O(1)` | фиксация нескольких колонок | зависит от файла |
-| устойчивый физический узел | нет | да | да | нет общего узла | закреплённая страница |
-
-Таблица описывает стоимость и физические возможности. Все пять типов обязаны
-возвращать одинаковые логические значения и сохранять порядок `Array`.
-
-## Проверка логического контракта
-
-Для каждого опубликованного состояния:
-
-```text
-count == число узлов, достижимых от head по next
-count == число узлов, достижимых от tail по prev
-прямой и обратный порядки взаимно обратны
-head.prev == null, если head существует
-tail.next == null, если tail существует
-каждая пара соседей удовлетворяет reciprocal links
-nodeAt(i).value == логический elementAt(i)
-append, insert и remove имеют семантику последовательности Array
-```
-
-Контракт следует проверять одинаковыми модельными тестами для `Contiguous`,
-`List`, `DoubleLinkedList`, `Columnar` и файлового представления. Дополнительные
-тесты двусвязного варианта проверяют обход назад, выбор ближайшего конца и
-согласованное восстановление обеих ссылок после каждой операции.
+Точные contracts `Items.allocate`, `Items.free` и автоматического открытия
+условий остаются кандидатами memory API. Отдельные `NodePool`,
+`PreparedLinks` и `Mutation.commit` для выражения этой структуры не нужны.

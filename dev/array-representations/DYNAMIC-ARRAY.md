@@ -1,165 +1,129 @@
-# Динамический непрерывный массив
+# Динамический непрерывный `Array`
 
 Статус: теоретический пример для
-[модели компоновки и представления](../PAGED-FILE-LAYOUT.md). Приведён эскиз
-библиотеки на `Efen`, а не программа для уже существующего компилятора. Имена
-вспомогательных типов и методов являются кандидатами программного интерфейса.
-Новых ключевых слов они не вводят.
+[модели компоновки и представления](../PAGED-FILE-LAYOUT.md). Синтаксис
+дескрипторов памяти и их операции ещё не реализованы компилятором.
 
-## Цель
+## Смысл представления
 
-`Array<X, DynamicContiguous>` хранит существующие элементы подряд, но отделяет
-длину последовательности от вместимости выделения. Добавление в свободный
-хвост не выделяет память. Когда места не хватает, представление получает новое
-выделение, переносит элементы и освобождает прежнее.
+`Array<Target, DynamicContiguous>` хранит существующие элементы подряд, но
+различает длину и вместимость. Свободный хвост области не содержит
+инициализированных `Target`. При росте представление выделяет новую область,
+переносит элементы и освобождает старую.
 
-Логический `Array` задаёт смысл индекса, чтения и замены элемента.
-`DynamicContiguous` добавляет физическое устройство и выполняет обычный
-контракт изменения длины. Конкретный тип также предоставляет `capacity` и
-`reserve`; эти методы не требуются от любого представления массива, например
-от списка.
+`Target` — тип элемента. Конкретный массив неявно передаётся аспекту как
+`Self`; его текущий экземпляр называется `self`.
 
-В [непрерывном массиве постоянной длины](CONTIGUOUS-ARRAY.md) изменение длины
-отсутствует. Оба примера исходят из базового контракта последовательности и
-отдельного контракта структурных изменений. Поэтому фиксированный вариант
-остаётся `Array`, но не выполняет `ResizableSequence`; динамический выполняет
-оба контракта.
-
-## Контракты и физические поля
-
-Используется общий `IndexedSequence<Element>` из соседнего документа:
-`count`, `read(Size)`, `replace(Size, own Element) -> Element` и `slice`.
-Дополнительные обычные контракты имеют следующий смысл:
-
-```efen
-contract ResizableSequence<Element> {
-    fn append(value: own Element)
-    fn insert(index: Size, value: own Element)
-    fn remove(index: Size) -> Element
-}
-
-contract ReservableSequence {
-    fn capacity -> Size
-    fn reserve(minimum: Size)
-}
-```
-
-`remove` изымает элемент и сдвигает следующие влево. Дополнительный метод
-`pop`, не входящий в обязательный `ResizableSequence`, изымает последний
-элемент или возвращает отсутствие значения. Оба метода передают владение
-изъятым значением вызывающему, поэтому его пользовательское уничтожение не
-выполняется посреди изменения массива.
-
-Представление хранит два обычных поля:
-
-| Поле | Смысл |
-|---|---|
-| `allocator: Allocator` | Сохраняемый дескриптор службы выделения для будущего роста |
-| `slots: OwnedSlots<Element>` | Принадлежащее массиву выделение, вместимость и инициализированный префикс |
-
-Длина массива равна `slots.initializedCount`. Неиспользуемый хвост выделения
-не содержит логических элементов: в нём нельзя читать значения, получать
-ссылки на существующие элементы или вызывать их уничтожение.
-
-Как и фиксированный пример, этот аспект требует от `Element` обычный
-проверяемый контракт `PlainLifetime`: перенос владения и освобождение не
-бросают исключений, не приостанавливаются и не вызывают пользовательский код.
-Это локальное ограничение выбранного способа перемещения, не универсальное
-условие `Array`. Представление, допускающее другие способы перемещения,
-должно отдельно реализовать соответствующие гарантии.
-
-`OwnedSlots` удерживает собственные сведения о службе освобождения. Ни он,
-ни вложенные значения не хранят ссылку на поле перемещаемого объекта массива.
-`Allocator` — обычный сохраняемый дескриптор ресурса; его копия сохраняет
-необходимое время жизни службы. Создание такого дескриптора относится к
-обычной библиотеке памяти.
-
-## Кандидаты нижнего программного интерфейса
-
-| Операция | Обязательный смысл |
-|---|---|
-| `allocateSlots<T>(capacity)` | Получить выровненное выделение с нулевым числом инициализированных элементов |
-| `maximumSlots<T>()` | Верхняя граница количества мест, представимого размерами и выравниванием; не оценка свободной памяти |
-| `capacity`, `initializedCount` | Раздельно учитывать вместимость и существующие значения |
-| `initializeNext(value)` | Без отказа перенести значение в подготовленное свободное место в конце |
-| `relocateInto(destination)` | Без отказа перенести весь префикс в подготовленное непересекающееся выделение; прежний префикс становится пустым |
-| `copyAt`, `exchangeAt` | Прочитать копию либо заменить значение с возвратом прежнего |
-| `borrowReadAt`, `borrowWriteAt` | Заимствовать инициализированное место с соответствующими правами |
-| `edit(callback)` | Однократно выполнить проверенный код перемещения внутри выделения, восстановив инициализированный префикс |
-
-`relocateInto` не является безусловным копированием байтов: он переносит
-владение с учётом устройства `Element`. Прежние места после него не содержат
-вторых владеющих значений. Выделение освобождается только после такого переноса.
-Освобождение выделения также обязано не бросать исключений, не
-приостанавливаться и не вызывать пользовательский код. Это требование к
-выбранному `Allocator`; одного `PlainLifetime` для элементов недостаточно.
-
-Контракт `edit` раскрыт ниже вместе с алгоритмами сдвига. Это обычная
-библиотечная операция с ограничениями на вызываемый код, а не дополнительный
-оператор языка и не обещание автоматически откатить произвольный код.
-
-## Аспект
+## Layout
 
 ```efen
 aspect DynamicContiguous<Target> conforms Representation<Target> {
-    meta fn define(plan: compiler::DefinitionPlan) {
-        plan.expectGenericType(Target, "Element")
-        plan.expectConformance(Target.Element, PlainLifetime)
-        plan.addConformance(Target, BorrowedElements<Target.Element>)
-        plan.addConformance(Target, ResizableSequence<Target.Element>)
-        plan.addConformance(Target, ReservableSequence)
-        plan.registerResolver(Target, contiguousIndexing)
-        plan.registerSchema(Target, dynamicContiguousSequenceSchema)
+    layout {
+        set Items: Item {
+            value in self.items
+        }
+
+        struct Item {
+            Target
+        }
+
+        struct Self {
+            var items: own Items.Area {
+                value.initializedCount == Items.count
+            }
+        }
     }
 
-    implementation Target {
-        let allocator: Allocator
-        var slots: OwnedSlots<Target.Element>
+    implementation {
+        // Операции приведены ниже.
+    }
+}
+```
 
+`Items.Area` является одной непрерывной областью из `Item`. Её
+`capacity` сообщает число выделенных мест, а `initializedCount` — длину
+инициализированного префикса. Всегда выполняется:
+
+```text
+0 <= initializedCount <= capacity
+Items.count == initializedCount
+```
+
+`Item` встраивает `Target`. Поэтому место элемента обозначается
+`Items.Item`, а встроенное значение — выражением `item.Target`. Обычное поле
+`var value: Target` не гарантировало бы inline-размещение и могло бы иметь
+косвенную representation.
+
+## Кандидатный интерфейс области
+
+| Операция | Смысл |
+|---|---|
+| `Items.allocateArea(capacity)` | Подготовить пустую непрерывную область |
+| `area.initializeNext(Item(...))` | Инициализировать следующее место префикса |
+| `area.initialize(index, Item(...))` | Инициализировать известное пустое место |
+| `area.itemAt(index)` | Получить живой `Items.Item` с проверкой границы |
+| `area.take(index)` | Перенести `Item` из живого места и оставить его пустым |
+| `area.move(from, to)` | Перенести `Item` из инициализированного места в пустое |
+| `area.relocateInto(destination)` | Перенести весь префикс в подготовленную область с сохранением identities |
+| `area.finish(count)` | Доказать, что после изменения жив ровно префикс `0 ..< count` |
+| `Items.free(area)` | Освободить область, не уничтожая уже перенесённые места повторно |
+
+Эти операции принадлежат дескриптору `Items`, потому что именно он определяет,
+какие элементы появляются, перемещаются и исчезают. API является кандидатом
+общего memory-протокола, а не специальной веткой компилятора для `Array`.
+
+## Основные операции
+
+```efen
+aspect DynamicContiguous<Target> conforms Representation<Target> {
+    layout {
+        set Items: Item {
+            value in self.items
+        }
+
+        struct Item {
+            Target
+        }
+
+        struct Self {
+            var items: own Items.Area {
+                value.initializedCount == Items.count
+            }
+        }
+    }
+
+    implementation {
         @constructor
-        public fn init(allocator: Allocator, capacity: Size = 0) -> Self {
-            let pending = allocator.allocateSlots<Target.Element>(capacity)
-            self.allocator = allocator
-            self.slots = take pending
+        public fn init(capacity: Size = 0) -> Self {
+            self.items = Items.allocateArea(capacity: capacity)
             return self
         }
 
         public fn count -> Size {
-            return self.slots.initializedCount
+            return self.items.initializedCount
         }
 
         public fn capacity -> Size {
-            return self.slots.capacity
+            return self.items.capacity
         }
 
-        fn checkIndex(index: Size) {
-            if index >= self.count() {
-                throw BoundsError(index, self.count())
-            }
+        fn itemAt(index: Size) -> Items.Item {
+            return self.items.itemAt(index)
         }
 
         fn growthCapacity(minimum: Size) -> Size {
-            let limit = self.allocator.maximumSlots<Target.Element>()
-
-            if minimum > limit {
-                throw CapacityOverflow(minimum)
+            if minimum <= self.capacity() {
+                return self.capacity()
             }
 
-            let current = self.capacity()
-
-            if minimum <= current {
-                return current
+            if self.capacity() == 0 {
+                return max(8, minimum)
             }
 
-            let geometric = if current == 0 {
-                min(8, limit)
-            } else if current > limit / 2 {
-                limit
-            } else {
-                current * 2
-            }
-
-            return max(minimum, geometric)
+            return max(
+                checkedMultiply(self.capacity(), 2),
+                minimum
+            )
         }
 
         public fn reserve(minimum: Size) {
@@ -167,379 +131,126 @@ aspect DynamicContiguous<Target> conforms Representation<Target> {
                 return
             }
 
-            let capacity = self.growthCapacity(minimum)
-            var pending = self.allocator.allocateSlots<Target.Element>(
-                capacity
-            )
+            let nextCapacity = growthCapacity(minimum)
+            var pending = Items.allocateArea(capacity: nextCapacity)
 
-            // После выделения здесь нет отказов и вызовов пользовательского кода.
-            self.slots.relocateInto(pending)
-            self.slots = take pending
+            self.items.relocateInto(pending)
+            self.items.finish(0)
+
+            let previous = take self.items
+            self.items = take pending
+            Items.free(take previous)
         }
 
-        public fn read(index: Size) -> Target.Element
-            where Target.Element: Copyable
+        public fn read(index: Size) -> Target
+            where Target: Copyable
         {
-            self.checkIndex(index)
-            return self.slots.copyAt(index)
+            return itemAt(index).Target
         }
 
         public fn replace(
             index: Size,
-            value: own Target.Element
-        ) -> Target.Element {
-            self.checkIndex(index)
-            return self.slots.exchangeAt(index, take value)
+            value: own Target
+        ) -> Target {
+            let item = itemAt(index)
+            let previous = take item.Target
+            item.Target = take value
+            return take previous
         }
 
-        public fn borrowRead(index: Size) -> &read[self] Target.Element {
-            self.checkIndex(index)
-            return self.slots.borrowReadAt(index)
-        }
-
-        public fn borrowWrite(index: Size) -> &[self] Target.Element {
-            self.checkIndex(index)
-            return self.slots.borrowWriteAt(index)
-        }
-
-        public fn append(value: own Target.Element) {
+        public fn append(value: own Target) {
             let nextCount = checkedAdd(self.count(), 1)
-            self.reserve(nextCount)
-            self.slots.initializeNext(take value)
+            reserve(nextCount)
+            self.items.initializeNext(Item(take value))
         }
 
-        public fn insert(index: Size, value: own Target.Element) {
+        public fn insert(index: Size, value: own Target) {
             if index > self.count() {
                 throw BoundsError(index, self.count())
             }
 
             let nextCount = checkedAdd(self.count(), 1)
-            self.reserve(nextCount)
-            insertSlots(&self.slots, index, take value)
-        }
+            reserve(nextCount)
 
-        public fn remove(index: Size) -> Target.Element {
-            self.checkIndex(index)
-            return extractSlots(&self.slots, index)
-        }
-
-        public fn pop -> Target.Element? {
-            if self.count() == 0 {
-                return null
+            var cursor = self.count()
+            while cursor > index {
+                self.items.move(cursor - 1, cursor)
+                cursor -= 1
             }
-            return self.remove(self.count() - 1)
+
+            self.items.initialize(index, Item(take value))
+            self.items.finish(nextCount)
         }
 
-        public fn slice(first: Size, last: Size) -> ArraySlice<Self> {
-            return ArraySlice(owner: &self, first: first, last: last)
-        }
+        public fn remove(index: Size) -> Target {
+            let oldCount = self.count()
 
-        public fn readSlice(first: Size, last: Size) -> ArrayReadSlice<Self> {
-            return ArrayReadSlice(owner: &read self, first: first, last: last)
-        }
+            if index >= oldCount {
+                throw BoundsError(index, oldCount)
+            }
 
-        public fn iterator -> ArrayIterator<Self> {
-            return ArrayIterator(owner: &read self, cursor: 0)
-        }
+            let removed = self.items.take(index)
+            var cursor = index
 
-        public fn reverseIterator -> ArrayIterator<Self> {
-            return ArrayIterator(owner: &read self, cursor: self.count())
+            while cursor + 1 < oldCount {
+                self.items.move(cursor + 1, cursor)
+                cursor += 1
+            }
+
+            self.items.finish(oldCount - 1)
+            return take removed.Target
         }
     }
 }
 ```
 
-`DefinitionPlan` и показанные методы регистрации являются кандидатами обычного
-программного интерфейса компилятора. Они регистрируют проверки контрактов,
-общее разрешение операторов и физическую схему. Поля и методы добавляет
-`implementation Target`, где `Target` — именно строящийся
-`Array<X, DynamicContiguous>`. Отдельного объекта представления при выполнении
-программы не требуется.
+В `reserve` сначала проверяются размеры и выделяется `pending`. Затем
+существующие `Item` переносятся без копирования `Target`. До публикации могут
+существовать две `Items.Area` одного дескриптора; условие, связывающее все
+`Items` с `self.items`, временно открыто. После присваивания `self.items`
+старая область пуста и может быть освобождена.
 
-`checkedAdd` сообщает переполнение до изменения массива. Политика роста
-удваивает вместимость, кроме начального выделения, крупного явного запроса
-`reserve` и последнего увеличения до предельного представимого размера.
-`maximumSlots` не обещает, что столько памяти действительно удастся получить.
+Точная операция переноса всего префикса может быть оптимизирована memory-
+протоколом. Для нетривиального `Target` это семантический move, а не
+безусловный `memcpy`.
 
-После переноса старое выделение содержит ноль инициализированных элементов.
-Присваивание нового `slots` освобождает только старые байты, не уничтожая
-перенесённые значения повторно. Между переносом и заменой дескриптора нет
-внешней точки наблюдения.
+## Сдвиги
 
-## Сдвиг с переносом владения
+Вставка идёт справа налево, поэтому назначение каждого шага ещё пусто:
 
-Следующие функции — часть предлагаемой обычной библиотеки памяти.
-`insertSlots` вызывается при `index <= count < capacity`; `extractSlots` — при
-`index < count`. Эти условия проверены вызывающими методами массива.
-
-`edit` выдаёт временный объект доступа и блокирует остальные обращения к
-`OwnedSlots` до завершения. Он допускает временное пустое место внутри
-префикса и учитывает, какие значения инициализированы. Такой учёт может быть
-доказательством времени компиляции; обязательная таблица на каждое место не
-нужна.
-
-| Метод временного объекта | Условие и результат |
-|---|---|
-| `move(from, to)` | Источник инициализирован, назначение пусто; перенести владение и поменять эти состояния |
-| `initialize(index, value)` | Назначение пусто; перенести в него переданное значение |
-| `extract(index)` | Перенести значение вызывающему и оставить пустое место |
-| `finish(count)` | Подтвердить, что существуют ровно значения в префиксе `0..<count` |
-
-Код внутри `edit` обязан завершить `finish`, не бросать исключений, не
-приостанавливаться и не входить в пользовательский код. В частности,
-передаваемое значение подготовлено заранее, а все нужные места уже выделены.
-Проверка этих обязательств является частью проверки библиотеки и порождённого
-кода. Одна запись `edit` сама по себе не является доказательством.
-
-```efen
-fn insertSlots<T>(slots: &OwnedSlots<T>, index: Size, value: own T)
-    where T: PlainLifetime
-{
-    let oldCount = slots.initializedCount
-    let newCount = checkedAdd(oldCount, 1)
-
-    slots.edit((edit) => {
-        var destination = oldCount
-
-        while destination > index {
-            edit.move(from: destination - 1, to: destination)
-            destination -= 1
-        }
-
-        edit.initialize(index, take value)
-        edit.finish(newCount)
-    })
-}
-
-fn extractSlots<T>(slots: &OwnedSlots<T>, index: Size) -> T
-    where T: PlainLifetime
-{
-    let oldCount = slots.initializedCount
-
-    return slots.edit((edit) => {
-        let value = edit.extract(index)
-        var destination = index
-
-        while destination < oldCount - 1 {
-            edit.move(from: destination + 1, to: destination)
-            destination += 1
-        }
-
-        edit.finish(oldCount - 1)
-        return take value
-    })
-}
+```text
+[A B C _] -> [A B _ C] -> [A _ B C] -> [A X B C]
 ```
 
-При вставке перенос идёт справа налево, чтобы назначением всегда было пустое
-место. При извлечении он идёт слева направо, последовательно закрывая пустое
-место. Ни один из алгоритмов не копирует владеющее значение и не требует
-`Copyable`.
+Удаление сначала изымает элемент, затем сдвигает суффикс слева направо:
 
-`checkedAdd` в `insertSlots` расположен до `edit`. Вызвавший метод уже проверил
-тот же размер, а `reserve` не меняет длину; повторная проверка не может
-отказать при выполненных предусловиях и может быть устранена компилятором.
-
-## Чтение, запись, индексы и срезы
-
-Применение конкретного типа:
-
-```efen
-var values = Array<Int, DynamicContiguous>(allocator: allocator)
-
-values.append(10)
-values.append(30)
-values.insert(1, 20)
-
-let removed = values.remove(0)
-values.reserve(32)
-
-echo removed          // 10
-echo values[0]        // 20
-echo values.count()   // 2
-echo values.capacity() // Не меньше 32.
+```text
+[A B C D] -> [A _ C D] -> [A C _ D] -> [A C D _]
 ```
 
-Используются те же правила общего разрешения, что в фиксированном примере:
+Компилятор отслеживает инициализированность каждого затронутого места. Операция
+обязана закончить с одним непрерывным префиксом; читать пустое место или
+перезаписать живой `Target` нельзя.
 
-```efen
-let item = array[index]            // Копирование требует Copyable.
-array[index] = take replacement   // Заменяется одно существующее место.
-array[index].a += 1                // Проецируется поле, целый X не копируется.
-let field = &array[index].a        // Требуется Borrow с нужными правами.
-let part = array[first..<last]     // Создаётся структура среза.
-```
+## Исключения и заимствования
 
-Индекс — логический номер, не сохраняемый физический адрес. После вставки или
-удаления тот же номер может обозначать другое значение. Этот массив не обещает
-постоянную идентичность элемента при изменении последовательности.
+Проверка индекса, арифметика вместимости и выделение выполняются до необратимого
+изменения. После начала переноса код не бросает исключений, не приостанавливается
+и не вызывает пользовательский код. Это требует проверяемого контракта
+перемещения и уничтожения `Target`.
 
-В этом представлении возможность `Borrow` поддержана, но она не вытекает из
-одного наличия чтения и записи в базовом `Array`. Действующая ссылка запрещает
-конфликтующий перенос или уничтожение места. В частности, рост выделения
-несовместим с живыми ссылками на его элементы.
-
-Для первого варианта используется консервативное правило: `append`, `insert`,
-`remove`, `pop` и `reserve` требуют права структурного изменения всего массива.
-Живой срез или итератор, заимствующий массив, не позволяет вызвать эти методы.
-Правило действует и когда конкретный вызов `append` поместился бы в свободный
-хвост. Более точные права можно добавить позднее через обычные контракты;
-они не предполагаются этим примером.
-
-Срезы `ArraySlice<A>` и `ArrayReadSlice<A>` из
-[фиксированного варианта](CONTIGUOUS-ARRAY.md#срезы-как-обычные-структуры)
-подходят без изменения. Они требуют только `IndexedSequence`, сохраняют
-заимствование владельца и полуинтервал. Чтение вызывает `owner.read`, запись
-при наличии прав — `owner.replace`. Поэтому срез не требует нового буфера или
-возможности `BorrowedElements`. Только отдельные методы заимствования элемента
-доступны при выполнении владельцем `BorrowedElements`.
-
-Срез не становится недействительным посреди разрешённого использования.
-Результат `part[i]` разрешается через методы исходного конкретного массива с
-проверенным сдвигом индекса; права исходного получателя при этом сохраняются.
-
-Обычное `take array[index]`, если оно разрешено контрактом индексирования как
-изъятие из последовательности, должно разрешаться в `remove(index)`. Оно не
-оставляет необработанное неинициализированное место. Точная привязка этой формы
-к методу является частью кандидатного общего разрешения операций; в полном
-примере вызов `remove` остаётся явным.
-
-## Итератор и переходы
-
-Используется обычный `ArrayIterator<A>` из
-[фиксированного варианта](CONTIGUOUS-ARRAY.md#двунаправленный-итератор).
-Его состояние — читающая ссылка на массив и номер позиции между элементами.
-Переходы имеют следующие тела:
-
-```efen
-fn next -> (&read[owner] A.Element)? {
-    if self.cursor == self.owner.count() {
-        return null
-    }
-
-    let result = self.owner.borrowRead(self.cursor)
-    self.cursor += 1
-    return result
-}
-
-fn prev -> (&read[owner] A.Element)? {
-    if self.cursor == 0 {
-        return null
-    }
-
-    let index = self.cursor - 1
-    let result = self.owner.borrowRead(index)
-    self.cursor = index
-    return result
-}
-```
-
-Оба метода принадлежат той же структуре итератора, а не являются свободными
-функциями с необъявленными `owner` и `A`. Происхождение результата — массив.
-Сохранённый итератор удерживает право, не позволяющее структурно изменить
-последовательность. После освобождения этого заимствования новый итератор
-наблюдает новую длину и новое размещение.
-
-`next` и `prev` имеют постоянную стоимость. При обычном цикле компилятор может
-встроить их в переход по последовательным местам; при сохранении итератора
-его состояние остаётся обычным значением `Efen`.
-
-## Исключения и сохранение состояния
-
-Этот конкретный вариант даёт сильную гарантию логического содержимого для
-`append`, `insert`, `remove` и `reserve`: при сообщаемом исключении
-последовательность остаётся прежней. Это явно выбранное свойство примера,
-а не автоматическая транзакционность всех методов `Array`.
-
-- Границы и арифметика размеров проверяются до изменений.
-- Ошибка выделения возникает до переноса старых элементов.
-- После успешного выделения перенос и публикация нового дескриптора не
-  отказывают при выполнении `PlainLifetime`.
-- Сдвиги выполняются по заранее подготовленным местам и восстанавливают
-  полностью инициализированную последовательность.
-- Изъятый или вытесненный элемент возвращается вызывающему с владением.
-
-Владение переданным `own` аргументом определяется обычными правилами вызова;
-сохранение массива не означает автоматический возврат аргумента при исключении.
-Произвольные внешние побочные действия не откатываются.
-
-Копирование в `read` может бросить исключение, но исходный элемент остаётся на
-месте. Приостановка и другие эффекты выделителя или копирования выводятся
-обычно. Они недопустимы внутри описанного переноса; несовместимый конкретный
-тип или выделитель отклоняется по контракту.
-
-Уничтожение массива обрабатывает только `initializedCount` элементов и затем
-освобождает выделение. Неинициализированный запас не обрабатывается как
-существующие значения. Нулевой размер элемента не отменяет длину, индексы и
-учёт его времени жизни.
-
-## Инварианты
-
-1. `0 <= count() <= capacity()`.
-2. Инициализированы ровно места `0..<count()`.
-3. Элементы соответствуют логическому порядку последовательности.
-4. В хвосте `count()..<capacity()` нет владеющих значений.
-5. Выделение достаточно велико и правильно выровнено.
-6. После роста прежнее выделение не содержит вторых владельцев элементов.
-7. Действующее заимствование не переживает конфликтующий перенос или удаление.
-
-Промежуточное пустое место во время сдвига закрыто от наблюдателей и существует
-только внутри проверяемого `edit`. Это не разрешение вернуть массив с дыркой.
+Живая ссылка на `item.Target` блокирует `reserve`, вставку и удаление, потому
+что они способны переместить элемент или заменить его место.
 
 ## Стоимость
 
-Пусть `n` — длина, `c` — вместимость, `i` — позиция операции. Стоимость
-построения, копирования и переноса самого элемента учитывается отдельно.
+- `count`, `capacity`, индексирование, чтение и замена: `O(1)`;
+- `append`: амортизированно `O(1)`, при росте `O(count)`;
+- `insert` и `remove`: `O(count - index)`;
+- `reserve`: `O(count)`, если требуется новая область.
 
-| Операция | Стоимость |
-|---|---|
-| `count`, `capacity` | `O(1)` |
-| Получение места по индексу | `O(1)` |
-| `read`, `replace` | `O(1)` адресации плюс работа со значением |
-| `append` при свободном месте | `O(1)` |
-| `append` с ростом | `O(n)` переносов и одно новое выделение |
-| Последовательность добавлений с удвоением | Амортизированно `O(1)` переносов на добавление |
-| `insert(i, value)` | `O(n - i)`, а при росте дополнительно `O(n)` |
-| `remove(i)` | `O(n - i)` |
-| `pop` | `O(1)` |
-| `reserve` без роста | `O(1)` |
-| `reserve` с ростом | `O(n)` |
-| Создание среза | `O(1)`, без копирования |
-| `next`, `prev` | `O(1)` |
-| Память после операции | `c * stride` плюс постоянные дескрипторы |
-| Пик памяти при росте | Одновременно старое и новое выделения |
+## Граница предложения
 
-Амортизированная оценка относится к последовательности добавлений при этой
-политике роста. Она не означает постоянную задержку каждого вызова и не
-скрывает стоимость выделителя или крупного элемента. Самопроизвольного
-уменьшения вместимости при удалении нет.
-
-## Физическая схема, граф программы и оптимизация
-
-Аспект сообщает схему последовательных строк, длину и вместимость,
-проекции полей, переходы в обе стороны и условия смены выделения. Схема также
-сообщает, что заимствованный обход не допускает изменения длины и размещения.
-Это обязательные ограничения, а не советы о скорости.
-
-Оценки стоимости выделения, переноса и последовательного доступа передаются
-отдельно. Компилятор сопоставляет их с графом вычислений и может:
-
-- убрать объект итератора и повторные проверки границ;
-- читать только нужные поля строк;
-- выбрать более выгодный из допустимых направлений обхода;
-- объединить переносы, когда устройство элемента и владение допускают это;
-- предложить предварительное резервирование при доказанно безопасном
-  изменении порядка действий.
-
-Последний пункт не является безусловной оптимизацией. Перенос выделения раньше
-может изменить порядок исключений, объём удерживаемой памяти или наблюдаемое
-значение `capacity()`. Без необходимых доказательств или явно более свободного
-контракта компилятор сохраняет исходный порядок.
-
-В `flow` может быть меньше обязательных зависимостей, но сохранение владения,
-времени жизни и правильной последовательности остаётся обязательным.
-
-Сам алгоритм использует номера элементов, длину и операции владения местами.
-Байтовую формулу `base + index * stride` реализует нижняя библиотека памяти.
-Она не становится частью логического `Array` и не требует отдельного
-встроенного динамического массива в компиляторе.
+`Items.Area` и операции частичной инициализации являются кандидатным общим
+memory API. Нужно отдельно закрепить их точные сигнатуры, exceptional contracts
+и правила сохранения logical identity при relocation.

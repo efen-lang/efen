@@ -32,15 +32,16 @@ struct Array {
     generic R<Target>: Representation<Target>
 
     conforms IndexedSequence<Element>
-    conforms ResizableSequence<Element>
     use R<Element>
 }
 ```
 
 При применении `List` параметр `Target` означает исходный тип элемента. Для
 `Array<User, List>` внутри `List<Target>` именем `Target` называется `User`.
-`Target` не является строящимся массивом, поэтому аспект содержит обычный блок
-`implementation`, а не `implementation Target`.
+`Target` не является строящимся массивом. Конкретный
+`Array<Element, R>`, внутри которого выполнен `use R<Element>`, неявно входит в
+аспект как `Self`, а его текущий экземпляр внутри условий и операций называется
+`self`.
 
 ## Layout списка
 
@@ -50,16 +51,16 @@ struct Array {
 ```efen
 aspect List<Target> conforms Representation<Target> {
     layout {
+        set Items: Item {
+            value reachable from self.head by Item.next
+        }
+
         struct Item {
-            var value: Target
+            Target
             var next: own other Items.Item? = null
         }
 
-        set Items: Item {
-            value reachable from List.head by Item.next
-        }
-
-        struct List {
+        struct Self {
             var head: own Items.Item? = null
 
             var tail: read Items.Item? = null {
@@ -71,12 +72,10 @@ aspect List<Target> conforms Representation<Target> {
                 }
             }
 
-            var count: Size = 0 {
+            var length: Size = 0 {
                 value == Items.count
             }
         }
-
-        one List
     }
 
     implementation {
@@ -85,11 +84,14 @@ aspect List<Target> conforms Representation<Target> {
 }
 ```
 
-`struct Item` и `struct List` задают формы значений. Они сами не создают память.
-`set Items: Item` и `one List` являются дескрипторами памяти:
+`struct Item` задаёт форму одного узла и встраивает `Target` первым компонентом.
+`struct Self` определяет поля самого конкретного `Array<Element, List>`.
+Отдельного корневого `struct List` и дескриптора `one List` здесь нет: корнем
+layout уже является `Self`.
+
+`set Items: Item` является дескриптором памяти:
 
 - `set Items: Item` описывает множество отдельно размещённых `Item`;
-- `one List` описывает ровно один размещённый корень списка;
 - `Items.Item` является ссылкой на отдельный элемент, которым управляет
   дескриптор `Items`;
 - `Items.allocate(...)`, `Items.allocateArea(...)` и `Items.free(...)`
@@ -112,29 +114,85 @@ set OtherItems: Item
 GPU и другие источники. Этот пример источник не выбирает и использует поведение
 дескрипторов по умолчанию.
 
+При создании нового `Array<Element, List>` компилятор создаёт `Self`,
+инициализирует `head`, `tail` и `length` значениями из `struct Self`, а `Items`
+начинается пустым. Дополнительный конструктор пустого списка для этого не нужен.
+
+## Поле и встраивание
+
+Обычное поле не обещает, что байты `Target` находятся внутри содержащей его
+структуры:
+
+```efen
+struct Item {
+    var value: Target
+}
+```
+
+Это логическое поле. Его representation может оказаться указателем на `Target`
+или другой косвенной формой.
+
+Голое имя типа в теле структуры означает физическое встраивание:
+
+```efen
+struct Item {
+    Target
+    var next: own other Items.Item? = null
+}
+```
+
+В этом примере `Item` начинается со встроенной структуры `Target`. В общем
+случае встроенный тип может находиться и не в начале: его положение задаётся
+порядком компонентов структуры.
+
+Создание `Item` должно поместить данные `Target` внутрь памяти нового узла.
+Обычное значение потребовало бы `Target: Copyable`; список принимает `own
+Target` и явно переносит его:
+
+```efen
+let item = Items.allocate(
+    Item(
+        take value,
+        next: null
+    )
+)
+```
+
+Выражение `item.Target` обозначает место встроенного значения целиком:
+
+```efen
+let copy: Target = item.Target
+let borrow = &item.Target
+let moved: Target = take item.Target
+item.Target = take replacement
+```
+
+Само выражение не выбирает копирование или перенос. Обычное чтение копирует при
+`Target: Copyable`, `&` заимствует, а `take` переносит встроенное значение.
+
 ## Декларативные условия
 
 Блок после свойства задаёт условие его правильности. Внутри него `value`
 означает значение объявляемого свойства:
 
 ```efen
-var count: Size = 0 {
+var length: Size = 0 {
     value == Items.count
 }
 ```
 
 `Items.count` здесь является логической мощностью дескриптора. Хранимое runtime-
-поле `List.count` обязано совпадать с ней.
+поле `self.length` обязано совпадать с ней.
 
 Условие при `set` применяется к каждому его элементу. Поэтому:
 
 ```efen
 set Items: Item {
-    value reachable from List.head by Item.next
+    value reachable from self.head by Item.next
 }
 ```
 
-означает: каждый элемент `Items` достижим из `List.head` переходами по
+означает: каждый элемент `Items` достижим из `self.head` переходами по
 `Item.next`.
 
 `reachable` — логическое отношение, а не runtime-обход. Отношение рефлексивно:
@@ -159,7 +217,7 @@ if value != null {
 - `head` и `tail` либо оба пусты, либо оба непусты;
 - каждый `Items.Item` входит в цепочку от `head`;
 - `tail` входит в эту цепочку и его `next` равен `null`;
-- `List.count` равен числу элементов `Items`.
+- `self.length` равен числу элементов `Items`.
 
 Компилятор может временно открыть затронутые условия внутри операции. Он обязан
 доказать их восстановление перед `return`, `throw` или вызовом кода, способного
@@ -173,16 +231,16 @@ if value != null {
 ```efen
 aspect List<Target> conforms Representation<Target> {
     layout {
+        set Items: Item {
+            value reachable from self.head by Item.next
+        }
+
         struct Item {
-            var value: Target
+            Target
             var next: own other Items.Item? = null
         }
 
-        set Items: Item {
-            value reachable from List.head by Item.next
-        }
-
-        struct List {
+        struct Self {
             var head: own Items.Item? = null
 
             var tail: read Items.Item? = null {
@@ -194,21 +252,19 @@ aspect List<Target> conforms Representation<Target> {
                 }
             }
 
-            var count: Size = 0 {
+            var length: Size = 0 {
                 value == Items.count
             }
         }
-
-        one List
     }
 
     implementation {
         fn itemAt(index: Size) -> Items.Item {
-            if index >= List.count {
-                throw BoundsError(index, List.count)
+            if index >= self.length {
+                throw BoundsError(index, self.length)
             }
 
-            var current = List.head!
+            var current = self.head!
             var position: Size = 0
 
             while position < index {
@@ -220,13 +276,13 @@ aspect List<Target> conforms Representation<Target> {
         }
 
         public fn count -> Size {
-            return List.count
+            return self.length
         }
 
         public fn read(index: Size) -> Target
             where Target: Copyable
         {
-            return itemAt(index).value
+            return itemAt(index).Target
         }
 
         public fn replace(
@@ -234,77 +290,77 @@ aspect List<Target> conforms Representation<Target> {
             value: own Target
         ) -> Target {
             let item = itemAt(index)
-            let previous = take item.value
-            item.value = take value
+            let previous = take item.Target
+            item.Target = take value
             return take previous
         }
 
         public fn append(value: own Target) {
-            let nextCount = checkedAdd(List.count, 1)
+            let nextCount = checkedAdd(self.length, 1)
             let item = Items.allocate(
-                Item(value: take value, next: null)
+                Item(take value, next: null)
             )
 
-            if List.tail == null {
-                List.head = take item
-                List.tail = List.head
+            if self.tail == null {
+                self.head = take item
+                self.tail = self.head
             } else {
-                List.tail!.next = take item
-                List.tail = List.tail!.next
+                self.tail!.next = take item
+                self.tail = self.tail!.next
             }
 
-            List.count = nextCount
+            self.length = nextCount
         }
 
         public fn insert(index: Size, value: own Target) {
-            if index > List.count {
-                throw BoundsError(index, List.count)
+            if index > self.length {
+                throw BoundsError(index, self.length)
             }
 
-            if index == List.count {
+            if index == self.length {
                 append(take value)
                 return
             }
 
-            let nextCount = checkedAdd(List.count, 1)
+            let nextCount = checkedAdd(self.length, 1)
 
             if index == 0 {
                 let item = Items.allocate(
-                    Item(value: take value, next: null)
+                    Item(take value, next: null)
                 )
 
-                item.next = take List.head
-                List.head = take item
-                List.count = nextCount
+                item.next = take self.head
+                self.head = take item
+                self.length = nextCount
                 return
             }
 
             let before = itemAt(index - 1)
             let item = Items.allocate(
-                Item(value: take value, next: null)
+                Item(take value, next: null)
             )
 
             item.next = take before.next
             before.next = take item
-            List.count = nextCount
+            self.length = nextCount
         }
 
         public fn remove(index: Size) -> Target {
-            if index >= List.count {
-                throw BoundsError(index, List.count)
+            if index >= self.length {
+                throw BoundsError(index, self.length)
             }
 
             if index == 0 {
-                let victim = take List.head!
-                List.head = take victim.next
+                let victim = take self.head!
+                self.head = take victim.next
 
-                if List.head == null {
-                    List.tail = null
+                if self.head == null {
+                    self.tail = null
                 }
 
-                List.count -= 1
+                self.length -= 1
 
-                let result = take victim.value
+                let result = take victim.Target
                 Items.free(take victim)
                 return take result
             }
@@ -314,12 +370,12 @@ aspect List<Target> conforms Representation<Target> {
             before.next = take victim.next
 
             if before.next == null {
-                List.tail = before
+                self.tail = before
             }
 
-            List.count -= 1
+            self.length -= 1
 
-            let result = take victim.value
+            let result = take victim.Target
             Items.free(take victim)
             return take result
         }
@@ -329,7 +385,7 @@ aspect List<Target> conforms Representation<Target> {
 
 `itemAt` возвращает `Items.Item`. Результат сохраняет знание о том, что адрес
 обозначает отдельный элемент, управляемый `Items`. Владение остаётся отдельным
-правом: обычный результат `itemAt` не получает `own`, а `take List.head!` или
+правом: обычный результат `itemAt` не получает `own`, а `take self.head!` или
 `take before.next!` переносит владеющий `Items.Item`, который затем можно
 передать `Items.free`.
 
@@ -342,21 +398,27 @@ aspect List<Target> conforms Representation<Target> {
 
 Между успешным `Items.allocate` и присоединением нового элемента условие
 достижимости временно открыто: новый `Items.Item` уже входит в `Items`, но ещё не
-достижим из `List.head`. До восстановления условия код не возвращается, не
+достижим из `self.head`. До восстановления условия код не возвращается, не
 бросает исключение и не вызывает наблюдающий пользовательский код.
 
-При удалении владеющая ссылка сначала переносится из `List.head` или
+При удалении владеющая ссылка сначала переносится из `self.head` или
 `before.next`. Продолжение цепочки занимает освободившееся место, после чего
 значение извлекается из отсоединённого элемента. `Items.free(take victim)`
 потребляет владеющий `Items.Item` и удаляет его из дескриптора. На границе
 операции оставшиеся элементы снова достижимы, `tail` заканчивает цепочку, а
-`List.count == Items.count`.
+`self.length == Items.count`.
+
+Этот прямой алгоритм применим, когда перенос `Target`, запись служебных полей и
+освобождение уже опустошённого `Items.Item` не бросают исключений, не
+приостанавливаются и не вызывают наблюдающий код. `take victim.Target` передаёт
+менеджеру памяти состояние частичной инициализации: последующий `Items.free` не
+уничтожает перенесённый `Target` повторно.
 
 ## Стоимость
 
 `count` выполняется за `O(1)`. `itemAt`, `read`, `replace`, `insert` и `remove`
 требуют `O(index + 1)` переходов от `head`. `append` выполняется за `O(1)`, потому
-что `one List` хранит `tail`.
+что `Self` хранит `tail`.
 
 Эти различия являются свойствами списочного представления. Они не меняют
 логический порядок элементов и контракт `Array`.
