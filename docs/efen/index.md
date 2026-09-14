@@ -95,7 +95,7 @@ source syntax
 ## Ownership, memory и layout
 
 Начинать этот раздел лучше с [memory guide](memory/index.md), а не с отдельных
-примеров allocator или pointer.
+примеров allocator.
 
 | Уровень | Документы |
 |---|---|
@@ -105,7 +105,7 @@ source syntax
 | Дескрипторы памяти и зависимые адреса | [Компоновка](memory/addresses.md), [примеры](memory/layout-examples/), [исторический разбор дефектов](memory/addresses-defects.md), [сравнение с другими системами](memory/prior-art.md) |
 | Physical storage | [Columnar layouts](memory/columnar-layouts.md), [варианты representation](memory/layout-representations.md) |
 | Verification boundary | [Efen → Viper](memory/viper-verification-backend.md) |
-| Исторические низкоуровневые наброски | [Allocator](memory/allocator.md), [pointer](memory/pointer.md), [class internals](memory/classes-internal.md) |
+| Исторические низкоуровневые наброски | [Allocator](memory/allocator.md), [class internals](memory/classes-internal.md) |
 
 `Layout<T>` и dependent types остаются отдельной отложенной темой. Документы о
 Viper задают проект proof boundary, но не являются свидетельством выполненного
