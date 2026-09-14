@@ -5,7 +5,7 @@
 являются актуальными примерами языка.
 
 Текущая модель и разобранные варианты находятся в
-[layout examples](../layout-examples/).
+[примерах компоновки](../layout-examples/).
 
 - `singly-linked-list.efen` — односвязный список без дженериков;
 - `singly-linked-list-generic.efen` — он же с параметром типа;

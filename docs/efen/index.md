@@ -14,7 +14,7 @@ Efen — PHP-совместимый компилируемый язык с пр�
 | Писать обычный Efen-код | [Вызовы](function-call-syntax.md) → [управляющие конструкции](blocks/index.md) → [коллекции](types/collections.md) → [ошибки](throws.md) |
 | Расширять чужие типы | [Контракты](contracts.md) → [interfaces](interfaces.md) → [стратегии](strategies.md) → [разрешение членов](aspects/members-resolving.md) |
 | Писать metaprogramming | [Compile-time API](compile-time/index.md) → [метафункции](compile-time/metafunctions.md) → [аспекты](aspects/aspect.md) → [metadata](aspects/metadata.md) |
-| Разобраться в памяти | [Ownership](types/ownership.md) → [representation](representations.md) → [memory guide](memory/index.md) → [layout и дескрипторы](memory/addresses.md) → [примеры](memory/layout-examples/) |
+| Разобраться в памяти | [Владение](types/ownership.md) → [представления](representations.md) → [обзор памяти](memory/index.md) → [компоновка и дескрипторы](memory/addresses.md) → [примеры](memory/layout-examples/) |
 | Понять зависимости приложения | [Пакеты](packages.md) → [видимость](visibility.md) → [контексты и эффекты](context-and-effects.md) → [слои](layers.md) |
 | Сопоставить язык с компилятором | [Режимы компиляции](compilation-modes.md) → [диалекты](dialects.md) → [Amber architecture](https://github.com/limelight-lang/amber/blob/main/design/architecture/README.md) |
 
@@ -102,7 +102,7 @@ source syntax
 | Права и время жизни | [Ownership, borrow, origin и `take`](types/ownership.md) |
 | Общая модель памяти | [Обзор](memory.md), затем тематический [memory guide](memory/index.md) |
 | Логический тип и физическая форма | [Representations](representations.md) |
-| Memory descriptors и dependent addresses | [Layout](memory/addresses.md), [примеры](memory/layout-examples/), [исторический разбор дефектов](memory/addresses-defects.md), [prior art](memory/prior-art.md) |
+| Дескрипторы памяти и зависимые адреса | [Компоновка](memory/addresses.md), [примеры](memory/layout-examples/), [исторический разбор дефектов](memory/addresses-defects.md), [сравнение с другими системами](memory/prior-art.md) |
 | Physical storage | [Columnar layouts](memory/columnar-layouts.md), [варианты representation](memory/layout-representations.md) |
 | Verification boundary | [Efen → Viper](memory/viper-verification-backend.md) |
 | Исторические низкоуровневые наброски | [Allocator](memory/allocator.md), [pointer](memory/pointer.md), [class internals](memory/classes-internal.md) |
