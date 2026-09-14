@@ -39,3 +39,7 @@
   графических и адаптивных форм.
 - [Efen → Viper](viper-verification-backend.md) — обязательства безопасности и
   проверка операций `layout`.
+- [План построения доказательств Efen → Viper](viper-proof-plan.md) — порядок
+  реализации, proof state, этапы Array и критерии приёмки.
+- [Ресурсная модель доказательств](viper-proof-model.md) — typed proof state,
+  descriptor transitions и разбор существующих Array-алгоритмов.
