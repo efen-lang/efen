@@ -1,0 +1,184 @@
+aspect DoubleLinkedList<Target> conforms Representation<Target> {
+    layout {
+        set Items: Item {
+            value reachable from self.head by Item.next
+        }
+
+        struct Item {
+            Target
+
+            var prev: read other Items.Item? = null {
+                if value != null {
+                    value.next == self
+                }
+            }
+
+            var next: own other Items.Item? = null {
+                if value != null {
+                    value.prev == self
+                }
+            }
+        }
+
+        struct Self {
+            var head: own Items.Item? = null {
+                if value != null {
+                    value.prev == null
+                }
+            }
+
+            var tail: read Items.Item? = null {
+                (self.head == null) == (value == null)
+
+                if value != null {
+                    value reachable from self.head by Item.next
+                    value.next == null
+                }
+            }
+
+            var length: Size = 0 {
+                value == Items.count
+            }
+        }
+    }
+
+    implementation {
+        @constructor
+        public fn init -> Self {
+            self.head = null
+            self.tail = null
+            self.length = 0
+            return self
+        }
+
+        public fn count -> Size {
+            return self.length
+        }
+
+        fn itemAt(index: Size) -> Items.Item {
+            if index >= self.length {
+                throw BoundsError(index, self.length)
+            }
+
+            if index <= self.length / 2 {
+                var current = self.head!
+                var position: Size = 0
+
+                while position < index {
+                    current = current.next!
+                    position += 1
+                }
+
+                return current
+            }
+
+            var current = self.tail!
+            var position = self.length - 1
+
+            while position > index {
+                current = current.prev!
+                position -= 1
+            }
+
+            return current
+        }
+
+        public fn read(index: Size) -> Target
+            where Target: Copyable
+        {
+            return itemAt(index).Target
+        }
+
+        public fn replace(index: Size, value: own Target) -> Target {
+            let item = itemAt(index)
+            let previous = take item.Target
+            item.Target = take value
+            return take previous
+        }
+
+        public fn append(value: own Target) {
+            let nextLength = self.length + 1
+            let item = Items.allocate(
+                Item(
+                    take value,
+                    prev: self.tail,
+                    next: null
+                )
+            )
+
+            if self.tail == null {
+                self.head = take item
+                self.tail = self.head
+            } else {
+                self.tail!.next = take item
+                self.tail = self.tail!.next
+            }
+
+            self.length = nextLength
+        }
+
+        public fn insert(index: Size, value: own Target) {
+            if index > self.length {
+                throw BoundsError(index, self.length)
+            }
+
+            if index == self.length {
+                append(take value)
+                return
+            }
+
+            let nextLength = self.length + 1
+            let item = Items.allocate(
+                Item(take value, prev: null, next: null)
+            )
+
+            if index == 0 {
+                item.next = take self.head
+                item.next!.prev = item
+                self.head = take item
+            } else {
+                let before = itemAt(index - 1)
+                item.prev = before
+                item.next = take before.next
+                item.next!.prev = item
+                before.next = take item
+            }
+
+            self.length = nextLength
+        }
+
+        public fn remove(index: Size) -> Target {
+            if index >= self.length {
+                throw BoundsError(index, self.length)
+            }
+
+            var victim: own Items.Item
+
+            if index == 0 {
+                victim = take self.head!
+                self.head = take victim.next
+
+                if self.head == null {
+                    self.tail = null
+                } else {
+                    self.head!.prev = null
+                }
+            } else {
+                let before = itemAt(index - 1)
+                victim = take before.next!
+                before.next = take victim.next
+
+                if before.next == null {
+                    self.tail = before
+                } else {
+                    before.next!.prev = before
+                }
+            }
+
+            self.length -= 1
+            let result = take victim.Target
+            Items.free(take victim)
+            return take result
+        }
+    }
+}

@@ -1,0 +1,218 @@
+aspect Chunked<Target> conforms Representation<Target> {
+    const CHUNK_SIZE: Size = 256
+
+    layout {
+        set Items: Item
+
+        set Chunks: Chunk {
+            value in self.directory[0..<self.directoryLength]
+        }
+
+        struct Item {
+            Target
+        }
+
+        struct Chunk {
+            var root: own Items.Area
+
+            var capacity: Size = CHUNK_SIZE {
+                value == CHUNK_SIZE
+            }
+
+            var length: Size = 0 {
+                value <= self.capacity
+            }
+        }
+
+        struct Self {
+            var directory: own Chunks.Area? = null
+
+            var directoryCapacity: Size = 0 {
+                (value == 0) == (self.directory == null)
+            }
+
+            var directoryLength: Size = 0 {
+                value == Chunks.count
+                value <= self.directoryCapacity
+            }
+
+            var length: Size = 0 {
+                value == Items.count
+            }
+        }
+    }
+
+    implementation {
+        @constructor
+        public fn init -> Self {
+            self.directory = null
+            self.directoryCapacity = 0
+            self.directoryLength = 0
+            self.length = 0
+            return self
+        }
+
+        fn itemAt(index: Size) -> Items.Item {
+            if index >= self.length {
+                throw BoundsError(index, self.length)
+            }
+
+            let chunkIndex = index / CHUNK_SIZE
+            let offset = index % CHUNK_SIZE
+            let chunk = Chunks.at(self.directory!, chunkIndex)
+            return Items.at(chunk.root, offset)
+        }
+
+        fn chunkForPosition(index: Size) -> Chunks.Item {
+            let chunkIndex = index / CHUNK_SIZE
+
+            if chunkIndex >= self.directoryLength {
+                throw BoundsError(chunkIndex, self.directoryLength)
+            }
+
+            return Chunks.at(self.directory!, chunkIndex)
+        }
+
+        fn growDirectory(minimum: Size) {
+            if minimum <= self.directoryCapacity {
+                return
+            }
+
+            let doubled = self.directoryCapacity * 2
+            let nextCapacity = max(minimum, max(4, doubled))
+
+            Chunks.reallocateArea(
+                root: &self.directory,
+                oldCapacity: self.directoryCapacity,
+                initializedCount: self.directoryLength,
+                newCapacity: nextCapacity
+            )
+            self.directoryCapacity = nextCapacity
+        }
+
+        fn ensureChunks(required: Size) {
+            while self.directoryLength < required {
+                let nextDirectoryLength =
+                    self.directoryLength + 1
+                growDirectory(nextDirectoryLength)
+
+                let block = Items.allocateArea(
+                    capacity: CHUNK_SIZE
+                )
+                Chunks.initialize(
+                    root: self.directory!,
+                    index: self.directoryLength,
+                    value: Chunk(
+                        root: take block,
+                        capacity: CHUNK_SIZE,
+                        length: 0
+                    )
+                )
+                self.directoryLength = nextDirectoryLength
+            }
+        }
+
+        fn movePosition(from: Size, to: Size) {
+            let source = chunkForPosition(from)
+            let destination = chunkForPosition(to)
+
+            Items.move(
+                from: source.root,
+                fromIndex: from % CHUNK_SIZE,
+                to: destination.root,
+                toIndex: to % CHUNK_SIZE
+            )
+        }
+
+        public fn append(value: own Target) {
+            let nextLength = self.length + 1
+            let requiredChunks =
+                1 + (nextLength - 1) / CHUNK_SIZE
+
+            ensureChunks(requiredChunks)
+
+            let chunkIndex = self.length / CHUNK_SIZE
+            let chunk = Chunks.at(
+                self.directory!,
+                chunkIndex
+            )
+            Items.initialize(
+                root: chunk.root,
+                index: chunk.length,
+                value: Item(take value)
+            )
+            chunk.length += 1
+            self.length = nextLength
+        }
+
+        public fn insert(index: Size, value: own Target) {
+            if index > self.length {
+                throw BoundsError(index, self.length)
+            }
+
+            let nextLength = self.length + 1
+            let requiredChunks =
+                1 + (nextLength - 1) / CHUNK_SIZE
+            ensureChunks(requiredChunks)
+
+            let lastChunk = chunkForPosition(self.length)
+            var cursor = self.length
+
+            while cursor > index {
+                movePosition(cursor - 1, cursor)
+                cursor -= 1
+            }
+
+            let destination = chunkForPosition(index)
+            Items.initialize(
+                root: destination.root,
+                index: index % CHUNK_SIZE,
+                value: Item(take value)
+            )
+            lastChunk.length += 1
+            self.length = nextLength
+        }
+
+        public fn remove(index: Size) -> Target {
+            if index >= self.length {
+                throw BoundsError(index, self.length)
+            }
+
+            let oldLength = self.length
+            let source = chunkForPosition(index)
+            let removed = Items.extract(
+                source.root,
+                index % CHUNK_SIZE
+            )
+            var cursor = index
+
+            while cursor + 1 < oldLength {
+                movePosition(cursor + 1, cursor)
+                cursor += 1
+            }
+
+            let lastChunk =
+                chunkForPosition(oldLength - 1)
+            lastChunk.length -= 1
+            self.length = oldLength - 1
+            return take removed.Target
+        }
+
+        public fn count -> Size {
+            return self.length
+        }
+
+        public fn read(index: Size) -> Target
+            where Target: Copyable
+        {
+            return itemAt(index).Target
+        }
+
+        public fn replace(index: Size, value: own Target) -> Target {
+            let item = itemAt(index)
+            let previous = take item.Target
+            item.Target = take value
+            return take previous
+        }
+    }
+}

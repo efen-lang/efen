@@ -1,0 +1,19 @@
+contract IndexedSequence<Element> {
+    fn count -> Size
+    fn read(index: Size) -> Element where Element: Copyable
+    fn replace(index: Size, value: own Element) -> Element
+}
+
+contract ResizableSequence<Element> {
+    fn append(value: own Element)
+    fn insert(index: Size, value: own Element)
+    fn remove(index: Size) -> Element
+}
+
+struct Array {
+    generic Element: Type
+    generic R<Target>: Representation<Target>
+
+    conforms IndexedSequence<Element>
+    use R<Element>
+}

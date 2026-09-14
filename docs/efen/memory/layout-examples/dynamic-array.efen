@@ -1,0 +1,147 @@
+aspect DynamicContiguous<Target> conforms Representation<Target> {
+    layout {
+        set Items: Item {
+            value in self.root[0..<self.length]
+        }
+
+        struct Item {
+            Target
+        }
+
+        struct Self {
+            var root: own Items.Area? = null
+
+            var areaCapacity: Size = 0 {
+                (value == 0) == (self.root == null)
+            }
+
+            var length: Size = 0 {
+                value == Items.count
+                value <= self.areaCapacity
+            }
+        }
+    }
+
+    implementation {
+        @constructor
+        public fn init(capacity: Size = 0) -> Self {
+            self.root = null
+            self.areaCapacity = capacity
+            self.length = 0
+
+            if capacity > 0 {
+                self.root = Items.allocateArea(capacity: capacity)
+            }
+
+            return self
+        }
+
+        public fn count -> Size {
+            return self.length
+        }
+
+        public fn capacity -> Size {
+            return self.areaCapacity
+        }
+
+        fn itemAt(index: Size) -> Items.Item {
+            if index >= self.length {
+                throw BoundsError(index, self.length)
+            }
+
+            return Items.at(self.root!, index)
+        }
+
+        public fn reserve(minimum: Size) {
+            if minimum <= self.areaCapacity {
+                return
+            }
+
+            let doubled = self.areaCapacity * 2
+            let nextCapacity = max(minimum, max(8, doubled))
+
+            Items.reallocateArea(
+                root: &self.root,
+                oldCapacity: self.areaCapacity,
+                initializedCount: self.length,
+                newCapacity: nextCapacity
+            )
+            self.areaCapacity = nextCapacity
+        }
+
+        public fn append(value: own Target) {
+            let nextLength = self.length + 1
+            reserve(nextLength)
+
+            Items.initialize(
+                root: self.root!,
+                index: self.length,
+                value: Item(take value)
+            )
+            self.length = nextLength
+        }
+
+        public fn insert(index: Size, value: own Target) {
+            if index > self.length {
+                throw BoundsError(index, self.length)
+            }
+
+            let nextLength = self.length + 1
+            reserve(nextLength)
+
+            var cursor = self.length
+            while cursor > index {
+                Items.move(
+                    from: self.root!,
+                    fromIndex: cursor - 1,
+                    to: self.root!,
+                    toIndex: cursor
+                )
+                cursor -= 1
+            }
+
+            Items.initialize(
+                root: self.root!,
+                index: index,
+                value: Item(take value)
+            )
+            self.length = nextLength
+        }
+
+        public fn remove(index: Size) -> Target {
+            if index >= self.length {
+                throw BoundsError(index, self.length)
+            }
+
+            let oldLength = self.length
+            let removed = Items.extract(self.root!, index)
+            var cursor = index
+
+            while cursor + 1 < oldLength {
+                Items.move(
+                    from: self.root!,
+                    fromIndex: cursor + 1,
+                    to: self.root!,
+                    toIndex: cursor
+                )
+                cursor += 1
+            }
+
+            self.length = oldLength - 1
+            return take removed.Target
+        }
+
+        public fn read(index: Size) -> Target
+            where Target: Copyable
+        {
+            return itemAt(index).Target
+        }
+
+        public fn replace(index: Size, value: own Target) -> Target {
+            let item = itemAt(index)
+            let previous = take item.Target
+            item.Target = take value
+            return take previous
+        }
+    }
+}

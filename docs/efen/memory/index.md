@@ -27,11 +27,13 @@
 
 ## Layout и структуры данных
 
-- [Адреса и структуры данных](addresses.md) — населения, origins и операции
-  membership.
-- [Колоночные layout](columnar-layouts.md) — отображение обычных логических
-  структур в несколько rows и columns, split-by-kind HIR и транзакции storage.
-- [Варианты physical storage](layout-representations.md) — AoSoA, hot/cold,
-  sparse/ECS, compressed, segmented, GPU и adaptive формы поверх общего API.
+- [Layout и дескрипторы памяти](addresses.md) — `Target`/`Self`, memory
+  descriptors, typed pointers, встраивание, условия и безопасность операций.
+- [Примеры layout](layout-examples/) — варианты `Array` с цельными исходниками
+  и построчными объяснениями.
+- [Колоночные layout](columnar-layouts.md) — исследование отображения в rows и
+  columns, которое ещё предстоит перенести на текущие descriptors.
+- [Варианты physical storage](layout-representations.md) — исследование AoSoA,
+  hot/cold, sparse/ECS, compressed, segmented, GPU и adaptive форм.
 - [Efen → Viper](viper-verification-backend.md) — обязательства безопасности и
   проверка операций layout.
