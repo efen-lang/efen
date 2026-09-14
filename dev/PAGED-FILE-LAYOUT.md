@@ -146,6 +146,14 @@ aspect List<Target> conforms Representation<Target> {
     }
 
     implementation {
+        @constructor
+        public fn init -> Self {
+            self.head = null
+            self.tail = null
+            self.length = 0
+            return self
+        }
+
         public fn count -> Size {
             return self.length
         }
@@ -153,10 +161,10 @@ aspect List<Target> conforms Representation<Target> {
 }
 ```
 
-Создание нового `Array<Target, List>` создаёт именно `Self` и инициализирует
-его поля. Отдельные `struct List`, `one List` и присваивание
-`List = List()` для корня не нужны. `one` используется, когда layout
-действительно содержит отдельный одиночный объект помимо `Self`.
+Создание нового `Array<Target, List>` вызывает конструктор representation,
+который явно инициализирует поля `Self`. Отдельные `struct List`, `one List` и
+присваивание `List = List()` для корня не нужны. `one` используется, когда
+layout действительно содержит отдельный одиночный объект помимо `Self`.
 
 ## Поле и физическое встраивание
 

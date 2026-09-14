@@ -35,6 +35,22 @@ aspect Contiguous<Target> conforms Representation<Target> {
     }
 
     implementation {
+        @constructor
+        public fn init(
+            count: Size,
+            make: (Size) -> Target
+        ) -> Self {
+            var pending = Items.allocateArea(capacity: count)
+
+            for index in 0..<count {
+                let value = make(index)
+                pending.initializeNext(Item(take value))
+            }
+
+            self.items = take pending
+            return self
+        }
+
         // Операции приведены ниже.
     }
 }

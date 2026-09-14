@@ -52,6 +52,13 @@ aspect Chunked<Target> conforms Representation<Target> {
     }
 
     implementation {
+        @constructor
+        public fn init -> Self {
+            self.directory = Chunks.allocateArea(capacity: 0)
+            self.length = 0
+            return self
+        }
+
         // Операции приведены ниже.
     }
 }
@@ -99,6 +106,7 @@ implementation {
     @constructor
     public fn init -> Self {
         self.directory = Chunks.allocateArea(capacity: 0)
+        self.length = 0
         return self
     }
 

@@ -66,6 +66,14 @@ aspect DoubleLinkedList<Target> conforms Representation<Target> {
     }
 
     implementation {
+        @constructor
+        public fn init -> Self {
+            self.head = null
+            self.tail = null
+            self.length = 0
+            return self
+        }
+
         // Операции приведены ниже.
     }
 }
@@ -131,6 +139,14 @@ aspect DoubleLinkedList<Target> conforms Representation<Target> {
     }
 
     implementation {
+        @constructor
+        public fn init -> Self {
+            self.head = null
+            self.tail = null
+            self.length = 0
+            return self
+        }
+
         fn itemAt(index: Size) -> Items.Item {
             if index >= self.length {
                 throw BoundsError(index, self.length)

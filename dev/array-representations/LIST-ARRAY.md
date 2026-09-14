@@ -79,6 +79,14 @@ aspect List<Target> conforms Representation<Target> {
     }
 
     implementation {
+        @constructor
+        public fn init -> Self {
+            self.head = null
+            self.tail = null
+            self.length = 0
+            return self
+        }
+
         // Операции приведены ниже.
     }
 }
@@ -114,9 +122,9 @@ set OtherItems: Item
 GPU и другие источники. Этот пример источник не выбирает и использует поведение
 дескрипторов по умолчанию.
 
-При создании нового `Array<Element, List>` компилятор создаёт `Self`,
-инициализирует `head`, `tail` и `length` значениями из `struct Self`, а `Items`
-начинается пустым. Дополнительный конструктор пустого списка для этого не нужен.
+При создании нового `Array<Element, List>` конструктор representation явно
+инициализирует поля `Self`. Дескриптор `Items` начинается пустым; после записи
+`head`, `tail` и `length` условия layout выполняются для пустого списка.
 
 ## Поле и встраивание
 
@@ -259,6 +267,14 @@ aspect List<Target> conforms Representation<Target> {
     }
 
     implementation {
+        @constructor
+        public fn init -> Self {
+            self.head = null
+            self.tail = null
+            self.length = 0
+            return self
+        }
+
         fn itemAt(index: Size) -> Items.Item {
             if index >= self.length {
                 throw BoundsError(index, self.length)

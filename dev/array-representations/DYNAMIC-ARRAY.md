@@ -35,6 +35,12 @@ aspect DynamicContiguous<Target> conforms Representation<Target> {
     }
 
     implementation {
+        @constructor
+        public fn init(capacity: Size = 0) -> Self {
+            self.items = Items.allocateArea(capacity: capacity)
+            return self
+        }
+
         // Операции приведены ниже.
     }
 }
