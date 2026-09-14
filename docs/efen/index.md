@@ -43,12 +43,13 @@ source syntax
 
 - с заглавной буквы начинаются типы, состояния, populations `set` и контексты:
   `String`, `Point`, `Open`, `Entries`, `Logger`;
-- со строчной буквы начинаются значения, функции, поля и варианты enum:
+- со строчной буквы начинаются значения, функции, поля, значения `enum` и cases
+  `variant`:
   `count`, `saveUser`, `width`, `north`.
 
 После `%` действует то же правило: `%Logger` обозначает тип эффекта или
-контракта, `%db` — поле активного контекста. Имя типа со строчной буквы или имя
-варианта enum с заглавной является ошибкой компиляции, а не стилевым
+контракта, `%db` — поле активного контекста. Имя типа со строчной буквы, значение
+`enum` или case `variant` с заглавной является ошибкой компиляции, а не стилевым
 предупреждением.
 
 ## Язык выражений и управление потоком
@@ -67,7 +68,7 @@ source syntax
 | Тема | Документы |
 |---|---|
 | Основы типов | [Типы](types/type.md), [константы](types/constants.md), [алиасы](type-aliases.md), [refinement types](types/refinement-types.md) |
-| Составные значения | [Tuple](types/tuples.md), [enum](types/enum.md), [optional](types/optional.md), [проекции](types/projection.md) |
+| Составные значения | [Tuple](types/tuples.md), [enum](types/enum.md), [variant](types/variant.md), [structural union](type-aliases.md#union-типы), [optional](types/optional.md), [проекции](types/projection.md) |
 | Коллекции и строки | [Коллекции](types/collections.md), [словари](types/dictionaries.md), [строки](types/strings.md) |
 | Generics | [Generics](generics.md), [built-in contracts](types/built-in-contracts.md) |
 | Состояния и ресурсы | [Typestate](types/typestate.md), [ownership](types/ownership.md), [disposable](disposable.md) |

@@ -21,7 +21,7 @@
 | **Dependent type** | Тип, зависящий от конкретного значения или экземпляра. Полная модель dependent types и `Layout<T>` пока отложена. | [Адреса](memory/addresses.md) |
 | **Dialect** | Frontend-уровень, который отображает другой исходный язык или профиль синтаксиса в семантику Efen и Amber HIR. | [Диалекты](dialects.md) |
 | **Effect** | Статически отслеживаемое внешнее требование или действие, распространяемое по графу вызовов. | [Контексты и эффекты](context-and-effects.md) |
-| **Family** | Открытый tagged carrier `Family<Base>`, куда проверенные новые виды могут добавляться без закрытого union всех вариантов. | [Адреса](memory/addresses.md), [колоночные layout](memory/columnar-layouts.md) |
+| **Family** | Открытый tagged carrier `Family<Base>`, куда проверенные новые виды могут добавляться без закрытого множества cases одного `variant`. | [Адреса](memory/addresses.md), [колоночные layout](memory/columnar-layouts.md) |
 | **Flow** | Монадическая последовательность вычислений. `<-` связывает значение контекста, а `return` завершает только сам `flow`. | [Flow](flow.md) |
 | **HIR** | Высокоуровневое структурное представление программы после frontend. Тела проходят от нетипизированных C0/C1-форм к типизированным и проверенным поздним стадиям; это не машинные инструкции. | [Compile-time API](compile-time/index.md), [Amber HIR](https://github.com/limelight-lang/amber/blob/main/design/hir/README.md) |
 | **Interface** | Runtime-тип с динамической диспетчеризацией. Проекция contract в interface создаётся только явной формой `interface I from C`. | [Интерфейсы](interfaces.md), [контракты](contracts.md#связь-контрактов-с-интерфейсами) |
@@ -32,7 +32,7 @@
 | **Metadata** | Типизированные compile-time данные декларации; отдельное решение определяет, какая добавленная metadata нужна runtime. | [Metadata](aspects/metadata.md) |
 | **Metafunction** | Compile-time функция, возвращающая `InlineClosure` или преобразующая HIR. Шаблон и placeholders типизированы по её контракту; вставленный результат проходит обычные разрешение и проверки. | [Метафункции](compile-time/metafunctions.md) |
 | **Module** | Файл и область имён внутри пакета; видимость модуля ограничивает доступность его деклараций. | [Пакеты и модули](packages.md) |
-| **Naming register** | Регистр первой буквы определяет категорию имени: типы и контексты начинаются с заглавной, значения и варианты enum — со строчной. | [Лексическое правило](index.md#лексическое-правило-имён) |
+| **Naming register** | Регистр первой буквы определяет категорию имени: типы и контексты начинаются с заглавной, значения, элементы `enum` и cases `variant` — со строчной. | [Лексическое правило](index.md#лексическое-правило-имён) |
 | **Opaque type** | Номинальная identity со скрытой реализацией и явно ограниченной областью раскрытия. | [Дженерики](generics.md) |
 | **Origin** | Статическая связь ссылки с местом или population, определяющая срок её допустимой жизни. Не путать с provenance сгенерированного HIR. | [Ownership](types/ownership.md), [адреса](memory/addresses.md) |
 | **Ownership** | Обязанность управлять временем жизни ресурса и право передать эту обязанность. | [Ownership](types/ownership.md) |
@@ -46,7 +46,8 @@
 | **`StrategySelector`** | Встроенная compile-time точка расширения; `strategy for StrategySelector where ...` заменяет стандартный выбор стратегий для подходящих запросов. | [Стратегии](strategies.md#правила-выбора-стратегии) |
 | **`take`** | Явная передача `own`, после которой исходное место пусто либо недоступно согласно его виду. | [Ownership](types/ownership.md#явное-извлечение) |
 | **Typestate** | Проверяемое компилятором состояние значения, ограничивающее допустимые операции и переходы. | [Типы-состояния](types/typestate.md) |
-| **Union** | Закрытый набор альтернатив с одной активной альтернативой. Union-поле имеет ту же семантику; layout выбирает компилятор. | [Enum и union](types/enum.md), [union в storage](memory/addresses.md) |
+| **Structural union** | Тип `T | U`, объединяющий значения существующих типов без введения новых именованных constructors. | [Union-типы](type-aliases.md#union-типы) |
+| **Variant type** | Номинальный закрытый tagged sum. Каждое значение создано ровно одним именованным case/constructor; case может иметь payload. | [Variant types](types/variant.md) |
 | **Witness** | Конкретная compile-time реализация contract или выбранная стратегия, которую компилятор сохраняет как основание разрешения. | [Контракты](contracts.md), [стратегии](strategies.md) |
 | **`without Context`** | Граница вывода: требование `in Context` из блока не заражает окружающую функцию. Доступное значение контекста не удаляется. Название конструкции ещё может измениться. | [Контексты и эффекты](context-and-effects.md) |
 
@@ -59,4 +60,5 @@
 | Origin и provenance | Origin ограничивает жизнь ссылки; provenance объясняет, какой metacode породил HIR. |
 | Strategy и aspect | Strategy разрешает поведение; aspect участвует в построении абстракции и её HIR. |
 | `isolated` и `without Context` | `isolated` закрывает весь вывод внешних эффектов; `without Context` закрывает одно контекстное требование. |
-| Union и `Family<Base>` | Union закрыт; family допускает проверенные новые exact-виды. |
+| Variant и structural union | Variant вводит номинальные cases; `T | U` только объединяет существующие типы. |
+| Variant и `Family<Base>` | Variant закрыт; family допускает проверенные новые exact-виды. |

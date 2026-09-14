@@ -243,13 +243,13 @@ error[typestate.invalid-call]: `read` requires state `Open`
 5. добавить typestate в сигнатуры методов интерфейсов и контрактов;
 6. реализовать flow-sensitive проверку совместно с ownership-анализом.
 
-Слово `state` не конфликтует с union-типами:
+Слово `state` не конфликтует со structural union:
 
 ```efen
 fn parse -> Bool | String state Ready
 ```
 
-Здесь `Bool | String` — возвращаемый union-тип, а `Ready` — состояние объекта.
+Здесь `Bool | String` — возвращаемый structural union, а `Ready` — состояние объекта.
 
 ## Области с гарантией состояния
 

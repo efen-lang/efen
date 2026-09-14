@@ -472,6 +472,8 @@ fn processFile {
 
 ### С pattern matching
 
+`Result<T, E>` здесь является [variant type](types/variant.md):
+
 ```efen
 fn processFile(result: Result<File, Error>) {
     match result {

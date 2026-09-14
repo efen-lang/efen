@@ -114,7 +114,7 @@ alias Parser = (String) -> Result?
 
 ```efen
 alias Option<T> = T?
-alias Result<T> = (T | Error)
+alias ValueOrError<T> = (T | Error)
 alias Pair<T, U> = (T, U)
 ```
 
@@ -148,21 +148,35 @@ let strings = map(numbers, (n) => String(n))
 ### Частичное применение дженериков
 
 ```efen
-alias Result<T> = (T | Error)
+alias ValueOrError<T> = (T | Error)
 
 // Можно создать специализированные алиасы
-alias IntResult = Result<Int>
-alias StringResult = Result<String>
+alias IntOrError = ValueOrError<Int>
+alias StringOrError = ValueOrError<String>
 ```
 
 ## Сложные типы
 
-### Union типы
+### Union-типы
+
+Запись `T | U` образует structural union существующих типов. Она не вводит
+именованных constructors.
 
 ```efen
 alias ID = (Int | String)
 alias Response = (Success | Error | Pending)
 alias Nullable<T> = (T | null)
+```
+
+Если альтернативам нужны собственные имена или payload одинакового типа должен
+оставаться различимым по case, используется номинальный
+[variant type](types/variant.md):
+
+```efen
+variant Side {
+    left { value: Int }
+    right { value: Int }
+}
 ```
 
 ### Tuple типы
@@ -205,7 +219,7 @@ alias ValidationResult = (Bool, [String])
 ```efen
 alias SuccessCallback<T> = (T) -> Void
 alias ErrorCallback = (Error) -> Void
-alias CompletionHandler = (Result<Any>) -> Void
+alias CompletionHandler = (ValueOrError<Any>) -> Void
 
 class HTTPClient {
     fn get(
@@ -282,7 +296,7 @@ alias UserTransformer = (User) -> User
 alias OldResult = (Int | Error)
 
 @experimental
-alias AsyncResult<T> = Future<Result<T>>
+alias AsyncValueOrError<T> = Future<ValueOrError<T>>
 
 @internal
 alias InternalID = Int
@@ -327,7 +341,7 @@ type UserId: Int
 ```efen
 alias UserID = String
 alias Point = (Int, Int)
-alias Result<T> = (T | Error)
+alias ValueOrError<T> = (T | Error)
 ```
 
 ### Функциональные типы

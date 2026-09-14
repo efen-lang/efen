@@ -305,7 +305,7 @@ let zipped = zip(numbers, letters)  // [(1, "a"), (2, "b"), (3, "c")]
 Алиасы типов также могут быть дженерик-типами:
 
 ```efen
-alias Result<T> = (T | Error)
+alias ValueOrError<T> = (T | Error)
 alias Handler<T> = (T) -> Void
 alias Transformer<T, U> = (T) -> U
 
@@ -322,7 +322,7 @@ fn processData {
 
 Generic-параметр может быть любым compile-time значением. `Type` является одним
 из допустимых типов параметра, а не отдельным видом generic. Параметрами также
-могут быть enum-константы, числа, строки, логические значения, origin,
+могут быть значения enum, числа, строки, логические значения, origin,
 атрибуты, contracts, interfaces, strategies, функции и другие декларации или
 значения, доступные compile-time коду.
 
@@ -362,7 +362,7 @@ Enum, объявленный владельцем generic-типа, позвол
 type ParticleColumns: Array<Particle, SoA>
 ```
 
-Здесь `Particle` — аргумент параметра типа `Element`, а `SoA` — enum-константа
+Здесь `Particle` — аргумент параметра типа `Element`, а `SoA` — значение enum
 внутри `Array`.
 Конкретная инстанциация имеет одну определённую representation.
 Запись `[T]` сокращает `Array<T, default>`.
@@ -697,10 +697,10 @@ where ...Errors: Exception
 остаётся массивом типов. Поэтому отдельное слово `each` не требуется. Справа от
 `:` contract означает `conforms`, а класс или интерфейс — совместимость типа.
 
-Pack раскрывается в кортеже, union и другом списке типов:
+Pack раскрывается в кортеже, structural union и другом списке типов:
 
 ```efen
-alias Result<Value, ...Errors> = Value | ...Errors
+alias ValueOrErrors<Value, ...Errors> = Value | ...Errors
 ```
 
 Compile-time коллекция типов поддерживает обычные допустимые операции над

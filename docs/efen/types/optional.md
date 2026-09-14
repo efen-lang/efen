@@ -587,7 +587,7 @@ fn findArea(shape: Shape?) -> Int? {
 ## Внутреннее представление
 
 `T?` является optional-типом, а `Option<T>` — его стандартным alias. Optional
-не обязан иметь одну enum-раскладку для всех `T`: конкретную representation
+не обязан иметь одну tagged-sum раскладку для всех `T`: конкретную representation
 выбирает тип и backend с сохранением различимых состояний.
 
 ```efen
@@ -647,7 +647,7 @@ fn findLast<T>(array: [T], where predicate: (T) -> Bool) -> T? {
 ## Ошибки и Optional
 
 Optional часто используется для простых случаев отсутствия значения.
-Для ошибок используйте [Result<T, E>](enum.md) или [throws](../throws.md):
+Для ошибок используйте [Result<T, E>](variant.md) или [throws](../throws.md):
 
 ```efen
 // ✅ Optional - для простого отсутствия значения
@@ -668,7 +668,8 @@ fn loadUser(id: Int) throws -> User {
 
 ## См. также
 
-- [enum.md](enum.md) — enum и optional являются разными видами типов
+- [variant.md](variant.md) — `Result<T, E>` и другие номинальные tagged sums
+- [enum.md](enum.md) — конечные перечисления без payload
 - [../blocks/if.md](../blocks/if.md) — Optional binding с if let
 - [../blocks/guard.md](../blocks/guard.md) — Guard let для optional
 - [../blocks/match.md](../blocks/match.md) — Сопоставление с образцом и optional

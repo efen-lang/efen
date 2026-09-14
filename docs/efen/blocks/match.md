@@ -197,7 +197,7 @@ match number {
 
 ## match с enum
 
-Вариант enum в образце пишется с точкой:
+Значение enum в образце пишется с точкой:
 
 ```efen
 enum Direction {
@@ -218,16 +218,16 @@ match direction {
 // "На север"
 ```
 
-### Enum с ассоциированными значениями
+### Variant type с payload
 
-Поля варианта именованные, поэтому образец перечисляет их
-[оператором проекции `.{ }`](../types/projection.md) после имени варианта.
+Поля case именованные, поэтому образец перечисляет их
+[оператором проекции `.{ }`](../types/projection.md) после имени case.
 В образце `.{ }` копируемое поле связывается копией, uniquely-owned поле —
 заимствованием; передача владения требует явного `take`. Представления образец
 не создаёт:
 
 ```efen
-enum Barcode {
+variant Barcode {
     upc { system: Int, manufacturer: Int, product: Int, check: Int }
     qrCode { code: String }
 }
@@ -344,7 +344,8 @@ match point {
 
 ## @unknown _
 
-Для enum, которые могут быть расширены в будущем:
+Для `enum` и `variant`, в которые библиотека может добавить cases в следующей
+версии:
 
 ```efen
 enum Status {
@@ -380,15 +381,17 @@ match status {
 - Ветка не проваливается в следующую
 - Полнота покрытия проверяется компилятором
 - `match` возвращает значение
-- Образцом может быть кортеж, диапазон, тип или вариант enum
+- Образцом может быть кортеж, диапазон, тип, значение enum или case variant type
 
 ### Общее со Swift:
 - Образцы с условием `where`
 - Привязка значений
-- Работа с enum и optional
+- Работа с enum, variant и optional
 
 ## См. также
 
+- [Enum](../types/enum.md) — конечные перечисления без payload
+- [Variant types](../types/variant.md) — именованные cases с payload
 - [if.md](if.md) — Условные конструкции
 - [guard.md](guard.md) — Early exit с guard
 - [loops.md](loops.md) — Циклы

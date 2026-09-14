@@ -90,7 +90,7 @@ repeat {
 - Отсутствие проваливания по умолчанию
 - Pattern matching с where условиями
 - Value binding
-- Работа с диапазонами, кортежами, enum и optional
+- Работа с диапазонами, кортежами, enum, variant и optional
 
 **Примеры:**
 ```efen
