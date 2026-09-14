@@ -65,7 +65,7 @@ aspect List<Target> conforms Representation<Target> {
             var tail: read Items.Item? = null {
                 (self.head == null) == (value == null)
 
-                if value != null then {
+                if value != null {
                     value reachable from self.head by Item.next
                     value.next == null
                 }
@@ -141,11 +141,11 @@ set Items: Item {
 корень достижим из самого себя за ноль переходов. Следующий элемент достижим,
 если достижим предыдущий и его `next` указывает на следующий элемент.
 
-`if condition then` внутри условия является логической импликацией. Тело не
+`if condition { ... }` внутри условия является логической импликацией. Тело не
 исполняется во время работы программы:
 
 ```efen
-if value != null then {
+if value != null {
     value reachable from self.head by Item.next
     value.next == null
 }
@@ -188,7 +188,7 @@ aspect List<Target> conforms Representation<Target> {
             var tail: read Items.Item? = null {
                 (self.head == null) == (value == null)
 
-                if value != null then {
+                if value != null {
                     value reachable from self.head by Item.next
                     value.next == null
                 }
