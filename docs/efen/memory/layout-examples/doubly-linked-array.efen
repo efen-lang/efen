@@ -1,7 +1,7 @@
 aspect DoubleLinkedList<Target> conforms Representation<Target> {
     layout {
         set Items: Item {
-            value reachable from self.head by Item.next
+            chained from self.head by Item.next
         }
 
         struct Item {
@@ -89,14 +89,18 @@ aspect DoubleLinkedList<Target> conforms Representation<Target> {
             return itemAt(index).Target
         }
 
-        public fn replace(index: Size, value: own Target) -> Target {
+        public fn replace(index: Size, value: own Target) -> Target
+            where Target: Movable
+        {
             let item = itemAt(index)
-            let previous = take item.Target
-            item.Target = take value
+            let previous = replace(item.Target, value)
+
             return take previous
         }
 
-        public fn append(value: own Target) {
+        public fn append(value: own Target)
+            where Target: Movable
+        {
             let nextLength = self.length + 1
             let item = Items.allocate(
                 Item(
@@ -117,7 +121,9 @@ aspect DoubleLinkedList<Target> conforms Representation<Target> {
             self.length = nextLength
         }
 
-        public fn insert(index: Size, value: own Target) {
+        public fn insert(index: Size, value: own Target)
+            where Target: Movable
+        {
             if index > self.length {
                 throw BoundsError(index, self.length)
             }
@@ -147,7 +153,9 @@ aspect DoubleLinkedList<Target> conforms Representation<Target> {
             self.length = nextLength
         }
 
-        public fn remove(index: Size) -> Target {
+        public fn remove(index: Size) -> Target
+            where Target: Movable
+        {
             if index >= self.length {
                 throw BoundsError(index, self.length)
             }

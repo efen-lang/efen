@@ -11,9 +11,9 @@ Viper-emitter, но не является отчётом о машинном д�
 предположение должно исчезнуть после проверки их реализации или refinement.
 
 Нормативная модель требует проверять origin, живость, инициализацию, границы и
-права перед каждым разыменованием ([`addresses.md:404-410`](addresses.md#владение-живость-и-доступ)).
+права перед каждым разыменованием ([раздел «Владение, живость и доступ»](addresses.md#владение-живость-и-доступ)).
 Она также отделяет `own` от прав чтения и записи
-([`ownership.md:5-20`](../types/ownership.md#аспекты-владения)). Настоящий
+([раздел «Аспекты владения»](../types/ownership.md#аспекты-владения)). Настоящий
 документ сохраняет это разделение на каждом уровне.
 
 ## 1. Область модели
@@ -27,14 +27,14 @@ Viper-emitter, но не является отчётом о машинном д�
 - обычные read/write borrows без конкурентности;
 - normal, exceptional и cleanup-рёбра;
 - временно открытые декларативные условия;
-- checked-арифметику `Size`;
+- сохранение уже разрешённого compiler arithmetic CFG для `Size`;
 - современные взаимные условия, записанные у обоих полей, без старого
   неявного `inverse`.
 
 Columnar storage здесь задаёт только будущую границу refinement. Его logical
-identity не совпадает с physical row (`columnar-layouts.md:208-227`), а
+identity не совпадает с physical row ([формальная модель columnar storage](columnar-layouts.md#формальная-модель)), а
 `create`, `remove`, `replace` и `compact` должны отдельно доказать сохранение
-отображений (`columnar-layouts.md:229-271`). Runtime-open kinds в эту модель не
+отображений ([операции columnar storage](columnar-layouts.md#операции)). Runtime-open kinds в эту модель не
 входят.
 
 ## 2. Типизированное состояние
@@ -58,8 +58,8 @@ PropertyId     -- декларативное условие или взаимн�
 
 Ни одна пара этих типов не приводится неявно. В частности, одинаковый машинный
 адрес из двух descriptor не создаёт одинаковый `ElementId`; это следует из
-origin-правила `Items.Item` (`addresses.md:133-137`) и несовместимости разных
-множеств (`addresses.md:223-242`).
+origin-правила `Items.Item` ([производные типы descriptor](addresses.md#производные-типы-дескриптора))
+и [несовместимости разных множеств](addresses.md#происхождение-и-разные-множества).
 
 ### 2.2. Ссылки и места
 
@@ -93,8 +93,9 @@ Place =
 ссылки со старым epoch непригодны независимо от совпадения машинного адреса.
 Такое разделение требуется
 потому, что текущая модель допускает invalidation старых `Items.Item` после
-reallocation (`addresses.md:372-383`), а columnar compaction сохраняет logical
-identity (`columnar-layouts.md:223-227`).
+reallocation ([перевыделение area](addresses.md#перевыделение-области-и-корневой-указатель)),
+а columnar compaction сохраняет logical identity
+([формальная модель storage](columnar-layouts.md#формальная-модель)).
 
 ### 2.3. Чистая часть состояния
 
@@ -106,6 +107,8 @@ elementType(d): Type
 liveAlloc: Set[AllocationId]
 liveElem[d]: Set[ElementId]
 everElem[d]: Set[ElementId]
+memberLive[d] := liveElem[d]
+externallyEscaped: Set[ElementId]
 
 areaDescriptor[a]: DescriptorId
 areaEpoch[a]: Epoch
@@ -114,7 +117,6 @@ occupant[a, epoch, index]: ElementId?
 location[e]: (AreaId, Epoch, Index)?
 
 initialized: Set[Place]
-published: Set[ElementId]
 phase[l]: constructing | closed | open | destroying | dead
 openProperties[l]: Set[PropertyId]
 loanPlace[loan]: Place
@@ -135,14 +137,14 @@ occupant[a,k,i] == e              ==> a in liveAlloc
                                       && e in liveElem[d]
 location[e] == (a,k,i)            <==> occupant[a,k,i] == e
 AreaSlot(d,a,k,i) in initialized  <==> occupant[a,k,i] != null
-published subset liveElem
+externallyEscaped intersect elementsOf(d) subset memberLive[d]
 provisionalElem disjoint liveElem[d]
-provisionalElem disjoint published
+provisionalElem disjoint externallyEscaped
 ```
 
 `everElem` запрещает повторно признать старую identity свежей. Для политики с
 recycling вместо монотонной identity требуется generation без wrap, способного
-оживить старую ссылку (`columnar-layouts.md:223-227`).
+оживить старую ссылку ([формальная модель storage](columnar-layouts.md#формальная-модель)).
 
 ### 2.4. Ресурсная часть
 
@@ -154,13 +156,16 @@ recycling вместо монотонной identity требуется generati
 LayoutWrite(l)                 -- исключительное изменение опубликованного layout
 DescriptorWrite(d)             -- изменение membership descriptor
 LayoutState(l, sigmaL)         -- phase, openProperties и layout ghost fields
-DescriptorState(d, sigmaD)     -- live/ever/published и association allocations
+DescriptorState(d, sigmaD)     -- memberLive/ever/externallyEscaped и associations
 AreaState(d, a, sigmaA)        -- epoch, capacity, occupant/location/init slots
 AllocationOwn(a)               -- обязанность освободить allocation
 ElementOwn(e)                  -- обязанность уничтожить/передать логический элемент
 StableOwner(d, a, e)           -- неразделимый owning handle allocation+element
 Provisional(d, a, e, mask)     -- ещё не опубликованный initialized block
 ValueOwn(v: T)                 -- обязанность уничтожить/передать значение
+PreparedOwn(v: Item)           -- полностью построенный owning argument
+PreparedReplace(rep,p,new,plan)-- fallible prepare при неизменном published place
+ReplaceRefinement(rep,kind)    -- proof witness concrete representation
 Uninit(p: Place, T)            -- slot существует и допускает construction
 Init(p: Place, v: T)           -- в slot живёт полностью созданное значение
 ReadCell(p, q)                 -- дробь q, 0 < q <= 1
@@ -170,9 +175,16 @@ LoanWrite(loan, p)
 AreaStable(a, q)               -- доля запрета смены epoch
 SlotStable(p, q)               -- доля запрета move/extract этого slot
 LocationLease(loan, AreaRef, mode, q)
-OpenAuthority(l, properties)
+OpenAuthority(l, properties, openState)
 ClosedInvariant(l, property)
 Cleanup(value-or-allocation)
+PayloadOwnTree(value, owners)   -- nested owning fields initialized payload
+ConstructionCleanup(self, mask, owners)
+SelfDrop(self, mask, owners)
+LocalChunkCleanup(local, area)
+TemporaryChunkCleanup(temp, area)
+CalleeChunkCleanup(argument, area)
+PublishedChunkDrop(chunkElement, area)
 ```
 
 Основные законы:
@@ -189,7 +201,7 @@ StableOwner(d,a,e)         cannot be split into independently movable owners
 ```
 
 `ElementOwn` переносится между owner-places, но не создаётся чтением. Это
-ресурсная форма правила `take` из `ownership.md:233-260`. Диагностическая чистая
+ресурсная форма [правила `take`](../types/ownership.md#явное-извлечение). Диагностическая чистая
 карта `ownerPlace[e]` допустима, но она не заменяет линейный ресурс.
 
 Чистые maps не являются глобальными переменными, которые VIR может присваивать
@@ -201,7 +213,7 @@ predicates, владеющие соответствующими ghost cells и �
 использовать для mutation. `AreaState` изменяется только вместе с
 `DescriptorWrite(d)` и полным доступом к затронутым slot resources; изменение
 layout fields дополнительно требует `LayoutWrite(l)`. Поэтому присваивание
-`liveElem`, `occupant`, `location`, `epoch`, `phase` или `published` без
+`liveElem`, `occupant`, `location`, `epoch`, `phase` или `externallyEscaped` без
 соответствующего state predicate отвергает VIR validator.
 
 Для стабильного set связь двух обязанностей задаёт bundle:
@@ -212,7 +224,7 @@ StableOwner(d,a,e)
 
 ElementStorage(d,a,e,mask,values)
   == Init(fields in mask) ⊗ Uninit(fields outside mask)
-     ⊗ WriteCell(all physical fields)
+     ⊗ WriteCell(all physical fields) ⊗ PayloadOwnTree(values,nestedOwners)
 ```
 
 `StableOwner` целиком находится в одном owner-place и переносится только целиком.
@@ -220,6 +232,12 @@ ElementStorage(d,a,e,mask,values)
 временно выдают из него field resources. `free` требует одновременно owner
 bundle и storage из того же association, поэтому нельзя потерять
 `AllocationOwn`, сохранив `ElementOwn`, или наоборот.
+
+`ElementStorage` для составного значения дополнительно содержит
+`PayloadOwnTree`: все owner-resources его initialized owning fields. Например,
+после публикации `Chunk.root: own Items.Area` вложенный `AllocationOwn(area)`
+находится ровно в `PayloadOwnTree(Chunk, root)`, а не исчезает и не остаётся
+второй копией у прежнего local.
 
 `Uninit(p,T)` и `Init(p,v)` взаимоисключающи. Viper permission к физическому полю
 сам по себе не доказывает `Init`: Viper heap всегда содержит математическое
@@ -266,10 +284,11 @@ EndLease(loan):
 Reborrow дробит ресурс родительского loan, а не создаёт новый доступ. В первой
 версии frontend вычисляет lifetime и вставляет `EndBorrow` на каждом normal и
 exceptional выходе. Живой loan area slot блокирует `move`, `extract`,
-`reallocateArea` и `free`; это соответствует `addresses.md:417-420`. Для
+`reallocateArea` и `free`; это соответствует
+[правилу живого заимствования](addresses.md#владение-живость-и-доступ). Для
 заимствований projected columnar field остаются обязательны origin, live и
 отсутствие конфликтующего перемещения, даже если backing slot `managed`
-(`ownership.md:25-44`).
+([ownership и `managed`](../types/ownership.md#аспекты-владения)).
 
 ## 3. Descriptor kinds
 
@@ -281,17 +300,26 @@ exceptional выходе. Живой loan area slot блокирует `move`, `
 | `set area` | множество независимых `AreaId` одного descriptor | объединение occupants всех живых areas | отдельно для каждой area | независимо для каждой area | конечный каталог areas, затем slots каждой area |
 
 `area` не хранит capacity или initialized count в runtime-pointer
-(`addresses.md:139-171`). Proof state получает эти факты из полей владельца и
+([производные типы descriptor](addresses.md#производные-типы-дескриптора)). Proof state получает эти факты из полей владельца и
 контрактов операций; emitter не вправе придумывать скрытую runtime-таблицу.
 
 ## 4. Контракты descriptor operations
 
 Ниже `S` — входное состояние, `S'` — normal state, `S!` — exceptional state.
-`samePublished(S!,S)` означает равенство всех опубликованных roots, membership,
+`sameObservable(S!,S)` означает равенство roots, `memberLive`, external escape,
 значений и epochs. Переданный через `take` аргумент уже недоступен вызывающему;
 если операция бросает после принятия аргумента, она обязана уничтожить принятые
 части ровно один раз. Это согласуется с контрактом storage create
-(`columnar-layouts.md:184-188`, `229-251`).
+([обычный API](columnar-layouts.md#обычный-api-и-динамические-виды),
+[операции](columnar-layouts.md#операции)).
+
+Для всех transition-схем ниже действует правило линейной полноты: каждый
+state/authority/owner/resource из `pre` обязан появиться на каждом выходе ровно
+в одной из форм — возвращён неизменённым, возвращён с новым состоянием, передан
+другому owner-place либо явно потреблён `drop`/`free`. Если сокращённая запись
+post-state перечисляет только изменившиеся части, остальные ресурсы из `pre`
+возвращаются в прежнем состоянии; VIR validator всё равно проверяет полный
+баланс. Молчаливое исчезновение ресурса не означает его уничтожение.
 
 ### 4.1. Provisional allocation и `Publish` стабильного `set`
 
@@ -308,7 +336,7 @@ normal:
     fresh a notin S.liveAlloc
     fresh e notin S.everElem[D]
     a in provisionalAlloc; e in provisionalElem
-    e notin liveElem[D]; e notin published
+    e notin memberLive[D]; e notin externallyEscaped
     result resource = Provisional(D,a,e,allFields)
     Provisional contains StableOwner(D,a,e)
       ⊗ ElementStorage(D,a,e,allFields,value)
@@ -317,7 +345,7 @@ normal:
     ValueOwn(value) потреблён
 
 exception:
-    samePublished(S!, S)
+    sameObservable(S!, S)
     no Provisional resource escapes
     точная initialized mask созданных полей использована cleanup
     каждое созданное поле уничтожено, a освобождён ровно один раз
@@ -339,7 +367,8 @@ Publish(D, provisional, ownerDestination) pre:
 
 normal, no-throw/no-suspend/no-reenter:
     provisionalAlloc -= {a}; provisionalElem -= {e}
-    liveAlloc += {a}; liveElem[D] += {e}; published += {e}
+    liveAlloc += {a}; memberLive[D] += {e}
+    e notin externallyEscaped
     DescriptorState получает ElementStorage(D,a,e,allFields,value)
     ownerDestination получает StableOwner(D,a,e)
     provisional Cleanup consumed, но drop/free не выполнены
@@ -352,12 +381,13 @@ AbortProvisional(D,a,e) pre:
 
 normal, no-throw/no-suspend/no-reenter:
     drop ровно полей mask; free a ровно один раз
-    provisional sets очищены; e никогда не входит в liveElem/published
+    provisional sets очищены; e никогда не входит в memberLive/externallyEscaped
     StableOwner, ElementStorage и Cleanup consumed
 ```
 
 Surface `D.allocate(value)` является композицией `allocateProvisional` и
-`Publish`. Его normal post явно содержит `e in liveElem[D]`, `e in published`,
+`Publish`. Его normal post явно содержит `e in memberLive[D]`,
+`e notin externallyEscaped`,
 `StableOwner(D,a,e)` у результата и `ElementStorage` внутри нового
 `DescriptorState`. Его exceptional post совпадает с точным abort выше и не
 возвращает caller уже переданный через `take` value.
@@ -368,17 +398,83 @@ membership образуют no-throw/no-suspend/no-reenter commit. До `Publish
 
 Для descriptor с условиями у `set` контракт имеет две формы. `allocateClosed`
 может вернуть closed state только если поля нового элемента уже доказывают все
-затронутые условия. `allocateOpen` принимает `OpenAuthority(l,group)`, добавляет
+затронутые условия. `allocateOpen` принимает
+`OpenAuthority(l,group,sigmaOpen)`, добавляет
 membership внутри открытой group и возвращает тот же authority; caller обязан
 безотказно присоединить элемент и выполнить `CloseProperty`. На exceptional
 выходе `allocateClosed` возвращает прежние closed predicates, а `allocateOpen` —
-прежний open authority и неизменённый published state. Третьего варианта, при
+прежний open authority и неизменённый member state. Третьего варианта, при
 котором normal call публикует нарушающее condition состояние без authority, нет.
-`allocateProvisional` вообще не меняет membership и потому предпочтителен для
-построения нового узла перед присоединением. Если при открытой group последующая
-операция всё же имеет exceptional edge, он обязан либо выполнить
-`AbortProvisional` до восстановления старого state, либо доказанно завершить
-новый state и закрыть group; оставить provisional resource на unwind нельзя.
+`allocateProvisional` является только внутренней VIR-операцией; новый surface API
+для неё не требуется. Обычный surface `D.allocate(value)` под уже открытой group
+lowerится в `allocateOpen`:
+
+Потенциально бросающее построение аргумента выполняется раньше:
+
+```text
+PrepareItem(fields) при closed LayoutState:
+    normal: ValueOwn(fields) --> PreparedOwn(item)
+    exception: точная partial mask очищена; layout остаётся closed
+
+OpenProperty(l,group)
+allocateOpen(D, take prepared, group)
+```
+
+Исключение `PrepareItem` не является выходом `allocateOpen`: group ещё не
+открыта, поэтому действует обычный construction cleanup текущего frame.
+
+```text
+allocateOpen(D,prepared,group) pre:
+    layoutOf(D) == l
+    DescriptorState(D,Sd) ⊗ DescriptorWrite(D)
+    ⊗ OpenAuthority(l,group,sigmaOpen) ⊗ PreparedOwn(prepared)
+
+normal:
+    DescriptorState(D,Sd') ⊗ DescriptorWrite(D)
+    ⊗ OpenAuthority(l,group,sigmaOpen') ⊗ StableOwner(D,a,e)
+    memberLive[D]' = memberLive[D] union {e}
+    e notin externallyEscaped
+    ElementStorage(D,a,e,allFields,prepared) находится внутри Sd'
+    PreparedOwn(prepared) потреблён в ElementStorage
+    formulas group не предполагаются
+
+exception:
+    DescriptorState(D,Sd) ⊗ DescriptorWrite(D)
+    ⊗ OpenAuthority(l,group,sigmaOpen)
+    старый member state сохранён
+    принятый prepared и точная provisional mask очищены ровно один раз
+    наружу не выходит a, e, owner, storage или Cleanup
+```
+
+После exceptional return caller доказывает старые formulas из неизменённого
+state, выполняет `CloseProperty` и только затем rethrow. После normal return
+caller явно присоединяет новый element и закрывает group. `allocateOpen` обязан
+не наблюдать layout, не добавлять e в `externallyEscaped`, не входить в тот же
+layout повторно и не приостанавливаться; все state/authority resources явно
+возвращаются на обоих выходах. Любой store, callback argument, return или другая
+передача identity наружу запрещена до `CloseProperty`; membership внутри
+descriptor уже существует и позволяет законно записать внутренний `next`.
+Пока эти source/runtime effects не доказаны, lowering вызова получает статус
+`unsupported`, а не доверенный `assume`.
+
+Для стандартных Array compiler выбирает более сильное разложение, не требующее
+fallible allocation под открытым invariant:
+
+```text
+prepared = PrepareItem(...)                 // layout closed
+provisional = allocateProvisional(prepared) // layout closed; may fail
+OpenProperty(fullGroup)
+item = Publish(provisional)                  // no-fail commit
+link item; update order/tail/length
+CloseProperty(fullGroup)
+```
+
+Surface-вызов остаётся `Items.allocate(...)`; provisional является внутренним
+ресурсом VIR. Compiler сам выносит allocation и другие fallible действия до
+`OpenProperty`, а открытое окно содержит только проверенные transitions без
+call/safepoint. Если concrete representation не позволяет построить такое
+разложение, её соответствующая операция отклоняется. Новая source-аннотация не
+нужна.
 
 ### 4.2. `D.free(item: own D.Item)` для стабильного `set`
 
@@ -404,7 +500,8 @@ exception:
 ```
 
 Компонент, ранее извлечённый через `take item.Target`, отсутствует в initialized
-set и не уничтожается повторно (`addresses.md:270-290`).
+set и не уничтожается повторно
+([физическое встраивание](addresses.md#поле-и-физическое-встраивание)).
 
 ### 4.3. `D.allocateArea(capacity)`
 
@@ -425,11 +522,11 @@ normal:
     AreaState(D,a,k,capacity,empty) owns slot states and SlotStable shares
 
 exception:
-    samePublished(S!, S); никакой allocation/resource не утёк
+    sameObservable(S!, S); никакой allocation/resource не утёк
 ```
 
 Нулевая capacity не вызывает эту операцию: текущая модель использует `null`
-(`addresses.md:166-171`). Первый Viper spike реализует получение физического
+([нулевая area](addresses.md#производные-типы-дескриптора)). Первый Viper spike реализует получение физического
 блока через `new`; будущий source ABI возвращает `AllocationOwn` по проверенному
 контракту, а не через голый `inhale`.
 
@@ -460,7 +557,7 @@ exception:
 ```
 
 Сам `Area` не доказывает bounds; вызывающий передаёт факты capacity и
-инициализации (`addresses.md:215-221`).
+инициализации ([операции descriptor](addresses.md#операции-дескриптора)).
 
 `AreaRef` без `LocationLease` можно использовать только как внутреннюю координату
 proof state или сравнить как значение; разыменование невозможно. Lifetime
@@ -576,14 +673,15 @@ normal relocation branch:
     old AreaState/AllocationOwn(a) consumed; old a freed exactly once
 
 exception:
-    samePublished(S!, S)
+    sameObservable(S!, S)
     root, old AreaState/AllocationOwn, capacity, epoch,
       initialized prefix и values сохранены
     provisional allocation/values очищены
 ```
 
 Всегда новый proof epoch даёт консервативную семантику обещания, что старые
-`Items.Item` *могут* стать недействительными (`addresses.md:372-383`). Strong
+`Items.Item` *могут* стать недействительными
+([перевыделение area](addresses.md#перевыделение-области-и-корневой-указатель)). Strong
 exception post допустим только для одной из трёх доказанных стратегий:
 
 1. **Provisional copy/clone.** Потенциально бросающие копии создаются в fresh
@@ -631,8 +729,12 @@ exception:
 
 Текущие документы не задают наблюдаемый порядок destructor-ов элементов.
 Поэтому `DropOrder` является обязательным ещё не принятым контрактом descriptor,
-а не скрытым выбором emitter-а. До решения прототип может фиксировать обратный
-индексный порядок и указывать это в trusted assumptions.
+а не скрытым выбором emitter-а. Первый Box spike использует только trivial-drop
+payload `Int`: он доказывает одно потребление owner token, field/storage
+permissions и один `free`, не устанавливая порядок generic array destruction.
+Любой proof с наблюдаемыми generic destructors получает `unsupported`, пока
+порядок не будет принят; emitter не вправе выбрать прямой или обратный порядок
+как trusted assumption.
 
 ## 5. Open/close и точки наблюдения
 
@@ -650,15 +752,24 @@ exception:
 
 ```text
 OpenProperty(l, group):
-    ClosedInvariant(l,p) for every p in dependencySCC(group)
+    LayoutState(l, phase=closed, sigmaL)
     ⊗ LayoutWrite(l)
-  --> OpenAuthority(l, group) ⊗ exposed field resources
+    ⊗ ClosedInvariant(l,p) for every p in dependencySCC(group)
+  --> OpenAuthority(l, group, sigmaOpen) ⊗ exposed field resources
 
 CloseProperty(l, group):
-    OpenAuthority(l, group) ⊗ exposed field resources
+    OpenAuthority(l, group, sigmaOpen) ⊗ exposed field resources
     ⊗ Proof(all formulas in group)
-  --> ClosedInvariant(l,p) for all p in group ⊗ LayoutWrite(l)
+  --> LayoutState(l, phase=closed, sigmaL')
+      ⊗ LayoutWrite(l)
+      ⊗ ClosedInvariant(l,p) for all p in group
 ```
+
+`OpenAuthority(l,group,sigmaOpen)` инкапсулирует ровно один
+`LayoutState(l,phase=open,...) ⊗ LayoutWrite(l)` и маску открытой полной SCC.
+Эти ресурсы не существуют рядом вторыми независимыми tokens и возвращаются
+только через `CloseProperty`. Поэтому helper или `allocateOpen` переносит один
+authority целиком на обоих выходах, а потерять layout state невозможно.
 
 Зависимые взаимные условия открываются одной strongly-connected group. Например,
 `x.next == y` и `y.prev == x` открываются вместе, записи `next` и `prev`
@@ -667,7 +778,8 @@ CloseProperty(l, group):
 
 Закрытое состояние обязательно перед normal return, `throw`, suspension,
 cancellation, публикацией ссылки, входом в destructor и вызовом кода, способного
-получить доступ к layout (`addresses.md:329-341`). Проверенный helper может
+получить доступ к layout
+([декларативные условия](addresses.md#декларативные-условия)). Проверенный helper может
 принимать и возвращать тот же `OpenAuthority`; внешний callback — нет.
 
 ### 5.3. Construction и destruction
@@ -682,9 +794,38 @@ cancellation, публикацией ссылки, входом в destructor и
 
 Callback допустим во время construction только если его контракт доказывает, что
 он не может получить origin строящегося layout. Поэтому `make(index)` в
-`Contiguous.init` (`contiguous-array.efen:39-46`) не требует закрыть финальное
+`Contiguous.init` (`contiguous-array.efen:41-48`) не требует закрыть финальное
 `length == capacity`, но exceptional edge обязан выполнить cleanup точного
 префикса. Перед `return self` выполняется `PublishSelf`, доказывающий все условия.
+
+Cleanup constructor-а является линейным owning resource:
+
+```text
+ConstructionCleanup(self,mask,owners)
+  encapsulates Init(mask) ⊗ PayloadOwnTree(self,owners)
+             ⊗ все AllocationOwn construction
+
+PublishSelf:
+  LayoutState(self,constructing,sigma)
+  ⊗ LayoutWrite(self)
+  ⊗ ConstructionCleanup(self,mask,owners)
+  ⊗ Proof(all closed layout conditions)
+    --> LayoutState(self,closed,sigma')
+        ⊗ LayoutWrite(self)
+        ⊗ ValueOwn(self, SelfDrop(mask,owners))
+
+ThrowFromConstruction:
+  LayoutState(self,constructing,sigma) ⊗ LayoutWrite(self)
+  ⊗ ConstructionCleanup(self,mask,owners)
+    --> DropInitialized(mask) --> FreeOwnedAllocations(owners)
+    --> phase(self)=dead; resources --> emp
+```
+
+`SelfDrop` не появляется рядом вторым token: он является destructor obligation
+внутри owning результата `ValueOwn(self,...)`. `PublishSelf` не стирает и не
+disarm-ит cleanup, а преобразует его владельца. На throw generated executable
+CFG потребляет тот же `ConstructionCleanup`; ghost переход без runtime drop/free
+не удовлетворяет контракту.
 
 Destruction сначала переводит closed layout в `destroying`, запрещает новые
 loans и публикации, затем уничтожает элементы в доказанном порядке. Полные
@@ -702,12 +843,74 @@ Init(p,v) ⊗ ValueOwn(v) ⊗ WriteCell(p)
 
 Для optional place `UninitOrNull` означает initialized `null`; для локальной
 `let` — moved-from typestate; для обычного dense array элемент извлекает только
-descriptor operation (`ownership.md:262-266`).
+descriptor operation ([явное извлечение](../types/ownership.md#явное-извлечение)).
 
 `MoveOwn(source,destination)` требует пустое destination и отсутствие loans.
 Он меняет `ownerPlace`, но сохраняет ровно один `ElementOwn` или `ValueOwn`.
 Перезапись непустого owning destination должна сначала переместить или drop его
 старого жильца. Самоприсваивание определяется отдельно до потребления ресурсов.
+
+Compiler-known `replace(place, value)` является одним атомарным переходом layout.
+Compiler сначала синтезирует и проверяет refinement конкретной representation:
+
+```text
+PrepareReplace(rep,p,new) pre:
+    ReplaceRefinement(rep,kindOf(p)) ⊗ Init(p,old) ⊗ ValueOwn(new)
+
+normal:
+    Init(p,old) сохранён
+    PreparedReplace(rep,p,new,plan)
+
+exception before commit:
+    Init(p,old) сохранён
+    new уничтожен ровно один раз
+    layout закрыт
+```
+
+Только prepared plan допускается в commit:
+
+```text
+ReplacePlace(plan, p, new) pre:
+    ReplaceRefinement(rep,kindOf(p))
+    ⊗ PreparedReplace(rep,p,new,plan)
+    ⊗ Init(p, old) ⊗ WriteCell(p)
+    no conflicting loan
+
+normal:
+    Init(p, new) ⊗ ValueOwn(old) ⊗ WriteCell(p)
+
+exception:
+    отсутствует внутри commit
+```
+
+Frontend проверяет тип place, `Movable` и отсутствие конфликтующего loan, а
+emitter порождает один `ReplacePlace`, не создавая промежуточный `Uninit(p)`.
+Потенциально бросающие representation-вычисления выполняются в prepare при
+неизменном place. Compiler может построить этот plan сам, но не предполагает
+без witness, что произвольный hook representation является безотказным.
+
+Внешние exceptional outcomes различаются:
+
+```text
+prepare failure или доказанный rollback:
+    place содержит old
+    new уничтожен ровно один раз
+    layout закрыт
+
+событие, доставленное после успешного commit:
+    place содержит new
+    old уничтожен ровно один раз, поскольку result не возвращён
+    layout закрыт
+```
+
+Причина события и контракт операции определяют конкретную ветку. Отложить
+ошибку без завершения либо rollback и точного ownership post-state недостаточно.
+Если compiler не может синтезировать `ReplaceRefinement`, условная операция этой
+representation отклоняется; нового source syntax для этого не требуется.
+
+То же обязательство может быть задано явной атомарной `region`, когда её
+surface-свойство будет утверждено. Здесь «атомарный» означает отсутствие
+наблюдаемого промежуточного CFG-state, а не одну CPU-инструкцию.
 
 На каждом выходе CFG validator проверяет линейный баланс:
 
@@ -723,28 +926,21 @@ owners_in + owners_created
 
 ## 7. Арифметика
 
-Каждое значение `Size` в VIR несёт `0 <= x <= SIZE_MAX`. Операции имеют явную
-политику:
+Поведение каждой операции `Size`, необходимые range proofs и runtime paths
+формирует общий compiler frontend до анализа Array. VIR получает уже явный CFG и
+обязан сохранить его без изменений: target width, normal result и любой
+failure/trap/modulo path конкретного compilation mode.
 
-```text
-CheckedAdd(x,y):
-    normal if x + y <= SIZE_MAX: result = mathematical x + y
-    exceptional Overflow: state and ownership arguments unchanged
+Это не отдельная проблема Array. Его исходники не обязаны вручную проверять
+`length + 1`, `capacity * 2`, `cursor + 1` или `index - 1`. Array-proof использует
+арифметический path, уже созданный компилятором, и проверяет, что изменение layout
+начинается после завершения вычисления. Локальные bounds и guards могут позволить
+frontend удалить недостижимый runtime path.
 
-CheckedMul(x,y):
-    normal if x == 0 or y <= SIZE_MAX / x
-    exceptional Overflow: state unchanged
-
-CheckedSub(x,y):
-    normal if y <= x
-    exceptional Underflow: state unchanged
-
-WrappingAdd(x,y): result = (x + y) mod (SIZE_MAX + 1)
-```
-
-Emitter использует Viper `Int` только вместе с этими range-фактами и ветвями.
-`length + 1`, `capacity * 2`, `cursor + 1`, `index - 1` и вычисление числа chunks
-не переводятся в безграничную арифметику молча.
+Viper-emitter не вправе заменить машинное значение безграничным `Int` так, чтобы
+исчезло фактическое поведение CFG. Если compiler выбрал modulo-result, verifier
+моделирует именно его и либо доказывает дальнейшую безопасность Array, либо
+отвергает этот путь; он не исправляет программу другой overflow policy.
 
 ## 8. Стратегия Viper encoding
 
@@ -761,6 +957,7 @@ field value: Int
 field init: Bool
 field ownToken: Bool
 field members: Set[Ref]
+field escaped: Set[Ref]
 field descriptorWriteToken: Bool
 
 predicate StableOwner(x: Ref) {
@@ -772,7 +969,8 @@ define Cells(xs)
      x in xs ==> acc(x.value) && acc(x.init))
 
 predicate DStateWrite(d: Ref) {
-  acc(d.members) && acc(d.descriptorWriteToken) && Cells(d.members)
+  acc(d.members) && acc(d.escaped) && acc(d.descriptorWriteToken) &&
+  d.escaped subset d.members && Cells(d.members)
 }
 ```
 
@@ -789,7 +987,8 @@ predicate DStateWrite(d: Ref) {
 Создание использует Viper `new(value, init, ownToken)`, явно присваивает ghost
 `init` и обычные fields и сначала формирует provisional resource. Лишь template
 `Publish` раскрывает `DStateWrite`, добавляет ссылку в `d.members`, передаёт
-field permissions в `Cells` и сворачивает отдельный `StableOwner`. Сам `new`
+field permissions в `Cells`, не добавляет её в `d.escaped` и сворачивает
+отдельный `StableOwner`. Escape template доступен только после close. Сам `new`
 выдаёт permissions и свежий `Ref`, но не считается
 Efen-initialization полей. Окончательный source
 ABI вместо `new` обязан вернуть те же ресурсы по проверенному контракту. `inhale
@@ -856,7 +1055,7 @@ allocator или destructor.
 
 ### `init`
 
-Код: `contiguous-array.efen:27-49`.
+Код: `contiguous-array.efen:27-52`.
 
 Pre-state и ресурсы:
 
@@ -864,10 +1063,10 @@ Pre-state и ресурсы:
 count: Size
 Value callable make; self constructing and unpublished
 self fields initialized as root=null, capacity=0, length=0
-LayoutWrite(self) ⊗ construction Cleanup(self)
+LayoutWrite(self) ⊗ ConstructionCleanup(self,empty,noAllocations)
 ```
 
-После строк 31-37 normal state содержит либо `root=null, count=0`, либо
+После строк 33-39 normal state содержит либо `root=null, count=0`, либо
 `AllocationOwn(area), capacity=count, initialized={}`. В цикле нужен инвариант:
 
 ```text
@@ -886,60 +1085,55 @@ self is unpublished
 не передан и не опубликован. При исключении он сохраняет area и точный prefix;
 cleanup drop-ит `[0,index)` и освобождает area. После успешного `initialize`
 `length += 1` закрывает prefix-инвариант. На выходе доказываются строки 3-4,
-14-20 и только затем публикуется `self`.
+14-20 и только затем `PublishSelf` преобразует `ConstructionCleanup` в
+`ValueOwn(self,SelfDrop(...))`.
 
-Текущий пробел контракта: в исходнике нет явного destructor/cleanup, хотя
-`addresses.md:440-469` требует освобождение точного префикса. Это не ошибка
-порядка строк конструктора, если compiler генерирует cleanup из descriptor, но
-такой генератор и его контракт пока не определены.
+Отсутствие явного destructor/cleanup в исходнике не является дефектом порядка
+этого конструктора. Lowering обязан создать реальный exceptional CFG/resource
+artifact: после отказа `make(index)` он проходит только initialized prefix
+`[0,index)`, выполняет drop каждого принятого `Target` ровно один раз и вызывает
+`Items.free` с `initializedCount=index`. Этот CFG исполняется runtime; ghost
+формула cleanup его не заменяет. Пока генерация и resource balance такого ребра
+не реализованы, машинного proof конструктора ещё нет, но новый source contract
+не требуется: compiler генерирует cleanup, а representation/runtime обязаны
+пройти его no-reentry/no-throw refinement. Наблюдаемый порядок drop остаётся
+отдельной семантикой.
 
-Инкремент `self.length += 1` в строке 46 не требует отдельного overflow-ребра,
-если loop invariant уже доказывает `self.length == index < count <= SIZE_MAX`.
-Это именно доказанное отсутствие overflow, а не использование безграничного
-Viper `Int`. Следующий индекс цикла проверяется тем же фактом.
+Для `self.length += 1` в строке 48 compiler frontend уже предоставляет
+арифметический path. Loop invariant `self.length == index < count` позволяет
+доказать normal result; Array-proof не выбирает overflow policy.
 
 ### `itemAt`, `read`, `replace`
 
-`itemAt` (`contiguous-array.efen:56-62`) требует closed layout, `index < length`,
+`itemAt` (`contiguous-array.efen:58-64`) требует closed layout, `index < length`,
 ненулевой root, current epoch, initialized slot и read/write resource нужного
 поля. BoundsError сохраняет все ресурсы.
 
-`read` (`64-68`) возвращает копию только при `Copyable`; исходный `Init` и owners
-сохраняются. `replace` (`70-75`) требует `ValueOwn(value)`, exclusive field loan и
-отсутствие subobject borrow. Его normal post заменяет последовательность в одной
-позиции и возвращает `ValueOwn(old)`.
+`read` (`66-70`) возвращает копию только при `Copyable`; исходный `Init` и owners
+сохраняются. `replace` (`72-79`) требует `ValueOwn(value)`, exclusive field loan,
+отсутствие subobject borrow и `Target: Movable`. Исходная
+`replace(item.Target, value)` lowerится в один `ReplacePlace`: normal post
+заменяет последовательность в одной позиции и возвращает `ValueOwn(old)`, а
+промежуточного exceptional state с пустым slot нет.
 
-Текущая развилка алгоритма: между `take item.Target` и присваиванием slot partial.
-Если move/assignment нового `Target` может бросить, exceptional path оставляет
-опубликованный массив с дырой. Нужен один из контрактов:
+Доказательство обязано проверить типизированный контракт одной операции и
+отсутствие внутри неё suspension, observation, reentry и отдельного throw-edge.
+Если representation требует fallible prepare, оно выполняется до `ReplacePlace`;
+ошибка выходит при неизменном массиве. Ошибка, доставка которой отложена,
+выходит только после завершения или доказанного rollback перехода и закрытия
+layout. `assume nothrows` для этого не используется.
 
-- перенос уже созданного `Target` в пустой slot является no-throw commit;
-- либо `replace` сначала выполняет fallible prepare, затем атомарный no-throw
-  обмен;
-- либо exceptional cleanup восстанавливает старое значение.
+Та же схема применяется к `dynamic-array.efen:148-155`,
+`singly-linked-array.efen:65-72`, `doubly-linked-array.efen:92-99` и
+`chunked-array.efen:219-226`. Поэтому пять `replace` больше не имеют отдельного
+source-hole blocker. Для каждой concrete representation compiler ещё обязан
+синтезировать либо проверить `ReplaceRefinement`; неудача отклоняет условную
+операцию этой representation, а не требует новой конструкции в Array-коде.
 
-Без одного из них текущий `replace` не доказуем. Добавление `assume nothrows` в
-emitter недопустимо.
-
-Это конкретный blocker текущей surface signature: `replace` не содержит ни
-`Target: Movable`, ни гарантии no-throw placement. `Copyable` на `read` не
-помогает: копия создаёт другой экземпляр, может иметь собственные эффекты, а код
-`replace` использует именно `take`. Минимальное исправление — ввести принятый
-контракт `NoThrowMovable` (либо нормативно включить no-throw placement в
-`Movable`), потребовать его у прямой реализации `replace` и выполнять два
-переноса в открытом no-throw commit. Для общего `Target` без такого ограничения
-нужна descriptor-операция transactional `replaceSlot`: fallible prepare при
-старом slot untouched, затем no-throw swap/commit. Просто дописать
-`where Target: Copyable` недостаточно.
-
-Тот же blocker повторяется в `dynamic-array.efen:140-145`,
-`singly-linked-array.efen:65-70`, `doubly-linked-array.efen:92-97` и
-`chunked-array.efen:211-216`; до изменения сигнатуры либо алгоритма ни один из
-этих `replace` не получает статус verified.
-
-Negative mutations: callback после утечки `&self`; чтение slot до initialize;
-`length += 1` до initialize; cleanup `count` вместо `length`; double-drop prefix;
-отсутствующая bounds-проверка; бросающий assignment после `take`.
+Negative mutations: prepare изменяет old place; prepare теряет owner нового
+значения; commit вызывает callback; post-commit exception забывает drop old;
+opaque primitive не имеет `ReplaceRefinement`; также callback после утечки
+`&self`, чтение slot до initialize, ранний `length += 1` и double-drop prefix.
 
 ## 10. Разбор `DynamicContiguous`
 
@@ -950,9 +1144,9 @@ capacity. При allocation failure partial `self` очищается, logical s
 не публикуется.
 
 `itemAt`, `read`, `replace` имеют те же обязательства, что фиксированный вариант
-(`dynamic-array.efen:47-53`, `134-145`).
+(`dynamic-array.efen:47-53`, `142-155`).
 
-`reserve` (`55-70`) требует closed layout, `minimum: Size`, `initialized ==
+`reserve` (`55-72`) требует closed layout, `minimum: Size`, `initialized ==
 [0,length)`, `length <= areaCapacity`, `AllocationOwn(root)` при ненулевой
 capacity и отсутствие живых area leases. Normal post:
 
@@ -969,24 +1163,23 @@ relocation: fresh AllocationId and old area freed exactly once
 Exceptional post полностью сохраняет root, epoch, capacity, length, membership,
 values и old `AllocationOwn`.
 
-Алгоритмический дефект: `areaCapacity * 2` в строке 60 не защищён от overflow.
-Нужен `CheckedMul` до открытия условий. Даже если allocator затем отвергнет
-слишком маленькую capacity, wrapping уже изменил выбор алгоритма. Строки 63-69
-корректно располагают потенциально бросающий prepare до no-throw записи новой
+Compiler-resolved вычисление `areaCapacity * 2` в строке 62 завершается до
+открытия условий. Array-proof рассматривает рост на полученном arithmetic path.
+Строки 65-71 располагают потенциально бросающий prepare до no-throw записи новой
 capacity при условии принятого контракта `reallocateArea`.
 
 ### `append`
 
-Код: `dynamic-array.efen:72-82`. Pre: closed array, `ValueOwn(value)`, no
-conflicting lease. Сначала нужен `CheckedAdd(length,1)`. Исключение arithmetic или
-`reserve` сохраняет array; до строки 79 `value` ещё должен быть либо доступен
+Код: `dynamic-array.efen:74-86`. Pre: closed array, `ValueOwn(value)`, no
+conflicting lease. Вычисление `length+1` разрешает compiler до изменения layout.
+Неуспешный arithmetic path или `reserve` сохраняет array; до строки 83 `value` ещё должен быть либо доступен
 cleanup текущего frame, либо уже принят операцией с точно заданным exceptional
 drop. После reserve slot `length` пуст. `initialize` должен иметь no-throw commit;
 только затем `length = nextLength` закрывает condition.
 
 ### `insert`
 
-Код: `dynamic-array.efen:84-109`. После bounds, checked add и reserve layout
+Код: `dynamic-array.efen:88-115`. После bounds, internal range check и reserve layout
 открыт на no-throw участке. При входе в цикл:
 
 ```text
@@ -1007,8 +1200,8 @@ initialized, destination empty. По выходе hole=`index`; initialize за�
 `cursor + 1` и следующий `cursor += 1` безопасны только потому, что loop
 invariant усиливает guard до `cursor + 1 < oldLength <= SIZE_MAX`; emitter обязан
 сохранить это proof obligation. `oldLength - 1` безопасен из входного
-`index < oldLength`. Единственные не выводимые из bounds увеличения здесь — оба
-`length + 1` в строках 73 и 89; для них обязательны `CheckedAdd` до `reserve`.
+`index < oldLength`. Все arithmetic paths уже сформированы compiler frontend до
+входа в доказательство изменения layout.
 
 Текущий алгоритм корректен только если все moves и финальный initialize после
 reserve не бросают и не входят повторно. Иначе exceptional edge видит дырку и
@@ -1017,7 +1210,7 @@ reserve не бросают и не входят повторно. Иначе ex
 
 ### `remove`
 
-Код: `dynamic-array.efen:111-132`. `extract(index)` возвращает единственный
+Код: `dynamic-array.efen:117-140`. `extract(index)` возвращает единственный
 `ValueOwn(removed)` и создаёт hole. Loop invariant:
 
 ```text
@@ -1036,9 +1229,9 @@ ValueOwn(removed) == old[index]
 
 ## 11. Разбор `List`
 
-Текущих условий reachability и `length == Items.count`
-(`singly-linked-array.efen:3-26`) недостаточно как удобного Viper witness порядка.
-Для proof вводится ghost sequence `order: Seq[ElementId]`:
+Compiler-known condition `chained from self.head by Item.next` вместе с
+`length == Items.count` (`singly-linked-array.efen:3-26`) порождает ghost
+sequence `order: Seq[ElementId]`:
 
 ```text
 length == |order|
@@ -1053,30 +1246,27 @@ ElementOwn(order[0]) is stored at self.head
 ElementOwn(order[i+1]) is stored at order[i].next
 ```
 
-Это конечный свидетель текущего `reachable`, а не аксиоматическая рекурсивная
-функция. Он одновременно доказывает отсутствие раннего `null`, cycle, duplicate
-owner и lost published node.
+Это конечный свидетель `chained`, а не аксиоматическая рекурсивная функция. Он
+одновременно доказывает отсутствие раннего `null`, cycle, duplicate owner и lost
+member node; отдельное tail-condition доказывает `tail == last(order)`.
 
-`order` имеет только два допустимых источника. Первый — compiler-known
-structural HIR contract, например принятое в Amber `chained from head by next`,
-чья семантика включает cardinality, termination и topology
-(`amber/dev/DECISIONS.md:133-141`). Frontend обязан доказать refinement
-`chained =>` опубликованные source-conditions и обновлять witness каждой
-операцией. Второй — явное proof-only ghost state с объявленным representation
-invariant и такими же проверяемыми updates. Verifier не может existentially
+`order` lowerится из compiler-known structural HIR contract `chained`, чья
+семантика включает cardinality, termination и topology
+(`amber/dev/DECISIONS.md:152-160`). Frontend создаёт proof-only state и обязан
+доказать его обновление каждой операцией. Verifier не может existentially
 «выбрать подходящий order» и получить его через `assume` после просмотра heap.
-Текущие `.efen`-примеры содержат только `reachable`, но не `chained` и не явный
-ghost witness, поэтому lowering `List` и `DoubleLinkedList` пока обязан сообщать
-`unsupported structural contract`, а не использовать последующие loop
-invariants как уже доступные факты.
+После замены set-level condition structural вход для List и DoubleLinkedList
+определён. Compiler выносит fallible allocation до открытия и сам строит
+effect-free publish window; concrete representation обязана доказать его
+refinement.
 
-Есть отдельная ошибка прав: `tail` объявлен как `read Items.Item?` в строке 15,
-но `append` записывает `self.tail!.next` в строке 82. Права являются частью типа
-ссылки (`ownership.md:92-118`), поэтому наличие общего `LayoutWrite(self)` не
-превращает read-only alias в write-ссылку. Алгоритм должен либо хранить у `tail`
-невладеющую ссылку с правом записи и доказанным origin/lifetime, либо получать
-write-доступ к последнему узлу через owning chain. До этого `append` должен быть
-отвергнут frontend-ом, не Viper-emitter-ом.
+`tail` объявлен как `var tail: read Items.Item?` в строке 15. `var` разрешает
+переприсваивать сам слот; `read` относится к сохранённому невладеющему указателю.
+При `self.tail!.next = ...` указатель предоставляет identity и origin, а
+`LayoutWrite(self)` вместе с раскрытым `ElementStorage` предоставляет отдельный
+`WriteCell(tail.next)`. Emitter не повышает `read` до `write`: он обязан показать
+оба независимых ресурса. Поэтому запись корректна внутри изменяющей операции
+layout и была бы отвергнута без её `write`-authority.
 
 ### `itemAt`, `read`, `replace`
 
@@ -1095,37 +1285,57 @@ read resources for next fields remain available
 
 ### `append`
 
-Код: `singly-linked-array.efen:72-87`. Требуются `CheckedAdd(length,1)`,
-`ValueOwn(value)`, `LayoutWrite`, closed order и no conflicting loans.
-`allocate(Item(take value))` либо возвращает новый live element с
-`ElementOwn(item)`, либо на исключении уничтожает принятый value и не меняет
-список. Затем открывается group `{head,tail,order,next-ownership}`. Empty-case
-переносит owner в `head`; nonempty-case — в старый `tail.next`. `tail` получает
-read alias, order дополняется item, length обновляется, group закрывается.
+Код: `singly-linked-array.efen:74-91`. После compiler-resolved вычисления
+`length+1` требуются `ValueOwn(value)`, `LayoutWrite`, closed order и отсутствие
+conflicting loans.
+Сначала при closed layout строится owning temporary `prepared = Item(take value,
+next:null)` и выполняется fallible `allocateProvisional`. Только после его
+успешного завершения компилятор открывает одну group
+`{memberLive/Items.count,order,chained,head,tail,length,affected next,
+ownerPlace(head/next)}`. Mandatory safety — origin, live targets, initialization,
+unique own и отсутствие dangling strong target — в group не входит. Surface
+`Items.allocate(take prepared)` внешне не меняется; provisional существует только
+в VIR.
 
-Однако текущий `set Items` требует, чтобы *каждый* member был достижим от head
-(`singly-linked-array.efen:3-5`). Если normal `Items.allocate` немедленно
-публикует membership, новая identity между строками 74-76 и присоединением ещё
-не достижима. Допустимы только два точных протокола:
+Normal path:
 
-1. `allocateProvisional` возвращает allocation, `ElementOwn` и initialized
-   payload без membership; после явных записей `next/head/tail` операция
-   `Publish` одновременно добавляет element в `Items`, обновляет `order/length`
-   и закрывает conditions;
-2. caller сначала получает `OpenAuthority` всей reachability-group, а контракт
-   внутреннего `allocate` принимает и возвращает этот authority, меняет membership
-   внутри открытого состояния и гарантированно не наблюдает layout. После normal
-   return весь участок до присоединения no-throw/no-suspend/no-reenter; на throw
-   до публикации прежний closed list сохранён, принятый value уничтожен ровно
-   один раз.
+```text
+prepared = PrepareItem(take value, next:null)  // layout ещё closed
+provisional = allocateProvisional(take prepared) // may fail; layout closed
+OpenProperty(group)
+item = Publish(provisional)                    // no-fail membership commit
+newId = inspect identity(item)
+if empty:  MoveOwn(item, self.head)
+else:      MoveOwn(item, oldTail.next)
+tail = reference at new owner-place; order = old(order) ++ [newId]
+length = nextLength
+CloseProperty(group)
+```
 
-Первый протокол проще и рекомендуется. Обычный внешний call boundary не может
-вернуть published, но недостижимый item и затем надеяться закрыть condition позже.
+Exceptional path:
+
+```text
+PrepareItem throws
+    -> layout остаётся closed; partial temporary очищен; rethrow
+
+либо:
+
+allocateProvisional(take prepared) throws
+    -> layout остаётся closed
+    -> old Items/order/head/tail/length
+    -> принятый value dropped ровно один раз; rethrow
+```
+
+Открытый участок `Publish → links/order/length → CloseProperty` compiler сам
+строит без call, safepoint, suspension или reentry. Concrete representation
+обязана доказать refinement no-fail `Publish`; если это невозможно, её операция
+отклоняется. Новая source-аннотация не требуется.
 
 ### `insert`
 
-Код: `singly-linked-array.efen:89-114`. Bounds и overflow выполняются до
-allocation. После успешного allocation:
+Код: `singly-linked-array.efen:93-120`. Bounds, arithmetic, построение Item и
+fallible allocation выполняются до открытия group. Затем `Publish` и связывание
+идут в одном generated critical window. После успешного allocation:
 
 - index 0: owner старого head переносится в `item.next`, owner item — в head;
 - middle: owner старого successor переносится `before.next -> item.next`, затем
@@ -1133,27 +1343,25 @@ allocation. После успешного allocation:
 - index==length делегирует append до локального allocation.
 
 Normal order равен `old[0,index) ++ [item] ++ old[index,...)`. После allocation
-оставшийся участок обязан быть no-throw; иначе provisional item и временно
-перенесённая chain требуют явного rollback.
+оставшийся участок обязан быть no-throw/no-suspend/no-reenter и закрывает group;
+exception до normal return allocation восстанавливает старый closed список по
+описанному пути.
 
 ### `remove`
 
-Код: `singly-linked-array.efen:116-144`. `victim` получает owner из `head` либо
+Код: `singly-linked-array.efen:122-152`. `victim` получает owner из `head` либо
 `before.next`; owner successor переносится из `victim.next` обратно в освободившийся
 owner-place. Tail исправляется до закрытия group. Затем `Target` извлекается,
 `Items.free` уничтожает только оставшиеся поля victim, а результат получает
 `ValueOwn(Target)`. Normal order удаляет ровно `old[index]`.
 
-Пробел layout-contract, не алгоритма: source не объявляет ghost order и точное
-соответствие owner chain membership. Одного `reachable` недостаточно для
-предсказуемого автоматического lowering. Алгоритмические риски: unchecked
-`length+1`/`length-=1` и отсутствие явного no-throw контракта участка после
-detach.
+`chained` теперь задаёт ghost order и точное соответствие owner chain membership.
+Открытыми остаются representation refinement для atomic window и no-throw
+placement после detach. Это proof-generator milestones, а не повод добавлять
+`assume`.
 
-Точнее по арифметике: оба `length + 1` (`singly-linked-array.efen:73,99`)
-требуют `CheckedAdd`; `length -= 1` в строке 140 доказуемо без underflow из
-`index < length`; `position += 1` в строке 49 доказуемо из
-`position < index < length <= SIZE_MAX`.
+Операции `length + 1`, `length -= 1` и `position += 1` поступают из общего
+compiler arithmetic CFG и не являются отдельными решениями Array.
 
 Negative mutations: tail не обновлён после удаления последнего; `before.next`
 не получает `victim.next`; один `ElementOwn` потерян; один узел дважды входит в
@@ -1174,11 +1382,12 @@ next(order[i-1]) == order[i]
 `doubly-linked-array.efen`. `prev` — read edge, `next` — owning edge; равенство
 ссылок не создаёт второй `ElementOwn`.
 
-Как и в односвязном варианте, `tail` имеет только `read`
-(`doubly-linked-array.efen:30`), но строка 113 пишет через `self.tail!.next`.
-Это статически недостаточные права. Нужна write-capable невладеющая ссылка с
-origin layout либо повторное получение write-доступа через owning chain.
-Разрешение полного layout не повышает права самого значения ссылки.
+Как и в односвязном варианте, `read` у `tail`
+(`doubly-linked-array.efen:30`) характеризует сохранённый невладеющий указатель,
+а не запрещает переприсваивать `var tail`. Строка 117 использует его identity и
+origin, но `WriteCell(oldTail.next)` получает отдельно из `LayoutWrite` и
+раскрытого storage. Proof обязан проверить оба ресурса; получать write только из
+`read Items.Item` запрещено.
 
 ### `itemAt`, `read`, `replace`
 
@@ -1197,43 +1406,68 @@ position > index ==> current.prev == order[position-1] != null
 
 ### `append`
 
-Код: `doubly-linked-array.efen:99-118`. В nonempty-case новый item создаётся с
-`prev=self.tail` до того, как `tail.next` указывает на него. Если `allocate`
-публикует элемент и требует взаимные условия на своей normal boundary, строки
-101-107 уже возвращают недопустимый published state: `item.prev.next != item`.
+Код: `doubly-linked-array.efen:101-122`. Сначала при closed layout строится
+`prepared = Item(take value, prev:oldTail, next:null)` и выполняется fallible
+`allocateProvisional`. Затем перед no-fail `Publish` открывается полная SCC:
 
-Это реальная несовместимость алгоритма с контрактом немедленной публикации, а не
-недостаток SMT. Нужен один из вариантов:
+```text
+memberLive / Items.count
+order / chained
+self.head / self.tail / self.length
+все затронутые next / prev formulas
+ownerPlace для self.head и owning next
+двустороннее next <-> prev relation
+```
 
-- provisional allocation + явный `Publish` после обеих записей;
-- `allocate` вызывается внутри открытой mutual-property group и его контракт
-  принимает/возвращает `OpenAuthority` без observation;
-- отдельная проверенная операция relation insertion.
+Origin, live target, initialization, unique `Own` и отсутствие dangling strong
+target остаются закрытой mandatory safety. Новый
+item входит в membership через `Publish` с `prev=self.tail`, пока `tail.next` ещё
+не обновлён; временно открытые formulas не предполагаются истинными.
 
-Современная рекомендуемая форма — provisional item, затем открыть mutual group,
-явно записать `oldTail.next=item` и `item.prev=oldTail`, обновить tail/order/length,
-доказать обе стороны и опубликовать. Никакой скрытой inverse-записи нет.
+Normal path совпадает с List, но до close явно доказывает обе стороны:
 
-Даже при `prev=null` та же публикационная проблема существует для любого нового
-узла: condition `set Items { reachable ... }` из строк 3-5 ложно до включения в
-head-chain. Поэтому provisional/Publish protocol обязателен для append и insert,
-а не только для парного `prev`. Exceptional allocation до Publish сохраняет
-старый closed list; после начала no-throw commit исключительных рёбер нет.
+```text
+prepared = PrepareItem(take value, prev: oldTail, next: null) // closed
+provisional = allocateProvisional(take prepared)              // may fail, closed
+OpenProperty(fullScc)
+item = Publish(provisional)                                   // no-fail
+newId = inspect identity(item)
+oldTail.next = take item       // либо self.head для empty
+tail = reference at new owner-place
+order = old(order) ++ [newId]; length = nextLength
+if old order empty:
+    prove head == newId && prev(newId) == null
+else:
+    prove next(oldTail) == newId && prev(newId) == oldTail
+CloseProperty(fullScc)
+```
+
+Если `PrepareItem` или `allocateProvisional` бросает, layout ещё закрыт, старые
+membership/order/links сохранены, а temporary очищается ровно один раз. После
+`OpenProperty` exceptional edge отсутствует до `CloseProperty`. Новый surface
+provisional API не нужен.
+Скрытой inverse-записи нет: обе стороны пишутся исходным кодом.
+
+Compiler обеспечивает отсутствие call/safepoint/suspension/reentry между
+`Publish` и close. Representation обязана доказать no-fail refinement `Publish`;
+если это невозможно, соответствующая операция representation отклоняется.
 
 ### `insert`
 
-Код: `doubly-linked-array.efen:120-148`. В head-case четыре факта должны закрыться
+Код: `doubly-linked-array.efen:124-154`. Fallible allocation завершается раньше;
+group открывается перед `Publish` и закрывается после всех явных записей. В
+head-case четыре факта должны закрыться
 вместе: owner old head переходит в `item.next`, `oldHead.prev=item`, owner item —
 в `self.head`, `item.prev=null`. В middle-case group включает `before.next`,
-`item.prev`, `item.next` и `successor.prev`. Текущий порядок строк 140-144
+`item.prev`, `item.next` и `successor.prev`. Текущий порядок строк 146-150
 временно нарушает обе стороны, что допустимо только под одним
 `OpenAuthority` и без исключений/reentrancy.
 
 ### `remove`
 
-Код: `doubly-linked-array.efen:150-182`. После `take self.head` либо `take
+Код: `doubly-linked-array.efen:156-190`. После `take self.head` либо `take
 before.next` новый forward edge уже установлен, а back edge ещё указывает на
-victim до строк 164 или 174. Весь участок detach обязан быть одной открытой
+victim до строк 172 или 182. Весь участок detach обязан быть одной открытой
 no-throw group. Перед `free` доказывается:
 
 ```text
@@ -1243,53 +1477,77 @@ victim.next == null
 Target may be the only remaining initialized payload
 ```
 
-Пробел layout-contract: нет явного конечного `order` и нет контракта открытия
-mutual SCC. Алгоритмическая проблема append — ранняя публикация заведомо
-несогласованного `prev`. Остальные перестановки доказуемы при явной open-group и
-no-throw field moves. Также все изменения length требуют checked arithmetic.
+`chained` предоставляет конечный `order`, а mutual SCC открывается перед
+`Publish`. Compiler обязан синтезировать effect-free commit и доказать его
+для representation; no-throw field moves остаются частью этого refinement.
 
-Оба `length + 1` (`doubly-linked-array.efen:100,130`) требуют `CheckedAdd`.
-`length -= 1` в строке 178 безопасен из bounds. `position += 1` прямого обхода
+`length -= 1` в строке 186 безопасен из bounds. `position += 1` прямого обхода
 доказуем из `position < index < length`; `length - 1` и `position -= 1`
 обратного обхода — из `index < length` и `position > index` соответственно.
 
 Negative mutations: не очистить `head.prev`; оставить `successor.prev=victim`;
-записать `prev` не тому successor; опубликовать item до парной записи; вызвать
+записать `prev` не тому successor; закрыть group до парной записи; вызвать
 callback между двумя сторонами; создать второй owning `next`; неверный backward
 loop step.
 
 ## 13. Разбор `Chunked`
 
-### 13.1. Необходимый cross-descriptor contract
+### 13.1. Generated cross-descriptor invariant
 
-Текущие условия `Chunks.count == directoryLength` и `Items.count == length`
-(`chunked-array.efen:27-41`) не связывают конкретные item areas с directory.
-Нужен ghost sequence `chunks` и flattening:
+Compiler строит candidate ghost sequence `chunks` и flattening из трёх входов:
+канонической семантики descriptor transitions, полного тела representation и
+экспортируемого поведенческого контракта Array. Затем он отдельно доказывает
+base case и preservation каждой операции:
 
 ```text
 |chunks| == directoryLength
+requiredChunks(n) = if n == 0 then 0 else 1 + (n - 1) / CHUNK_SIZE
+requiredChunks(self.length) <= directoryLength
 directory[i] owns chunks[i] for every i
 all chunk AreaId are live and pairwise distinct
 chunk.capacity == CHUNK_SIZE
 initializedIndices(chunk[i]) == [0, chunk[i].length)
-0 <= chunk[i].length <= CHUNK_SIZE
-all i + 1 < |chunks|: chunk[i].length == CHUNK_SIZE
+forall 0 <= i < directoryLength:
+    chunk[i].length =
+        min(CHUNK_SIZE, max(0, self.length - i * CHUNK_SIZE))
+chunkItems[i]: Seq[ElementId]
+|chunkItems[i]| == chunk[i].length
+forall j in bounds(chunkItems[i]):
+    location(chunkItems[i][j]) == AreaSlot(chunk[i].root,currentEpoch,j)
+all locations above form a bijection with initialized slots
 sum(chunk.length for chunk in chunks) == self.length
-flatItems == concat(chunkValues in directory order)
-liveElem[Items] == set(flattened ElementIds)
+flatItems == concat(chunkItems in directory order)
+allDistinct(flatItems)
+set(flatItems) == memberLive[Items]
+flatValues[j] == valueOf(flatItems[j])
 ```
 
-Без pairwise distinct две записи directory могут владеть одним root, а quantified
-permissions к slots дублируются. Без prefix/init и sum `itemAt` не доказывает,
-что вычисленный slot инициализирован. Это недостаток layout-contract, а не
-дефект `itemAt` сам по себе.
+Все операнды формул length и `requiredChunks` инъектированы в неограниченные
+математические целые proof logic; это не runtime-умножение `Size`. Формула
+допускает retained zero suffix: после уменьшения length
+directory может содержать любое число прежних chunks с `length == 0`.
+Неравенство `requiredChunks(self.length) <= directoryLength` не даёт формуле
+стать vacuous при ненулевом `self.length` и пустом directory.
 
-Поясняющий файл уже называет закон общего префикса нормативным
-(`layout-examples/chunked-array.md:54-65`), но `.efen` содержит только локальные
-условия строк 7-9, 34-40: квантор и cross-descriptor union там не выражены.
-Backend не вправе извлекать нормативный закон из prose и молча `assume` его.
-До появления внутреннего HIR-contract lowering этого примера должен завершаться
-`unsupported layout contract`, даже если документационное объяснение верно.
+Descriptor semantics канонически даёт `occupant ↔ location`, initialization,
+freshness и точное изменение membership: `initialize` добавляет один occupant,
+`move` сохраняет identity, `extract` удаляет его, `free` удаляет остаток area.
+`own Chunk.root` обеспечивает уникальность владельца area.
+
+Остальные свойства доказываются по реализации. Compiler обязан проверить, что
+все populated areas покрыты опубликованными `Chunk`, initialized slots образуют
+нужные префиксы, записи `chunk.length`/`self.length` восстанавливают distribution
+и sum, а направления moves сохраняют `flatItems`. Наконец, именно
+экспортируемая семантика Array задаёт цель порядка: append добавляет в конец,
+insert вставляет в позицию, remove удаляет её, read/replace обращаются к той же
+логической последовательности. Одной корректности descriptor membership для
+этого недостаточно.
+
+Surface cross-descriptor квантор для этого не нужен. Generated invariant входит
+в HIR/VIR как сгенерированная цель, а не как `assume`. Неучтённый producer/
+consumer, populated hidden area вне owner tree, пропущенная запись длины или
+неверный порядок moves разрушает preservation proof и отклоняет representation.
+Новая пользовательская декларация для стандартного Chunked Array не нужна.
 
 ### 13.2. `itemAt`, `chunkForPosition`, `growDirectory`
 
@@ -1302,8 +1560,9 @@ contract. Тогда `chunkIndex < directoryLength`, `offset < chunk.length`, ro
 не обещает initialized item по offset. Это достаточный helper для позиции дырки
 `self.length`, но его имя/контракт не должны молча означать membership Items.
 
-`growDirectory` (`76-91`) — обычный area reallocation для `Chunks`. Его
-алгоритмический дефект — unchecked `directoryCapacity * 2`. Item block epochs не
+`growDirectory` (`76-91`) — обычный area reallocation для `Chunks`.
+`directoryCapacity * 2` разрешается общим compiler arithmetic CFG до открытия
+layout. Item block epochs не
 меняются при directory relocation; leases на `Chunks.Item` инвалидируются.
 
 ### 13.3. `ensureChunks`
@@ -1311,34 +1570,69 @@ contract. Тогда `chunkIndex < directoryLength`, `offset < chunk.length`, ro
 Код: `chunked-array.efen:93-113`. Loop invariant:
 
 ```text
-oldPublishedPrefix unchanged
-directoryLength <= required
+oldMemberPrefix unchanged
+oldDirectoryLength <= directoryLength
+directoryLength <= max(oldDirectoryLength, required)
+requiredChunks(self.length) <= directoryLength
 |chunks| == directoryLength
 all existing chunk roots pairwise distinct and owned once
 all existing chunk init sets agree with chunk.length
 no provisional block at loop head
 ```
 
-`nextDirectoryLength` использует `CheckedAdd`. После `growDirectory` выделяется
-новый item area. Если `Chunks.initialize` бросает после принятия `Chunk(root:
-take block)`, его exceptional cleanup обязан освободить вложенный item area. Если
-этот nested-drop контракт отсутствует, строки 99-110 могут утечь. После успешной
-инициализации запись `directoryLength` — no-throw commit закрытия условий.
+После `growDirectory` выделяется новый item area. Если `Chunks.initialize`
+бросает после принятия `Chunk(root: take block)`, cleanup token проходит точно
+один owner-path:
 
-В guard цикла `directoryLength < required`, где `required: Size`, поэтому
-`directoryLength + 1 <= required <= SIZE_MAX`; overflow этого конкретного add
-может быть доказан. Если frontend не сохраняет типовой range и guard-факт,
-используется `CheckedAdd`, но не голый `Int + 1`.
+```text
+LocalChunkCleanup(block, AllocationOwn(itemArea))
+  -- take block into prepared Chunk -->
+TemporaryChunkCleanup(prepared, NestedOwn(root=itemArea))
+  -- take prepared into Chunks.initialize -->
+CalleeChunkCleanup(argument, NestedOwn(root=itemArea))
+
+exception:
+  CalleeChunkCleanup(argument, root, capacity=CHUNK_SIZE, initialized=0)
+    --> Items.free(
+          root: take cleanup.root,
+          capacity: cleanup.capacity,
+          initializedCount: 0
+        )
+    --> emp
+
+normal publish:
+  CalleeChunkCleanup(argument, root)
+    --> PublishedChunkDrop(chunkElement, NestedOwn(root=itemArea))
+    --> PayloadOwnTree(chunkElement, { root: AllocationOwn(itemArea) })
+```
+
+`ChunkCleanup` инкапсулирует `AllocationOwn`, а не существует рядом с ним. После
+каждого `take` прежний cleanup owner-place пуст; поэтому exception callee не
+может сочетаться со вторым cleanup local `block`. На normal path nested owner
+удерживается `ElementStorage` member Chunk через `PayloadOwnTree` и
+позже исполняется его `PublishedChunkDrop`. Это обязательный реальный executable
+CFG/resource artifact, не ghost postcondition и не требование писать `defer`
+вручную. Пока такой nested resource cleanup не сгенерирован и не проверен,
+машинного proof `ensureChunks` ещё нет. Compiler сам создаёт critical cleanup
+window; representation/runtime обязаны доказать его no-reentry/no-throw
+refinement. После успешной инициализации запись `directoryLength` — no-throw
+commit закрытия условий.
+
+В guard цикла `directoryLength < required` локальный range-факт дополнительно
+подтверждает normal arithmetic path `directoryLength + 1`; базовую семантику
+предоставляет compiler frontend.
 
 ### 13.4. `append`
 
-Код: `chunked-array.efen:127-146`. Требуются checked `length+1` и безопасное
-вычисление `1 + (nextLength-1)/CHUNK_SIZE`. `ensureChunks` может оставить
-дополнительные пустые chunks, но published item sequence не меняет. Выбранный
+Код: `chunked-array.efen:129-150`. После compiler-resolved `length+1`
+доказывается безопасное вычисление `1 + (nextLength-1)/CHUNK_SIZE`.
+`ensureChunks` может оставить
+дополнительные пустые chunks, но logical member sequence не меняет. Выбранный
 `chunk.length` должен быть меньше capacity. `Items.initialize` затем
 `chunk.length += 1`, затем `self.length=nextLength` образуют no-throw commit.
 
-Здесь `self.length + 1` требует `CheckedAdd`. После его успеха выражение
+Здесь `self.length + 1` не имеет локального range proof. После успешного
+internal narrowing выражение
 `1 + (nextLength - 1) / CHUNK_SIZE` безопасно: `nextLength > 0`, частное меньше
 или равно `nextLength - 1`, итог не превышает `nextLength <= SIZE_MAX`.
 `chunk.length += 1` безопасен только из cross-descriptor факта
@@ -1347,7 +1641,7 @@ take block)`, его exceptional cleanup обязан освободить вл�
 
 ### 13.5. `insert`
 
-Код: `chunked-array.efen:148-174`. После `ensureChunks` `chunkForPosition(old
+Код: `chunked-array.efen:152-180`. После `ensureChunks` `chunkForPosition(old
 length)` выбирает slot дырки, включая новую area на границе chunk. Loop invariant:
 
 ```text
@@ -1356,25 +1650,25 @@ global initialized positions = [0,cursor) union (cursor,oldLength]
 global hole = cursor
 flat prefix/suffix preserve old order
 all AreaId distinct
-physical chunk.length fields still describe old published prefix
+physical chunk.length fields still describe old member prefix
 ValueOwn(newValue)
 ```
 
 `movePosition` переносит occupant между areas без изменения global membership.
 Локальные `chunk.length` временно не описывают init sets, особенно при переходе
 через границу; поэтому связанные свойства всех затронутых chunks и Self должны
-быть открыты одной group. После initialize увеличивается только old/new last
-chunk length, затем общий length. Moves, initialize и эти записи обязаны быть
+быть открыты одной group. После initialize увеличивается только `endChunk`
+старого логического конца, затем общий length. Moves, initialize и эти записи обязаны быть
 no-throw.
 
-В insert снова требуется checked `self.length + 1`; формула requiredChunks имеет
-то же доказательство bounds. `cursor -= 1` безопасен из `cursor > index`.
-Увеличение `lastChunk.length` требует доказать `< CHUNK_SIZE` по global prefix
+Формула requiredChunks имеет то же доказательство bounds. `cursor -= 1`
+безопасен из `cursor > index`.
+Увеличение `endChunk.length` требует доказать `< CHUNK_SIZE` по global prefix
 contract, а не предположить это из существования chunk.
 
 ### 13.6. `remove`
 
-Код: `chunked-array.efen:176-199`. После extract global hole движется вправо:
+Код: `chunked-array.efen:182-207`. После extract global hole движется вправо:
 
 ```text
 index <= cursor < oldLength
@@ -1384,39 +1678,40 @@ shifted prefix equals old[index+1..cursor]
 all unaffected chunks retain exact resources
 ```
 
-После цикла уменьшается `lastChunk.length`, затем общий length. Пустой последний
-chunk остаётся выделенным и может быть повторно использован; это допустимо, но
+После цикла уменьшается `lastOccupiedChunk.length`, затем общий length. Пустые
+chunks retained suffix остаются выделенными и могут быть повторно использованы;
+это допустимо, но
 должно быть частью representation contract и destructor enumeration. Удаление
 самой пустой area алгоритм не выполняет и обещать не должно.
 
 В loop `cursor + 1` и `cursor += 1` безопасны из
-`cursor + 1 < oldLength <= SIZE_MAX`. Оба вычитания в строках 196-197 безопасны
+`cursor + 1 < oldLength <= SIZE_MAX`. Оба вычитания в строках 204-205 безопасны
 только из `index < oldLength` и cross-descriptor следствия
-`lastChunk.length > 0`.
+`lastOccupiedChunk.length > 0`.
 
 ### 13.7. Итог по Chunked
 
-Недостатки contracts: cross-descriptor coverage, disjoint roots, global order,
-prefix initialization, ownership каталога и порядок nested destruction.
-Алгоритмические проблемы: unchecked arithmetic и невыраженный cleanup
-provisional block. При наличии названных contracts направление движения дырки и
-обновление последнего chunk выглядят доказуемыми.
+Generated proof обязан установить cross-descriptor coverage, disjoint roots,
+global order, prefix initialization и ownership каталога из всех descriptor
+transitions. Открыта реальная генерация nested exceptional cleanup. При наличии
+этих доказательств направление движения дырки и обновление chunk логического
+конца выглядят корректными.
 
 Negative mutations: два chunks с одним root; пропущенный chunk в union; неверный
 `chunkIndex`; move с одинаковыми source/destination; неосвобождённый provisional
-block; увеличение не последнего chunk; неправильный last chunk на границе 256;
+block; увеличение не `endChunk`; неправильный `lastOccupiedChunk` на границе 256;
 ранняя запись общего length; directory freed раньше item areas.
 
 ## 14. Алгоритм или недостаточный contract
 
 | Наблюдение | Класс | Следствие |
 |---|---|---|
-| `capacity * 2`, `length + 1`, `cursor + 1` без checked policy | алгоритм | добавить явные checked operations до открытия состояния |
-| `Contiguous.replace` после `take` допускает бросающий assignment | алгоритм или ограничение generic | no-throw move либо transactional replace |
-| `DoubleLinkedList.append` публикует item с несогласованным `prev` | алгоритм относительно immediate-publish `allocate` | provisional allocation или open-property contract операции |
-| Нет явного cleanup конструктора/вложенного block | contract compiler-generated cleanup | определить generation и доказать exceptional edge |
-| `reachable` не даёт удобного конечного порядка списка | layout contract | добавить ghost `Seq` witness/refinement |
-| `Items.count` и `Chunks.count` не связывают две populations | layout contract | добавить coverage, disjointness, sum и flattening |
+| Операции `Size` | вход от compiler frontend, не дефект Array | сохранить уже разрешённые arithmetic CFG paths; layout mutation начинается позже |
+| `replace(place, value)` | compiler atomic transition | lowerить в один `ReplacePlace`; fallible prepare раньше, доставка ошибки только после commit/rollback и close |
+| List allocation меняет membership до связывания | compiler-generated commit | fallible provisional allocation при closed layout, затем `Open → Publish → link → Close` |
+| Нет явного cleanup конструктора/вложенного block | compiler lowering | сгенерировать реальный exceptional CFG с точным resource balance |
+| `chained` требует proof witness порядка | compiler-known layout contract | вывести ghost `Seq` и доказать update каждой операцией |
+| Связь `Items` с `Chunks` | generated compiler invariant | вывести coverage, disjointness, sum и flattening из полного набора descriptor transitions |
 | Не задано, бросают ли `initialize`, `move`, field move, drop | descriptor/runtime contract | зафиксировать prepare/commit/cleanup effects |
 | Не задан порядок drop area | descriptor contract | принять `DropOrder`, не выбирать его молча в emitter |
 | Не задана identity area occupant при move/realloc | proof-model contract | использовать `ElementId + LocationLease + Epoch` |
@@ -1490,21 +1785,39 @@ field permission проверяется postcondition leak-check; успешны
 - `reallocateArea` разделён на in-place growth того же `AllocationId` и
   new-allocation relocation. Strong exception guarantee разрешена только для
   provisional copy, fallible-first/no-throw-move или явно доказанного rollback.
-- `allocateProvisional`, `Publish` и `AbortProvisional` имеют отдельные state и
-  exact cleanup; обычный `allocate` явно обновляет `liveElem` и `published`.
+- Внутренние `allocateProvisional`, `Publish` и `AbortProvisional` имеют
+  отдельные state и exact cleanup. Для стандартных Array surface `allocate`
+  выносит fallible provisional allocation до `OpenProperty`, затем no-fail
+  `Publish` обновляет `memberLive`, но не `externallyEscaped`.
 - `AllocationOwn` и `ElementOwn` связаны неразделимым `StableOwner`; связанные
   `Init` и field permissions хранятся в `ElementStorage` и потребляются `free`.
 - Чистые maps принадлежат `LayoutState`, `DescriptorState` и `AreaState`;
   transitions требуют линейные `LayoutWrite`/`DescriptorWrite`, а не boolean
   разрешение.
-- Ghost `order` допускается только из доказанного structural HIR contract
-  (`chained`) либо явного proof state. При нынешнем одном `reachable` list
-  lowering помечен unsupported.
-- Все пять `replace` признаны заблокированными отсутствием
-  `Movable`/no-throw-placement contract; `Copyable` не подменяет этот контракт.
+- Ghost `order` теперь lowerится из compiler-known `chained`; verifier доказывает
+  update каждой операции и не подбирает witness через `assume`.
+- Все пять `replace` получили требуемый `Movable`. Compiler-known
+  `replace(place, value)` lowerится в один `ReplacePlace`, поэтому пустого
+  промежуточного slot нет. Concrete representation обязана пройти
+  `ReplaceRefinement`: fallible prepare сохраняет old place, commit не имеет
+  observation edge, а оба exceptional post-state закрыты и сохраняют owners.
 - Viper sketch и Box slice теперь используют state predicate, provisional
   publication, owner bundle, field-resource consumption и resource-backed area
   guards. Эти схемы по-прежнему не названы запущенным proof.
+- После уточнения Edmond `read` у `var tail: read Items.Item?` относится к
+  сохранённому указателю, а не к изменяемости слота. Запись через его identity
+  использует отдельный `WriteCell`, полученный из `LayoutWrite`; прежняя
+  классификация такой записи как ошибки прав удалена.
+- `allocateOpen` теперь явно возвращает `DescriptorState ⊗ DescriptorWrite ⊗
+  OpenAuthority` на обоих выходах; `OpenAuthority` инкапсулирует открытый
+  `LayoutState ⊗ LayoutWrite`. Owning argument готовится до открытия group.
+- Descriptor membership (`memberLive`) отделено от внешнего escape; новый member
+  нельзя передать наружу до `CloseProperty`.
+- `ConstructionCleanup` на `PublishSelf` преобразуется в owning `SelfDrop`, а
+  `ChunkCleanup` линейно проходит local → temporary → callee →
+  `PublishedChunkDrop`. Nested owners остаются в `PayloadOwnTree`.
+- Chunked witness теперь связывает distinct identity с physical locations;
+  одинаковые values допускаются отдельной проекцией `flatValues`.
 
 ## 17. Последовательность расширения
 
@@ -1525,4 +1838,4 @@ stable Box set
 Physical representation отдельно доказывает bijection, unique writable location,
 field-lens semantics, initialization и preservation transitions. Возможность
 `Borrow`, `Address` или `Stable` подтверждается ресурсным witness, а не boolean
-flag (`columnar-layouts.md:273-291`).
+flag ([доступ и `managed`](columnar-layouts.md#доступ-ссылки-и-managed)).

@@ -156,13 +156,11 @@ no-reenter шаги, сохраняющие линейный authority экзе�
 
 ### 0.4. Числа
 
-Каждое действие над `Size` получает одну из политик:
-
-- доказанное отсутствие overflow;
-- checked operation с exceptional ребром;
-- явно выбранную wrapping-семантику.
-
-Безграничный Viper `Int` нельзя использовать как молчаливую замену `Size`.
+Поведение арифметики `Size`, доказательство range и вставка необходимых runtime
+действий принадлежат компилятору, а не реализации Array. Verification frontend
+получает уже разрешённый арифметический CFG и обязан точно сохранить его в VIR;
+он не требует от Array ручных guards и не выбирает overflow policy заново.
+Безграничный Viper `Int` не вправе стирать поведение, выбранное компилятором.
 
 Критерий этапа: ни одна VIR-операция не ссылается на незафиксированное значение
 слов `identity`, `live`, `own`, `initialized`, `free` или `relocate`.
@@ -240,6 +238,9 @@ layout BoxStore {
 
 Первый Viper slice использует `new`, отдельный линейный ресурс `Own(box)` и
 physical field permission. Простого `box in Live` недостаточно.
+Payload `Int` имеет trivial drop: этот этап доказывает exactly-once resources и
+`free`, но не выбирает порядок наблюдаемых generic destructors. Такие proofs
+остаются unsupported до отдельного решения `DropOrder`.
 
 Критерий этапа: каждая отрицательная мутация падает на ожидаемом
 `obligationId`, а ошибка отображается на исходный Efen `SourceSpan`.
@@ -288,10 +289,18 @@ uninitialized slot позволяют запись-конструировани�
 - callback `make(index)`, его исключение и cleanup точного initialized prefix;
 - публикацию элемента только после полной инициализации;
 - равенство `length`, `Items.count` и capacity на выходе;
-- `replace` с move-only и потенциально бросающим generic `Target`.
+- `Movable` как условие законности `take`;
+- lowering `replace(place, value)` в один VIR `ReplacePlace` без промежуточного
+  exceptional/observation edge;
+- `ReplaceRefinement` каждой concrete representation: prepare сохраняет old
+  place, commit без наблюдения, точный ownership на обоих exceptional outcomes;
+- подготовку возможной ошибки до открытия перехода либо её доставку только после
+  завершения/отката и закрытия layout.
 
 Критерий этапа: constructor доказывается для произвольной точки исключения
 callback, а injected double-drop и read-before-init отвергаются.
+Representation, которая требует наблюдаемого либо бросающего hook внутри commit,
+не получает условную операцию `replace` без transactional refinement.
 
 ## Этап 6. DynamicContiguous Array
 
@@ -299,12 +308,13 @@ callback, а injected double-drop и read-before-init отвергаются.
 
 ### `reserve`
 
-- overflow в `capacity * 2` проверяется до вычисления;
+- compiler-resolved вычисление `capacity * 2` завершается до открытия layout;
 - `newCapacity >= initializedCount`;
 - prepare не меняет опубликованный state;
 - commit сохраняет порядок значений и membership;
 - старые location leases отсутствуют;
-- old area освобождается ровно один раз;
+- in-place growth сохраняет `AllocationId` без `free`, relocation освобождает old
+  area ровно один раз;
 - исключение сохраняет прежние root, capacity, length и значения.
 
 ### `insert`
@@ -325,14 +335,14 @@ initialized = prefix(0, cursor) ∪ suffix(cursor + 1, oldLength + 1)
 один `Own`. После последнего move initialized set становится новым префиксом.
 
 Критерий этапа: алгоритмы проходят для `index == 0`, middle, last, empty/full
-capacity boundaries; off-by-one, wrong move direction, missing move и overflow
-являются negative tests.
+capacity boundaries; off-by-one, wrong move direction и missing move являются
+negative tests. Арифметические paths проверяются общим compiler corpus.
 
 ## Этап 7. List и DoubleLinkedList
 
-Сначала выбрать доказуемое структурное представление порядка: ghost `Seq` живых
-identity либо другой конечный witness. Не кодировать `reachable` рекурсивной
-Viper-функцией без доказательства её well-foundedness.
+Compiler-known `chained from self.head by Item.next` задаёт конечный ghost `Seq`
+живых identity, точное membership, distinctness, head/next/last/null. Каждая
+мутация доказывает update witness; verifier не получает его через `assume`.
 
 Для односвязного списка доказать:
 
@@ -355,22 +365,38 @@ Viper-функцией без доказательства её well-foundedness
 
 ## Этап 8. Chunked Array
 
-Перед proof алгоритмов добавить отсутствующий cross-descriptor invariant:
+Перед proof алгоритмов compiler генерирует cross-descriptor invariant из
+семантики `Chunks`/`Items`, полного тела representation и экспортируемой
+поведенческой цели Array:
 
 ```text
 Chunks == directory[0..<directoryLength]
-Items == union(chunk.root[0..<chunk.length] for chunk in Chunks)
 all chunk areas are pairwise disjoint
-all non-last used chunks are full
+requiredChunks(self.length) <= directoryLength
+forall i < directoryLength:
+    chunk[i].length = min(CHUNK_SIZE,
+        max(0, self.length - i * CHUNK_SIZE))
 sum(chunk.length) == self.length
+chunkItems[i] == identities at chunk[i].root[0..<chunk[i].length]
+flatItems == concat(chunkItems)
+allDistinct(flatItems) && set(flatItems) == Items
+flatValues[j] == valueOf(flatItems[j])
 ```
 
-Нынешних отдельных `Chunks.count` и `Items.count` недостаточно, чтобы доказать,
-что `itemAt` выбрал инициализированный slot нужного chunk.
+В этой ghost-формуле operands инъектированы в неограниченные математические
+целые proof logic; это не runtime-арифметика `Size`.
+
+Descriptor transitions дают точные membership/location, но distribution,
+lengths и logical order отдельно доказываются по scalar writes и направлению
+moves. Surface-квантор не требуется. Негативные тесты пропускают
+`endChunk.length += 1`, меняют не тот chunk, сохраняют membership при неверном
+order и оставляют populated area вне directory owner tree; каждый обязан
+разрушить preservation/refinement proof.
 
 Проверить:
 
-- cleanup блока, выделенного до публикации `Chunk`;
+- compiler-generated exceptional CFG cleanup блока, выделенного до публикации
+  `Chunk`, с точным owner-place и exactly-once nested free;
 - directory relocation отдельно от relocation item blocks;
 - переходы через границу `CHUNK_SIZE`;
 - moving hole между соседними chunks;
@@ -427,7 +453,7 @@ kind. Нельзя объявлять ранее скомпилированны�
 | Пример | Обязательные proof themes |
 |---|---|
 | `contiguous-array.efen` | partial construction, callback failure, prefix init, exact drop |
-| `dynamic-array.efen` | overflow, relocation, lease invalidation, moving hole, strong exception guarantee |
+| `dynamic-array.efen` | relocation, lease invalidation, moving hole, strong exception guarantee |
 | `singly-linked-array.efen` | finite order witness, safe traversal, owning chain, tail |
 | `doubly-linked-array.efen` | paired relation, temporary invariant opening, stale back edge |
 | `chunked-array.efen` | cross-descriptor coverage, disjoint areas, cross-chunk hole, nested cleanup |
@@ -445,6 +471,30 @@ kind. Нельзя объявлять ранее скомпилированны�
 Если алгоритм нельзя доказать из текущего layout, это дефект спецификации или
 алгоритма, а не повод добавить `assume`.
 
+Обязательные negative fixtures дополнительно включают:
+
+- потерянный `DescriptorWrite` на normal или throw выходе `allocateOpen`;
+- выход с незакрытым `OpenAuthority`;
+- throw при построении owning аргумента до входа в `allocateOpen`;
+- double cleanup при переносе owner local → temporary → callee;
+- `PublishSelf`, который стирает `ConstructionCleanup`, а не преобразует его в
+  owning `SelfDrop`;
+- external escape нового member до `CloseProperty`;
+- DoubleLinkedList group без `length`/`Items.count` или owner-place relation;
+- повторный `ElementId` при разных values;
+- одна physical location для двух разных identity;
+- retained zero suffix при `directoryLength` значительно больше
+  `requiredChunks`;
+- использование старого area lease после смены epoch;
+- failure `allocateProvisional`, ошибочно оставляющий открытую List group;
+- `read tail` из другого layout/descriptor, stale tail и конфликтующий loan;
+- representation prepare, изменяющий old place до commit;
+- потеря нового owner при prepare failure;
+- callback внутри `ReplacePlace`;
+- post-commit exceptional path без exactly-once drop невозвращённого old;
+- memory-safe Chunked implementation с неверным logical order;
+- пропущенный `endChunk.length += 1` и populated area вне directory owner tree.
+
 ## Общие критерии приёмки
 
 Этап считается завершённым только если:
@@ -456,6 +506,8 @@ kind. Нельзя объявлять ранее скомпилированны�
 - unresolved origin/place и непомеченный `Assume` запрещены validator;
 - arithmetic соответствует target width;
 - normal, throw и cleanup paths проверены раздельно;
+- каждому proof cleanup соответствует исполняемый generated CFG с тем же
+  owner-place transition и named drop/free operations;
 - список trusted assumptions сохранён рядом с результатом;
 - proof cache зависит от frontend, transformations, VIR, emitter, prelude,
   representation witness, target и solver versions;

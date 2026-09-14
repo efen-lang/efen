@@ -27,7 +27,9 @@ aspect Contiguous<Target> conforms Representation<Target> {
         public fn init(
             count: Size,
             make: (Size) -> Target
-        ) -> Self {
+        ) -> Self
+            where Target: Movable
+        {
             self.root = null
             self.capacity = count
             self.length = 0
@@ -67,10 +69,12 @@ aspect Contiguous<Target> conforms Representation<Target> {
             return itemAt(index).Target
         }
 
-        public fn replace(index: Size, value: own Target) -> Target {
+        public fn replace(index: Size, value: own Target) -> Target
+            where Target: Movable
+        {
             let item = itemAt(index)
-            let previous = take item.Target
-            item.Target = take value
+            let previous = replace(item.Target, value)
+
             return take previous
         }
     }

@@ -112,7 +112,9 @@ aspect Chunked<Target> conforms Representation<Target> {
             }
         }
 
-        fn movePosition(from: Size, to: Size) {
+        fn movePosition(from: Size, to: Size)
+            where Target: Movable
+        {
             let source = chunkForPosition(from)
             let destination = chunkForPosition(to)
 
@@ -124,7 +126,9 @@ aspect Chunked<Target> conforms Representation<Target> {
             )
         }
 
-        public fn append(value: own Target) {
+        public fn append(value: own Target)
+            where Target: Movable
+        {
             let nextLength = self.length + 1
             let requiredChunks =
                 1 + (nextLength - 1) / CHUNK_SIZE
@@ -145,7 +149,9 @@ aspect Chunked<Target> conforms Representation<Target> {
             self.length = nextLength
         }
 
-        public fn insert(index: Size, value: own Target) {
+        public fn insert(index: Size, value: own Target)
+            where Target: Movable
+        {
             if index > self.length {
                 throw BoundsError(index, self.length)
             }
@@ -155,7 +161,7 @@ aspect Chunked<Target> conforms Representation<Target> {
                 1 + (nextLength - 1) / CHUNK_SIZE
             ensureChunks(requiredChunks)
 
-            let lastChunk = chunkForPosition(self.length)
+            let endChunk = chunkForPosition(self.length)
             var cursor = self.length
 
             while cursor > index {
@@ -169,11 +175,13 @@ aspect Chunked<Target> conforms Representation<Target> {
                 index: index % CHUNK_SIZE,
                 value: Item(take value)
             )
-            lastChunk.length += 1
+            endChunk.length += 1
             self.length = nextLength
         }
 
-        public fn remove(index: Size) -> Target {
+        public fn remove(index: Size) -> Target
+            where Target: Movable
+        {
             if index >= self.length {
                 throw BoundsError(index, self.length)
             }
@@ -191,9 +199,9 @@ aspect Chunked<Target> conforms Representation<Target> {
                 cursor += 1
             }
 
-            let lastChunk =
+            let lastOccupiedChunk =
                 chunkForPosition(oldLength - 1)
-            lastChunk.length -= 1
+            lastOccupiedChunk.length -= 1
             self.length = oldLength - 1
             return take removed.Target
         }
@@ -208,10 +216,12 @@ aspect Chunked<Target> conforms Representation<Target> {
             return itemAt(index).Target
         }
 
-        public fn replace(index: Size, value: own Target) -> Target {
+        public fn replace(index: Size, value: own Target) -> Target
+            where Target: Movable
+        {
             let item = itemAt(index)
-            let previous = take item.Target
-            item.Target = take value
+            let previous = replace(item.Target, value)
+
             return take previous
         }
     }
