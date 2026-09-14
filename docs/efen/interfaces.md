@@ -32,6 +32,21 @@ compile-time связь с исходным contract. В interface перено�
 вызываемые методы; associated types, representation и прочие статические
 требования остаются проверками времени компиляции.
 
+Стратегия также не является interface и не преобразуется в произвольный
+interface по совпадению методов. Явная декларация создаёт отдельную runtime-
+проекцию по образцу конкретной стратегии:
+
+```efen
+interface Drawing from CircleDrawing
+
+let shape: Drawing = CircleDrawing
+```
+
+Без `interface Drawing from CircleDrawing` последнее присваивание запрещено.
+Другая стратегия допускается как реализация `Drawing` только при явном
+`conforms` общему contract исходной стратегии и после проверки всей runtime-
+поверхности interface. Подробнее см. [«Стратегии»](strategies.md#динамическая-стратегия).
+
 ### Практический пример
 
 ```efen

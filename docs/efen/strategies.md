@@ -336,23 +336,21 @@ storage.log(message: "Starting save")  // Из Logging
 
 Стратегия текущего пакета участвует в статическом разрешении по правилам выше;
 для стратегии зависимости одного `use` недостаточно. Иногда программисту нужно
-выбирать стратегию во время выполнения.
-Для этого используется **динамическая стратегия**.
-
-> **Динамическая стратегия** -- это переменная типа интерфейс, которой присвоена конкретная стратегия.
-> По сути это vtable (таблица виртуальных методов) без привязки к конкретному объекту.
+выбирать одну из реализаций во время выполнения. Сама стратегия не является
+interface и не присваивается переменной произвольного interface-типа. Runtime-
+граница создаётся только явной декларацией `interface ... from Strategy`.
 
 ### Создание динамической стратегии
 
 Динамическая стратегия создается присваиванием стратегии переменной типа интерфейс:
 
 ```efen
-interface Drawable {
+contract DrawingContract {
     fn draw
     fn resize(scale: Float)
 }
 
-strategy CircleDrawing for Drawable {
+strategy CircleDrawing for Shape conforms DrawingContract {
     fn draw {
         print("Drawing circle")
     }
@@ -362,7 +360,7 @@ strategy CircleDrawing for Drawable {
     }
 }
 
-strategy SquareDrawing for Drawable {
+strategy SquareDrawing for Shape conforms DrawingContract {
     fn draw {
         print("Drawing square")
     }
@@ -372,11 +370,17 @@ strategy SquareDrawing for Drawable {
     }
 }
 
-// Создание динамической стратегии
-let drawable: Drawable = CircleDrawing  // Присваиваем стратегию переменной
+interface Drawing from CircleDrawing
+
+let shape: Drawing = CircleDrawing
 ```
 
-В памяти `drawable` -- это vtable со ссылками на методы стратегии `CircleDrawing`, но без привязки к объекту.
+`Drawing` создаётся по образцу конкретной реализации `CircleDrawing`. Только эта
+явная проекция разрешает материализовать стратегию как runtime-значение.
+Совпадения имён методов недостаточно. Другая стратегия может использовать тот
+же interface лишь при явном `conforms` общему contract и после проверки всей
+runtime-поверхности `Drawing`. Поэтому `SquareDrawing` выше совместима, а
+случайная стратегия с методами `draw` и `resize` — нет.
 
 ### Применение динамической стратегии к объекту
 
@@ -388,10 +392,10 @@ let drawable: Drawable = CircleDrawing  // Присваиваем стратег
 let circle = Circle(radius: 5.0)
 
 // Применяем стратегию к объекту для одного вызова
-using drawable circle.draw()  // Выведет: "Drawing circle"
+using shape circle.draw()  // Выведет: "Drawing circle"
 
 // Можно присвоить результат
-let result = using drawable circle.resize(scale: 2.0)
+let result = using shape circle.resize(scale: 2.0)
 ```
 
 #### Блок
@@ -399,7 +403,7 @@ let result = using drawable circle.resize(scale: 2.0)
 Для нескольких вызовов удобнее использовать блочный синтаксис:
 
 ```efen
-using drawable {
+using shape {
     circle.draw()
     circle.resize(scale: 2.0)
     circle.move(x: 10, y: 20)  // Если метод есть в стратегии
@@ -411,14 +415,12 @@ using drawable {
 Главное преимущество динамических стратегий -- возможность выбирать поведение во время выполнения:
 
 ```efen
-fn renderShape(shape: Shape, format: String) -> Drawable {
-    if format == "svg" {
-        return SVGDrawing  // Возвращаем одну стратегию
-    } else if format == "canvas" {
-        return CanvasDrawing  // Возвращаем другую стратегию
-    } else {
-        return DefaultDrawing  // Возвращаем дефолтную
+fn renderShape(shape: Shape, format: String) -> Drawing {
+    if format == "circle" {
+        return CircleDrawing
     }
+
+    return SquareDrawing
 }
 
 let userFormat = getUserInput()  // Получаем формат от пользователя
@@ -434,24 +436,24 @@ using strategy {
 ### Пример: Система логирования
 
 ```efen
-interface Logger {
+contract LoggerContract {
     fn log(message: String)
 }
 
-strategy ConsoleLogger for Logger {
+strategy ConsoleLogger for Request conforms LoggerContract {
     fn log(message: String) {
         print("[CONSOLE] ${message}")
     }
 }
 
-strategy FileLogger for Logger {
+strategy FileLogger for Request conforms LoggerContract {
     fn log(message: String) {
         // Запись в файл
         writeToFile(message)
     }
 }
 
-strategy NetworkLogger for Logger {
+strategy NetworkLogger for Request conforms LoggerContract {
     fn log(message: String) {
         // Отправка по сети
         sendToServer(message)
@@ -459,6 +461,8 @@ strategy NetworkLogger for Logger {
 }
 
 // Выбор стратегии на основе конфигурации
+interface Logger from ConsoleLogger
+
 fn createLogger(config: Config) -> Logger {
     match config.logType {
         "console": return ConsoleLogger
@@ -482,50 +486,10 @@ class Application {
 }
 ```
 
-### Статические стратегии
+### Граница runtime-проекции
 
-Стратегию можно объявить как `static`, тогда её **нельзя** будет использовать динамически:
-
-```efen
-static strategy DefaultDrawing for Drawable {
-    fn draw {
-        print("Default drawing")
-    }
-}
-
-// Ошибка компиляции!
-let drawable: Drawable = DefaultDrawing  // Нельзя! Стратегия статическая
-
-// Видимое объявление участвует в статическом разрешении
-circle.draw()  // Использует DefaultDrawing статически
-```
-
-**Когда использовать `static`:**
-- Когда стратегия никогда не должна выбираться динамически
-- Для оптимизации производительности (статическая диспетчеризация)
-- Чтобы явно запретить присваивание переменной
-
-### Отличия статических и динамических стратегий
-
-| **Статическая стратегия**                  | **Динамическая стратегия**                |
-|--------------------------------------------|-------------------------------------------|
-| Объявляется с `static strategy`            | Объявляется с `strategy`                  |
-| Разрешается на этапе компиляции по видимости | Выбирается во время выполнения          |
-| Нельзя присвоить переменной                | Можно присвоить переменной типа интерфейс |
-| Статическая диспетчеризация                | Виртуальная диспетчеризация (vtable)      |
-| Быстрее (inline-оптимизации)               | Медленнее (косвенный вызов)               |
-| Используется для архитектурных решений     | Используется для runtime-поведения        |
-
-### Когда использовать динамические стратегии
-
-**Используйте динамические стратегии, когда:**
-- Выбор стратегии зависит от пользовательского ввода
-- Стратегия определяется конфигурацией или настройками
-- Нужно передавать стратегию как параметр функции
-- Требуется plugin-архитектура с загрузкой стратегий во время выполнения
-
-**Используйте статические стратегии, когда:**
-- Стратегия известна на этапе компиляции
-- Важна производительность
-- Стратегия является частью архитектуры и не должна меняться
-- Нужна compile-time проверка использования стратегии
+Без `interface Name from Strategy` стратегия остаётся только compile-time
+декларацией: её нельзя присвоить переменной, вернуть из runtime-функции или
+положить в коллекцию. Отдельный модификатор `static strategy` для этого не
+нужен. Проекция создаёт обычный runtime-interface и только тем самым разрешает
+runtime-выбор совместимых явно подтверждённых реализаций.

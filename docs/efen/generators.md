@@ -9,7 +9,7 @@
 Генераторы объявляются с помощью ключевого слова `generator`.
 
 ```efen
-generator numbers() {
+generator numbers {
     yield 1
     yield 2
     yield 3
@@ -26,13 +26,14 @@ generator numbers() {
 ```efen
 let g = numbers()
 
-print(g.next())  // 1
-print(g.next())  // 2
-print(g.next())  // 3
+match g.next() {
+    .yielded.{ let value }: print(value) // первый вызов печатает 1
+    .completed.{ let result }: finish(result)
+}
 ```
 
-Каждый вызов `next()` возвращает следующее значение,  
-а при достижении конца генератор сообщает, что поток завершён.
+Последующие вызовы возвращают `yielded(2)`, `yielded(3)`, а затем
+`completed(Void)`. Общая форма шага описана ниже.
 
 ---
 
@@ -42,7 +43,7 @@ print(g.next())  // 3
 чтобы принимать данные, передаваемые в генератор при его возобновлении:
 
 ```efen
-generator echo() {
+generator echo {
     msg = yield "ready"
     while msg != "stop" {
         msg = yield "echo: ${msg}"
@@ -55,7 +56,7 @@ generator echo() {
 Генератор может явно вернуть финальное значение:
 
 ```efen
-generator counter() -> Int {
+generator counter -> Int {
     i = 0
     while i < 3 {
         yield i + 1
@@ -64,6 +65,21 @@ generator counter() -> Int {
     return i
 }
 ```
+
+Значение `return` не отбрасывается. Генератор имеет отдельные типы выдаваемого
+значения и итогового результата. После последнего `yield` вызывающий получает
+шаг завершения с результатом:
+
+```efen
+match g.next() {
+    .yielded.{ let value }: use(value)
+    .completed.{ let result }: finish(result)
+}
+```
+
+Таким образом выданное значение и завершение различаются даже при совпадающих
+типах. Полный тип генератора также отдельно хранит тип значения, передаваемого
+обратно при возобновлении.
 
 ## Сравнение с обычными функциями
 

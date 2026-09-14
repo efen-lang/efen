@@ -47,7 +47,9 @@ interface Disposable {
 }
 ```
 
-Метод `dispose()` вызывается автоматически компилятором, когда переменная выходит из области видимости.
+Метод `dispose()` вызывается автоматически компилятором, когда переменная
+выходит из области видимости. Автоматическая очистка имеет ту же семантику, что
+`defer`, и может иметь собственный выведенный `throws`.
 
 ### Пример реализации
 
@@ -288,31 +290,35 @@ async fn useDatabase {
 
 ## Обработка ошибок в dispose
 
-Если `dispose()` может выбросить ошибку, она должна быть обработана:
+`dispose()` может бросить исключение и по-прежнему использоваться для
+автоматической очистки. Его итоговый `throws` участвует в сводке окружающей
+функции:
 
 ```efen
-interface FallibleDisposable {
-    fn dispose throws -> void
-}
-
-class FallibleResource implements FallibleDisposable {
-    fn dispose throws {
-        // Может выбросить ошибку
-        this.connection.close()  // throws
+class FallibleResource implements Disposable {
+    fn dispose -> void throws DisposeError {
+        this.connection.close()
     }
 }
 
 fn useResource {
     let disposable resource = FallibleResource::new()
 
-    try {
-        processResource(resource)
-    } catch (e: Error) {
-        println("Ошибка обработки: ${e}")
-    }
-    // Если dispose() выбросит ошибку, она будет распространена
+    processResource(resource)
 }
 ```
+
+Если `processResource` завершилась нормально, `DisposeError` становится главным
+исключением выхода. Если она уже бросила другое исключение, оно остаётся
+главным, а `DisposeError` добавляется в его список `suppressed`. При нескольких
+ресурсах все операции очистки продолжают выполняться в порядке LIFO; первая
+активная ошибка остаётся главной, остальные добавляются к ней в порядке
+возникновения. Это соответствует поведению Java `try-with-resources`.
+
+Обычный `catch` сопоставляется только с главным исключением. Если ошибка
+cleanup требует самостоятельной обработки, `dispose()` вызывается внутри
+явного `defer` с локальным `try`/`catch`. Исключение с контрактом `MustHandle`
+обязано быть обработано именно так и не может остаться только в `suppressed`.
 
 ## Disposable в структурах данных
 
