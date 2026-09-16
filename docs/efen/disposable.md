@@ -386,7 +386,7 @@ fn processMultipleFiles(paths: [String]) {
        fn dispose {
            try {
                this.connection.close()
-           } catch (e: Error) {
+           } catch e: Error {
                logError("Failed to dispose: ${e}")
            }
        }

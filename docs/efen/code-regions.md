@@ -107,7 +107,7 @@ region preserve file: Open {
     try {
         updateMetadata()
         file.open()
-    } catch (error: IOError) {
+    } catch error: IOError {
         file.open()
         throw error
     }

@@ -96,6 +96,11 @@ try {
 }
 ```
 
+`finally` — часть конструкции `try … catch … finally` и выполняется после
+обработчиков. `try { … } finally { … }` без единого `catch` получает диагностику
+стиля с исправлением на [`defer`](guard.md#defer--отложенное-выполнение): очистка
+ресурса объявляется рядом с его открытием.
+
 ## On exception блок
 
 `On exception` позволяет выполнить код при возникновении исключения, не перехватывая его:
@@ -110,27 +115,28 @@ try {
 
 ## Catch без Try
 
-В `Efen` можно использовать `catch` без явного `try` блока.
-В этом случае обработка распространяется на весь текущий scope с начала:
+`catch` можно писать без `try`. `catch e: T` ловит исключения типа `T` из кода
+выше себя от начала блока. Если выше уже стоит `catch`, который ловит это
+исключение (тот же тип или базовый), зона начинается сразу после него. Код ниже
+`catch` он не ловит. Переменные, объявленные между `catch`, видны дальше по блоку.
 
 ```efen
 fn process(data: String) {
-
     validateInput(data)
 
-    catch e: ValidationError {
+    catch e: ValidationError {          // ValidationError из validateInput
         print("Ошибка валидации: ${e.message}")
         return
     }
 
     let parsed = parseData(data)
 
-    catch e: ParseError {
+    catch e: ParseError {               // ParseError из validateInput и parseData
         print("Ошибка парсинга: ${e.message}")
         return
     }
 
-    saveToDatabase(parsed)
+    saveToDatabase(parsed)              // parsed виден
 
     catch e: DatabaseError {
         print("Ошибка БД: ${e.message}")
@@ -142,41 +148,11 @@ fn process(data: String) {
 }
 ```
 
-Это эквивалентно:
+Такой подход позволяет группировать обработку ошибок линейно, рядом с кодом.
 
-```efen
-fn process(data: String) {
-
-    try {
-        validateInput(data)
-    } catch e: ValidationError {
-        print("Ошибка валидации: ${e.message}")
-        return
-    }
-
-    try {
-        let parsed = parseData(data)
-    } catch e: ParseError {
-        print("Ошибка парсинга: ${e.message}")
-        return
-    }
-
-    try {
-        saveToDatabase(parsed)
-    } catch e: DatabaseError {
-        print("Ошибка БД: ${e.message}")
-        rollback()
-        return
-    }
-
-    print("Успешно обработано")
-}
-```
-
-Такой подход позволяет разработчику иначе группировать логику обработки ошибок,
-делая код более линейным и читаемым.
-
-Краткая форма `catch`:
+Краткая форма `catch` — одна инструкция на той же строке. Тип пишется с
+заглавной буквы, обработчик — со строчной, поэтому граница между ними видна без
+разрешения имён:
 
 ```efen
 fn process(data: String) {
@@ -187,6 +163,10 @@ fn process(data: String) {
 }
 ```
 
+Если в блоке `catch` или `on` одна инструкция и вся запись помещается в одну
+строку, блок получает диагностику стиля с исправлением на краткую форму:
+`catch Error { log("Ошибка") }` → `catch Error log("Ошибка")`.
+
 ### on Exception
 
 Конструкция `on Exception` позволяет обработать исключение перед выходом из функции:
@@ -195,14 +175,14 @@ fn process(data: String) {
 fn readFile(path: String) throws only FileError {
     let file = openFile(path)
     
-    on IoException print("Ошибка при чтении файла: ${e}")
+    on e: IOException print("Ошибка при чтении файла: ${e}")
     
     let content = readContent(file)
     return content
 }
 ```
 
-В отличие от `catch`, `on throw` не подавляет исключение, а лишь позволяет выполнить дополнительную логику
+В отличие от `catch`, `on` не подавляет исключение, а лишь позволяет выполнить дополнительную логику
 перед его пробросом.
 
 ### Вложенные scope

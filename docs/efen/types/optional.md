@@ -653,7 +653,7 @@ fn loadUser(id: Int) -> Result<User, DatabaseError> {
 }
 
 // ✅ Throws - для исключительных ситуаций
-fn loadUser(id: Int) throws -> User {
+fn loadUser(id: Int) -> User throws {
     // ...
 }
 ```

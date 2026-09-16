@@ -146,8 +146,8 @@ printInt(n);  // Ошибка: ожидается int, передан Nat
 
 ```efen
 try {
-    let n: Nat = (-5).refine();
-} catch (RefinementViolationException $e) {
+    let n: Nat = (-5).refine()
+} catch e: RefinementViolationException {
     // Предикат не выполнен: -5 >= 0 == false
 }
 ```

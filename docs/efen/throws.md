@@ -54,7 +54,7 @@ fn process {
 fn handler nothrows {
     try {
         process()
-    } catch (e: Error) {
+    } catch e: Error {
         logError(e)
     }
 }
@@ -96,7 +96,7 @@ fn map(items: [T], transform: (T) -> U throws ...Errors) -> [U] throws ...Errors
 fn limitExceptions throws only NetworkError {
     try {
         operation()  // Все исключения должны быть обработаны
-    } catch (e: Exception) {
+    } catch e: Exception {
         throw NetworkError(cause: e)
     }
 }
@@ -123,7 +123,7 @@ responsibility DatabaseLayer handles DatabaseError {
     fn publicAPI nothrows {
         try {
             query()
-        } catch (e: DatabaseError) {
+        } catch e: DatabaseError {
             logError(e)
         }
     }
@@ -205,7 +205,7 @@ fn dataOperation {
 
     try {
         queryDatabase()
-    } catch (e: DatabaseError) {
+    } catch e: DatabaseError {
         // Обработка DatabaseError обязательна
         logError(e)
     }
@@ -257,7 +257,7 @@ fn funcB {
 fn main nothrows {
     try {
         funcB()
-    } catch (e: ErrorC) {
+    } catch e: ErrorC {
         print("Handled")
     }
 }
@@ -310,7 +310,7 @@ responsibility Service handles ServiceError in ErrorHandler {
     fn process {
         try {
             operation()
-        } catch (e: ServiceError) {
+        } catch e: ServiceError {
             %logger.error(e)
             throw e
         }

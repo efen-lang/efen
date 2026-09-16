@@ -182,9 +182,9 @@ fn readFile(path: String) {
 // Базовый try-catch
 try {
     operation()
-} catch (e: ValidationError) {
+} catch e: ValidationError {
     print("Ошибка валидации")
-} catch (e: Exception) {
+} catch e: Exception {
     print("Другая ошибка")
 }
 
@@ -193,11 +193,11 @@ fn process(data: String) {
     validateInput(data)
     saveToDatabase(data)
     
-    catch (e: ValidationError) {
+    catch e: ValidationError {
         print("Ошибка валидации")
         return
     }
-    catch (e: DatabaseError) {
+    catch e: DatabaseError {
         print("Ошибка БД")
         rollback()
     }
