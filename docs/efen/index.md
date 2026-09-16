@@ -2,7 +2,7 @@
 
 [Корень репозитория](../../README.md) · [Словарь](glossary.md) · [Amber HIR](https://github.com/limelight-lang/amber/blob/main/design/README.md)
 
-Efen — PHP-совместимый компилируемый язык с программируемыми compile-time
+Efen — компилируемый язык с программируемыми compile-time
 абстракциями. Эти документы описывают проект языка; они не подтверждают наличие
 готовой реализации компилятора.
 

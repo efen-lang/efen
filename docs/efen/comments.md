@@ -4,7 +4,7 @@
 
 ### 1. Обычные комментарии
 
-```php
+```efen
 // Однострочный комментарий
 
 /*
@@ -19,7 +19,7 @@
 
 ### 2. Doc-комментарии
 
-```php
+```efen
 /// Однострочный doc-комментарий
 
 /**
@@ -38,7 +38,7 @@
 Все объявления `param` идут подряд в начале тела, до первой инструкции —
 см. [Функции](functions.md):
 
-```php
+```efen
 fn calculateDiscount(orderId: String) -> Float {
     /// Customer's order identifier
     /// Must be a valid UUID v4
@@ -165,7 +165,7 @@ calculateDiscount(
 
 ### ✅ Хорошо
 
-```php
+```efen
 /// Validates user email address
 /// Returns true if email format is valid
 fn validateEmail(email: String) -> Bool {
@@ -179,7 +179,7 @@ fn validateEmail(email: String) -> Bool {
 
 ### ❌ Плохо
 
-```php
+```efen
 // this function validates email  (обычный комментарий вместо doc)
 fn validateEmail(email: String) -> Bool {
     param email: String  // missing documentation

@@ -41,7 +41,7 @@ let email: Email = "email@dot.com" // email гарантированно вал�
 Для определения нового уточняющего типа используется ключевое слово `type`.
 Прозрачные алиасы объявляются отдельным словом `alias`.
 
-```php
+```efen
 type Name: BaseType { predicate }
 ```
 
@@ -76,7 +76,7 @@ fn processAge(age: int) {
 
 #### Натуральные числа
 
-```php
+```efen
 type Nat: int { value >= 0 }
 
 fn factorial(n: Nat): Nat {
@@ -91,7 +91,7 @@ let nat: Nat = x.refine();  // Runtime проверка
 
 #### Email валидация
 
-```php
+```efen
 type Email: string { is_valid_email(value) }
 
 class User {
@@ -110,7 +110,7 @@ class User {
 
 #### Non-null значения
 
-```php
+```efen
 type NonNull<T>: T { value != null }
 
 fn processUser(user: User?) {
@@ -129,7 +129,7 @@ fn processUser(user: User?) {
 Новый `type` имеет собственную номинальную идентичность. Базовый и новый тип
 требуют точного совпадения; отношение основы само по себе не создаёт widening:
 
-```php
+```efen
 fn printInt(x: int) { ... }
 
 let n: Nat = ...;
@@ -143,7 +143,7 @@ printInt(n);  // Ошибка: ожидается int, передан Nat
 
 При неудачной проверке бросается исключение:
 
-```php
+```efen
 try {
     let n: Nat = (-5).refine();
 } catch (RefinementViolationException $e) {
@@ -225,7 +225,7 @@ void setTypePredicateFunctionId(TypeHandle* handle, uint32_t funcId);
 
 ### 1. Финансовые расчёты
 
-```php
+```efen
 type PositiveAmount: float { value > 0.0 }
 type Percentage: float { value >= 0.0 && value <= 100.0 }
 
@@ -237,7 +237,7 @@ fn calculateDiscount(price: PositiveAmount, discount: Percentage): PositiveAmoun
 
 ### 2. Безопасность веб-приложений
 
-```php
+```efen
 type SafeHtml: string { is_safe_html(value) }
 type ValidUrl: string { is_valid_url(value) }
 
@@ -250,7 +250,7 @@ fn renderLink(url: string, text: string): SafeHtml {
 
 ### 3. Конфигурация
 
-```php
+```efen
 type Port: int { value >= 1 && value <= 65535 }
 type NonEmptyString: string { strlen(value) > 0 }
 
@@ -262,7 +262,7 @@ class ServerConfig {
 
 ### 4. Коллекции
 
-```php
+```efen
 type NonEmptyArray<T>: array<T> { count(value) > 0 }
 
 fn first<T>(arr: NonEmptyArray<T>): T {
@@ -276,7 +276,7 @@ fn first<T>(arr: NonEmptyArray<T>): T {
 
 Статическая верификация через SMT solver (Z3, CVC5):
 
-```php
+```efen
 fn abs(x: int): Nat {
     if (x >= 0) {
         return x.refine();  // SMT доказывает: x >= 0 => value >= 0
@@ -290,7 +290,7 @@ fn abs(x: int): Nat {
 
 Зависимость от значений других параметров:
 
-```php
+```efen
 type BoundedInt<min, max>: int { value >= min && value <= max }
 type Array<T, n>: array<T> { count(value) == n }
 
@@ -301,7 +301,7 @@ fn createFixedArray<T, n>(value: T): Array<T, n> {
 
 ### 3. Сложные предикаты
 
-```php
+```efen
 type SortedArray<T>: array<T> {
     for (i = 0; i < count(value) - 1; i++) {
         value[i] <= value[i + 1]
@@ -313,7 +313,7 @@ type SortedArray<T>: array<T> {
 
 Автоматический вывод refinement types:
 
-```php
+```efen
 fn process(x: int) {
     if (x >= 0) {
         // Компилятор выводит: x : int{value >= 0}
@@ -347,7 +347,7 @@ subtype Positive is Integer range 1 .. Integer'Last;
 
 ### Efen (наш синтаксис)
 
-```php
+```efen
 type Nat: int { value >= 0 }
 type Pos: int { value > 0 }
 ```
