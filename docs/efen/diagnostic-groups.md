@@ -52,11 +52,15 @@ efenc -print-diagnostic-groups main.efen
 
 Диагностики с кодом `S` задают единый стиль исходного Efen, но не изменяют
 грамматику языка. Parser принимает все валидные формы и строит одинаковый HIR,
-после чего frontend сообщает отклонение от канонической записи как warning.
-Компиляция по умолчанию продолжается.
+после чего frontend сообщает отклонение от канонической записи.
 
-`S` означает `Style`; ошибки синтаксического разбора по-прежнему относятся к
-группе `Syntax`. Style warning содержит машинно применимое исправление, когда
+По умолчанию диагностика стиля — ошибка, и компиляция останавливается. Сборка
+может понизить группу `StyleIssue` до предупреждений; смысл программы от этого
+не меняется, потому что форма уже разобрана однозначно.
+
+`S` означает `Style`. Ошибка синтаксиса (`Syntax`) ставится там, где смысл
+записи неясен; диагностика стиля — там, где смысл ясен, но запись не
+каноническая. Диагностика стиля содержит машинно применимое исправление, когда
 переписывание не меняет семантику.
 
 Например, параметры функции можно объявить в заголовке или через `param` в её
@@ -74,7 +78,7 @@ fn combine -> Result {
 Заголовок с четырьмя параметрами остаётся синтаксически допустимым, но получает:
 
 ```text
-warning[S.function-parameter-layout]: functions with more than three parameters use `param` declarations
+error[S.function-parameter-layout]: functions with more than three parameters use `param` declarations
   help: move the parameters to the beginning of the function body
 ```
 
@@ -105,7 +109,7 @@ warning[S.function-parameter-layout]: functions with more than three parameters 
 - `AccessControl` - контроль доступа
 - `Lifetime` - время жизни объектов
 - `DeprecatedFeature` - устаревшие возможности
-- `StyleIssue` - style warnings семейства `S`
+- `StyleIssue` - диагностики стиля семейства `S`, по умолчанию ошибки
 - `Performance` - производительность
 - `Layer` - нарушения границ слоёв: `uses`, `exposes`, `provides`
 

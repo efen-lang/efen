@@ -171,8 +171,8 @@ fn multiply -> Int {
 
 Каноническую форму выбирает обязательное правило стиля: при числе runtime-
 параметров больше трёх используются объявления `param`. Заголовочная форма при
-этом остаётся валидной, но получает warning
-`S.function-parameter-layout`. Variadic-параметр считается одним; generic-
+этом остаётся валидной, но получает диагностику стиля
+`S.function-parameter-layout`, по умолчанию ошибку. Variadic-параметр считается одним; generic-
 параметры и неявный receiver не считаются. Общая модель style diagnostics
 описана в [Diagnostic Groups](diagnostic-groups.md#style-diagnostics-s).
 
