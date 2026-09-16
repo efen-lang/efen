@@ -73,12 +73,12 @@ Generic-функция может переносить точный pack иск�
 общему базовому типу:
 
 ```efen
-fn map<T, U, ...Errors>(
-    items: [T],
-    transform: (T) -> U throws ...Errors
-) -> [U] throws ...Errors
+fn map(items: [T], transform: (T) -> U throws ...Errors) -> [U] throws ...Errors {
+    generic T: Type
+    generic U: Type
+    generic ...Errors: Type
     where ...Errors: Exception
-{
+
     // ...
 }
 ```
