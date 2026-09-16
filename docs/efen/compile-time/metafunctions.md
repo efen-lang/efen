@@ -1498,7 +1498,7 @@ meta fn using<T: Disposable, R>(
 // Использование
 using(
     resource: => File.open("data.txt"),
-    body: (file) => {
+    body: (file: File) -> String {
         file.readAll()
     }
 )

@@ -502,7 +502,7 @@ fn wrongInEscaping(register: (@escaping () -> Void) -> Void) {
 }
 
 fn correctInEscaping(register: (@escaping () -> Void) -> Void) {
-    register(() => {
+    register(() -> Void {
         try {
             critical()
         } catch e: CriticalError {

@@ -7,43 +7,28 @@
 
 ## Синтаксис замыканий
 
-Полная форма замыкания с указанием типов параметров и возвращаемого значения:
+У литерала замыкания две формы. Они различаются видом тела:
 
 ```efen
-var closure = (param1: Int, param2: Int) -> Int { return param1 + param2 }
+(a: Int, b: Int) -> Int { return a + b }   // тело-блок: тип результата, без =>
+(a, b) => a + b                            // тело-выражение: =>
 ```
 
-Литерал замыкания с блоком пишется без `=>`; `->` здесь задаёт тип результата.
-Знак `=>` обязателен в двух случаях: когда телом замыкания служит голое выражение
-и когда замыкание передаётся хвостовым аргументом после вызова.
+Замыкание без параметров записывается так же: `() -> Int { … }` или
+`() => expr`. Хвостовой аргумент вызова пишется через `=>` и может иметь тело-
+блок: `items.map => { … }` (см. ниже).
 
-Замыкание как возвращаемый тип функции:
+Другие записи не используются: `(x) => { … }` получает диагностику стиля с
+исправлением на форму с блоком; объявление через `=>` вместо `=`
+(`var c => x + 1`), параметры в теле без `param`, `(x) { … }` без `->` и голый
+`{ … }` как замыкание в грамматику не входят.
+
+Замыкание как возвращаемое значение:
 
 ```efen
 fn getClosure -> (Int, Int) -> Int {
-    return => return param1 + param2
+    return (a, b) => a + b
 }
-```
-
-Альтернативный синтаксис с параметрами в теле замыкания:
-
-```efen
-var closure => {
-    param1: Int, param2: Int
-    return param1 + param2
-}
-```
-
-Сокращённая форма замыкания без указания типов (типы выводятся компилятором):
-
-```efen
-var closure = (param1, param2) => param1 + param2
-```
-
-Сокращённая формат без параметров (замыкание без аргументов):
-
-```efen
-var closure => x + 1
 ```
 
 ## Короткий синтаксис замыканий (Closure Short Syntax)
@@ -153,12 +138,7 @@ let sum = [1, 2, 3, 4].reduce(0) => $0 + $1     // 10
 
 Замыкание в качестве аргумента метода:
 ```efen
-object.method({
-    тело_функции
-}, другие_аргументы)
-
-// или с параметрами
-object.method((param1, param2) -> Type {
+object.method((param1: Type1, param2: Type2) -> Type {
     тело_функции
 }, другие_аргументы)
 ```
@@ -182,7 +162,7 @@ let greet = (name: String) -> String {
 
 Замыкание без параметров:
 ```efen
-let getRandomNumber => {
+let getRandomNumber = () -> Int {
     return 42
 }
 ```
@@ -218,7 +198,7 @@ items.forEach => sum += $0               // write-заимствование sum
 ```efen
 fn makeCounter -> () -> Int {
     var count = 0
-    return => {
+    return () -> Int {
         count += 1                       // ошибка: заимствование count выходит за его origin
         return count
     }
@@ -233,7 +213,7 @@ fn makeCounter -> () -> Int {
 ```efen
 fn makeCounter -> () -> Int {
     var count = 0
-    return => {
+    return () -> Int {
         capture var count = take count
         count += 1
         return count
@@ -245,7 +225,7 @@ fn makeCounter -> () -> Int {
 выражение, результат которого принадлежит замыканию:
 
 ```efen
-let report => {
+let report = () -> Void {
     capture connection = take connection   // перенос
     capture factor = factor.copy()         // копия
     capture total = a + b                  // новое значение
@@ -317,7 +297,7 @@ fn send {
 fn makeTask -> () -> Void {
     let connection: Connection = connect()
 
-    return => {
+    return () -> Void {
         capture connection = take connection
         send(take connection)
     }
@@ -513,12 +493,12 @@ numbers.reduce(0) => $0 + $1
 Для функций с несколькими замыканиями:
 
 ```efen
-func loadData(onSuccess: (Data) -> Void, onError: (Error) -> Void) {
+fn loadData(onSuccess: (Data) -> Void, onError: (Error) -> Void) {
     // ...
 }
 
 // Trailing closure для последнего параметра
-loadData(onSuccess: (data) => {
+loadData(onSuccess: (data: Data) -> Void {
     print("Success: ${data}")
 }) => {
     print("Error: ${$0}")
@@ -575,27 +555,7 @@ users.filter => $0.age > 18 && $0.isActive && !$0.isBanned
 users.filter((user) => user.age > 18 && user.isActive && !user.isBanned)
 ```
 
-### 4. Избегайте retain cycles
-
-```efen
-class ViewController {
-    var onComplete: (() -> Void)?
-
-    func setup {
-        // ❌ Retain cycle
-        onComplete = {
-            self.dismiss()
-        }
-
-        // ✅ Слабая ссылка
-        onComplete = { [weak self] in
-            self?.dismiss()
-        }
-    }
-}
-```
-
-### 5. Используйте @autoclosure для ленивого вычисления
+### 4. Используйте @autoclosure для ленивого вычисления
 
 ```efen
 fn log(_ message: @autoclosure () -> String, level: LogLevel) {
@@ -608,7 +568,7 @@ fn log(_ message: @autoclosure () -> String, level: LogLevel) {
 log("User data: ${fetchExpensiveUserData()}", level: .debug)
 ```
 
-### 6. Предпочитайте non-escaping когда возможно
+### 5. Предпочитайте non-escaping когда возможно
 
 ```efen
 // ✅ Non-escaping по умолчанию — быстрее
@@ -618,7 +578,8 @@ fn process(data: [Int], transform: (Int) -> Int) -> [Int] {
 
 // ⚠️ Escaping только когда необходимо
 fn asyncProcess(completion: @escaping () -> Void) {
-    DispatchQueue.main.async {
+    spawn {
+        capture completion = take completion
         completion()
     }
 }
@@ -626,53 +587,13 @@ fn asyncProcess(completion: @escaping () -> Void) {
 
 ## Замыкания и память
 
-### Захват self
-
-```efen
-class NetworkManager {
-    var requests: [() -> Void] = []
-
-    func addRequest(_ request: @escaping () -> Void) {
-        requests.append(request)
-    }
-
-    func processData {
-        addRequest { [weak self] in
-            guard let self = self else { return }
-            self.performTask()
-        }
-    }
-
-    func performTask {
-        print("Task performed")
-    }
-}
-```
-
-### Unowned vs Weak
-
-```efen
-class Parent {
-    var child: Child?
-}
-
-class Child {
-    // Используйте unowned если объект всегда существует
-    unowned let parent: Parent
-
-    // Используйте weak если объект может быть nil
-    weak var optionalParent: Parent?
-
-    init(parent: Parent) {
-        self.parent = parent
-    }
-
-    func doSomething {
-        parent.someMethod()  // Безопасно с unowned
-        optionalParent?.someMethod()  // Безопасно с weak
-    }
-}
-```
+Замыкание, сохранённое в поле объекта, подчиняется тем же правилам `origin`, что
+и любая хранимая ссылка: заимствование `self` не переживает объект, а ссылка
+на тот же перемещаемый объект из его поля автоматически не разрешается — такой
+тип требует гарантированно стабильного storage. `weak` и `unowned` в
+захвате не используются: слабая ссылка запрещена без runtime-механизма,
+обнаруживающего уничтожение объекта. Правила хранимых ссылок —
+[ownership](types/ownership.md#хранимые-и-захваченные-ссылки).
 
 ## Производительность
 
@@ -685,7 +606,7 @@ class Child {
 let doubled = numbers.map => $0 * 2
 
 // ⚠️ Сложнее инлайнить
-let processed = numbers.map((value) => {
+let processed = numbers.map((value: Int) -> Int {
     if value > 10 {
         return value * 2
     } else {

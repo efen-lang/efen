@@ -34,7 +34,7 @@ let print: (String) -> Void
 let f: (Int, Int) -> Int
 
 // Присваивание лямбда-выражения
-f = (a: Int, b: Int) => { a + b }
+f = (a: Int, b: Int) => a + b
 
 // Использование
 echo f(5, 3)  // Выведет: 8
@@ -117,7 +117,7 @@ fn caller {
 ```efen
 // Функция, возвращающая функцию
 fn makeMultiplier(factor: Int) -> (Int) -> Int {
-    return (n: Int) => { n * factor }
+    return (n: Int) => n * factor
 }
 
 let multiplyBy3 = makeMultiplier(3)
@@ -132,8 +132,8 @@ echo multiplyBy3(4)  // Выведет: 12
 alias BinaryOperation = (Int, Int) -> Int
 alias UnaryPredicate = (Int) -> Bool
 
-let operation: BinaryOperation = (a: Int, b: Int) => { a + b }
-let isEven: UnaryPredicate = (n: Int) => { n % 2 == 0 }
+let operation: BinaryOperation = (a: Int, b: Int) => a + b
+let isEven: UnaryPredicate = (n: Int) => n % 2 == 0
 ```
 
 ## Грамматика
