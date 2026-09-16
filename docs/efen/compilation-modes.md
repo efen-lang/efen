@@ -215,54 +215,6 @@ module legacy {
 }
 ```
 
-## Режим безопасной памяти
-
-### Safe режим
-
-Режим с проверками безопасности памяти:
-
-```bash
-efenc --memory-safety=safe main.efen
-```
-
-**Характеристики:**
-- Проверка выхода за границы массива
-- Проверка null pointer
-- Проверка use-after-free
-- Проверка double-free
-- Runtime overhead
-
-### Unsafe режим
-
-Режим без проверок безопасности для максимальной производительности:
-
-```bash
-efenc --memory-safety=unsafe main.efen
-```
-
-**Характеристики:**
-- Без runtime проверок
-- Максимальная производительность
-- Ответственность на программисте
-
-### Гибридный подход
-
-```efen
-fn processData(data: [Int]) {
-    // Safe код с проверками
-    for item in data {
-        validate(item)
-    }
-
-    // Unsafe блок для критичных по производительности операций
-    unsafe {
-        // Без проверок - максимальная скорость
-        let ptr = data.rawPointer()
-        // Прямая работа с памятью
-    }
-}
-```
-
 ## Режимы целевой платформы
 
 ### Нативная компиляция
@@ -341,7 +293,6 @@ efenc --profile=coverage main.efen
 efenc \
     --mode=release \
     --target=x86_64-linux-gnu \
-    --memory-safety=safe \
     --link=static \
     --lto=full \
     main.efen
@@ -355,14 +306,12 @@ efenc \
 [mode.production]
 optimization = "aggressive"
 debug-info = false
-memory-safety = "safe"
 target = "native"
 lto = true
 
 [mode.development]
 optimization = "none"
 debug-info = true
-memory-safety = "safe"
 fast-compile = true
 
 [mode.testing]
@@ -387,7 +336,7 @@ efenc --config=.efenrc --mode=production main.efen
 
 2. **Release для production**
    ```bash
-   efenc --mode=release --memory-safety=safe main.efen
+   efenc --mode=release main.efen
    ```
 
 3. **Песочница для ненадёжного кода**

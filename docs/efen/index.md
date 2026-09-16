@@ -80,7 +80,7 @@ source syntax
 |---|---|
 | Общая модель | [Управляемые абстракции](abstractions.md), [классы](classes.md), [структуры](structs.md) |
 | Контракты и интерфейсы | [Контракты](contracts.md), [interfaces](interfaces.md), [superpolymorphism](superpolymorphism.md) |
-| Поведение без изменения типа | [Стратегии](strategies.md), [`StrategySelector`](strategies.md#правила-выбора-стратегии) |
+| Поведение без изменения типа | [Стратегии](strategies.md), [`Resolve<Contract>`](strategies.md#правила-выбора-стратегии) |
 | Преобразование деклараций | [Аспекты](aspects/aspect.md), [построение класса](aspects/compile-time/class.md), [member resolver](aspects/members-resolving.md) |
 | Атрибуты и metadata | [Metadata](aspects/metadata.md), [декораторы](decorators.md), [примеры декораторов](decorators-examples.md) |
 

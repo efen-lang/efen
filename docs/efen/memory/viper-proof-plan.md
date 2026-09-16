@@ -81,7 +81,7 @@ Read(place) / Write(place)
 - Logical identity не обязана совпадать с physical row или address.
 - Location lease для area блокирует relocation либо становится непригодным при
   смене epoch.
-- Потеря последнего `Own` без уничтожения или явной unsafe-операции запрещена.
+- Потеря последнего `Own` без уничтожения запрещена.
 
 ## Артефакты
 
