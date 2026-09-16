@@ -441,15 +441,13 @@ greet(firstName: "John", lastName: "Doe")
 
 Сигнатура фунции - это тип данных, описывающий параметры и возвращаемое значение функции.
 ```efen
-type Adder (a: Int, b: Int) -> Int
+alias Adder = (a: Int, b: Int) -> Int
 ```
 
-Или альтернативный синтаксис:
+Имя функциональному типу даёт только `alias`: `type` объявляет новый номинальный
+тип.
 ```efen
-type Adder -> Int {
-    param a: Int
-    param b: Int
-}
+alias Handler = (event: Event) -> Void
 ```
 
 Сигнатура функции является видом контракта, который существует только во время компиляции.

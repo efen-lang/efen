@@ -165,7 +165,6 @@ alias StringOrError = ValueOrError<String>
 ```efen
 alias ID = (Int | String)
 alias Response = (Success | Error | Pending)
-alias Nullable<T> = (T | null)
 ```
 
 Если альтернативам нужны собственные имена или payload одинакового типа должен
@@ -306,7 +305,7 @@ alias InternalID = Int
 
 ```efen
 // types.efen
-module MyApp.Types
+module MyApp::Types
 
 alias UserID = String
 alias PostID = Int
@@ -316,7 +315,7 @@ alias Handler<T> = (T) -> Void
 
 ```efen
 // main.efen
-use MyApp.Types
+use MyApp::Types
 
 fn processUser(id: UserID) {
     // ...

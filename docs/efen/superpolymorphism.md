@@ -18,7 +18,9 @@ interface Drawable {
     func resize(scale: Float)
 }
 
-class Shape implements Drawable {
+class Shape {
+    implements Drawable
+
     // Динамическая реализация интерфейса
     interface drawable: Drawable
 
@@ -94,7 +96,9 @@ strategy VulkanRenderer for Renderer {
     }
 }
 
-class GraphicsEngine implements Renderer {
+class GraphicsEngine {
+    implements Renderer
+
     interface renderer: Renderer
 
     var scenes: [Scene]
@@ -132,7 +136,9 @@ interface Serializable {
     func deserialize(data: String)
 }
 
-class Document implements Drawable, Serializable {
+class Document {
+    implements Drawable, Serializable
+
     interface drawable: Drawable
     interface serializer: Serializable
 
@@ -159,7 +165,9 @@ interface Drawable {
     func clear
 }
 
-class Shape implements Drawable {
+class Shape {
+    implements Drawable
+
     interface drawable: Drawable  // Динамическая реализация draw()
 
     // Статическая реализация clear()
@@ -189,7 +197,9 @@ shape.renderer.draw()  // Явный вызов через свойство
 
 **Суперполиморфизм:**
 ```efen
-class Shape implements Drawable {
+class Shape {
+    implements Drawable
+
     interface drawable: Drawable  // Динамический интерфейс
 }
 

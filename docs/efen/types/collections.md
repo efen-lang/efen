@@ -518,7 +518,7 @@ for number in numbers {
 
 // Эквивалентно:
 let iter = numbers.iterator()
-while let Some(number) = iter.next() {
+while let number = iter.next() {
     println(number)
 }
 ```
@@ -679,7 +679,8 @@ class CountingIterator {
     private let end: Int
     private var current: Int
 
-    fn new {
+    @constructor
+    fn init -> Self {
         param start: Int
         param end: Int
 
@@ -700,9 +701,9 @@ class CountingIterator {
 }
 
 // Использование
-let iter = CountingIterator::new(1, 5)
+let iter = CountingIterator(1, 5)
 
-while let Some(value) = iter.next() {
+while let value = iter.next() {
     println(value)  // 1, 2, 3, 4
 }
 ```
@@ -724,7 +725,7 @@ class IntList {
     }
 
     fn iterator -> IntListIterator {
-        return IntListIterator::new(this.items)
+        return IntListIterator(this.items)
     }
 }
 
@@ -734,7 +735,8 @@ class IntListIterator {
     private let items: [Int]
     private var index: Int = 0
 
-    fn new {
+    @constructor
+    fn init -> Self {
         param items: [Int]
 
         this.items = items
@@ -752,7 +754,7 @@ class IntListIterator {
 }
 
 // Использование
-let list = IntList::new()
+let list = IntList()
 list.add(10)
 list.add(20)
 list.add(30)
@@ -780,7 +782,7 @@ class InfiniteCounter {
 }
 
 // Использование с ограничением
-let counter = InfiniteCounter::new()
+let counter = InfiniteCounter()
 let first10 = counter.take(10).collect()  // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 ```
 
@@ -871,7 +873,7 @@ for x in numbers {
 4. **Используйте бесконечные итераторы с осторожностью**:
    ```efen
    // Всегда ограничивайте бесконечные итераторы
-   let infinite = InfiniteCounter::new()
+   let infinite = InfiniteCounter()
    let limited = infinite.take(100).collect()
    ```
 

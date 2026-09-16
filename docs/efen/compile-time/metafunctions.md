@@ -323,7 +323,7 @@ ifElse(x > 0,
 
 Метафункции работают с обычным **trailing closure синтаксисом** языка Efen (с использованием `=>`):
 
-> **ВАЖНО:** Синтаксис `fun => { }` работает **ТОЛЬКО** когда функция принимает **РОВНО ОДИН** параметр типа closure/InlineClosure. Для функций с несколькими параметрами используйте обычный синтаксис вызова.
+> **ВАЖНО:** Синтаксис `fun => { }` работает **ТОЛЬКО** когда замыкание — **ЕДИНСТВЕННЫЙ** аргумент вызова. Замыкание среди нескольких аргументов передаётся в скобках вместе с ними.
 
 ```efen
 meta fn withLogging(code: InlineClosure) -> InlineClosure {
@@ -1382,10 +1382,10 @@ meta fn benchmark(name: comptime String, code: InlineClosure) -> InlineClosure {
 }
 
 // Использование
-let result = benchmark("data processing") => {
+benchmark("data processing", () -> Void {
     processData()
     optimizeResults()
-}
+})
 ```
 
 ### 4. Ленивое вычисление
@@ -1519,10 +1519,10 @@ meta fn repeat(count: comptime Int, code: InlineClosure) -> InlineClosure {
     }
 }
 
-// Использование с trailing closure
-repeat(3) => {
+// Замыкание среди нескольких аргументов пишется в скобках
+repeat(3, () -> Void {
     println("Hello!")
-}
+})
 
 // Результат:
 // Hello!
@@ -1563,7 +1563,7 @@ meta fn transform<T, R>(
 }
 
 // Использование
-let doubled = transform(5) => (x) { x * 2 }  // 10
+let doubled = transform(5, (x) => x * 2)  // 10
 ```
 
 ## Compile-time вычисления
@@ -2171,9 +2171,9 @@ meta fn logAndBenchmark(name: comptime String, code: InlineClosure) -> InlineClo
 }
 
 // Использование
-logAndBenchmark("data processing") => {
+logAndBenchmark("data processing", () -> Void {
     processLargeDataset()
-}
+})
 ```
 
 ### 2. Условная генерация
@@ -2334,9 +2334,9 @@ contract Validated {
 meta fn createOption<T>(hasValue: Bool, value: T) -> InlineClosure {
     return inline {
         if hasValue {
-            Some(value)
+            value
         } else {
-            None
+            null
         }
     }
 }

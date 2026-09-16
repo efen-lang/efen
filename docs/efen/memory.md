@@ -15,7 +15,8 @@
 class Box {
     var value: Int
 
-    constructor(value: Int) {
+    @constructor
+    fn init(value: Int) -> Self {
         self.value = value
     }
 }
@@ -163,7 +164,8 @@ fn example {
 class Box {
     var point: Point
 
-    constructor(value: Point) {
+    @constructor
+    fn init(value: Point) -> Self {
         self.point = value
     }
     
@@ -192,7 +194,8 @@ fn example {
 class Box {
     var weak point?: Point
 
-    constructor(value: Point) {
+    @constructor
+    fn init(value: Point) -> Self {
         self.point = value
     }
     

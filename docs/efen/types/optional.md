@@ -23,15 +23,16 @@ let values: [Int]?          // Optional<Array<Int>>
 let callback: ((Int) -> Void)?  // Optional<Function>
 ```
 
-`Option<T>` является стандартным generic-алиасом `T?`. Формы `None` и
-`Some(value)` являются встроенными альтернативными написаниями `null` и
-присутствующего значения; они не создают отдельный runtime-контейнер:
+Каноническая запись optional-типа — `T?`. `Option<T>` — стандартный generic-алиас
+`T?`, который пишется только для вложенного optional; `Option<Int>` вместо `Int?`
+и `T | null` получают диагностику стиля. Значения записываются только `null` и
+самим значением:
 
 ```efen
 alias Option<T> = T?
 
-let number: Option<Int> = Some(42)
-let absent: Option<Int> = None
+let number: Int? = 42
+let absent: Int? = null
 ```
 
 Вложенный optional сохраняет каждый уровень отсутствия значения:
@@ -41,9 +42,16 @@ Option<Option<String>>
 Option<String?>
 ```
 
-Обе записи различают `None` и `Some(None)`. Повторение postfix-оператора не
-является синтаксисом типа: `String??` — ошибка; вложенность записывается через
-`Option<...>`.
+Обе записи различают отсутствие внешнего уровня и присутствующий внешний уровень
+с `null` внутри. Повторение postfix-оператора не является синтаксисом типа:
+`String??` — ошибка; вложенность записывается через `Option<...>`. Значение
+вложенного уровня задаётся через тип:
+
+```efen
+let inner: String? = null
+let outer: Option<String?> = inner      // внешний уровень есть, внутри null
+let empty: Option<String?> = null       // внешнего уровня нет
+```
 
 ## Зачем нужны Optional?
 
@@ -231,14 +239,17 @@ let result = calc?.add(a: 5, b: 3)  // Int?
 
 ### 5. Forced Unwrapping (!)
 
-⚠️ **Использовать осторожно!** Приводит к runtime ошибке если значение null.
+`x!` разворачивает `T?` в `T`. Если значение `null`, бросается
+`MissingOptionalError`; исключение входит в выведенный `throws` функции, как и
+у контекстного разворачивания. Остановки выполнения нет: `x!` — короткая запись
+`x != null ? x : throw MissingOptionalError()`.
 
 ```efen
 let optionalNumber: Int? = 42
 let number = optionalNumber!  // Int = 42
 
 let empty: Int? = null
-let crash = empty!  // ❌ RUNTIME CRASH!
+let value = empty!            // бросает MissingOptionalError
 ```
 
 **Когда использовать:**
@@ -376,8 +387,8 @@ fn findFirst<T>(array: [T], predicate: (T) -> Bool) -> T? {
 }
 
 let numbers = [1, 2, 3, 4, 5]
-let firstEven = findFirst(array: numbers) => $0 % 2 == 0  // Int? = 2
-let firstNegative = findFirst(array: numbers) => $0 < 0   // Int? = null
+let firstEven = findFirst(array: numbers, predicate: (x) => x % 2 == 0)  // Int? = 2
+let firstNegative = findFirst(array: numbers, predicate: (x) => x < 0)   // Int? = null
 ```
 
 ## Контекстное разворачивание через Coerce
@@ -402,42 +413,26 @@ let required: T = dictionary["key"]
 обычном выводе `throws`. Точное совпадение `T?` имеет приоритет, цепочки coercion
 не строятся, а без ожидаемого типа разворачивание не выполняется.
 
-## Implicitly Unwrapped Optional (!)
+## Поле, заполняемое после конструктора
 
-Тип, который автоматически разворачивается с runtime trap и может быть null:
-
-```efen
-var optionalValue: Int! = 42
-
-// Автоматически разворачивается
-let value: Int = optionalValue  // Не нужен !, при null происходит trap.
-
-// Можно присвоить null
-optionalValue = null
-
-// Теперь это вызовет runtime ошибку
-let crash = optionalValue  // runtime trap
-```
-
-`T!` отличается от контекстной стратегии для `T?`: `OptionalOrThrow<T>` имеет
-проверяемый `throws`, тогда как нарушение обещания implicitly-unwrapped значения
-останавливает выполнение в точке доступа.
-
-**Когда использовать:**
-- Редко! Только для особых случаев
-- Когда значение будет null только кратковременно
-- Типичный пример: lazy свойства, dependency injection
+Отдельного implicitly unwrapped типа `T!` в Efen нет. Поле, которое появляется
+позже конструктора, объявляется данными состояния
+[typestate](typestate.md): до перехода обращение к нему — ошибка компиляции.
 
 ```efen
-class ViewController {
-    var view: View!  // Будет инициализировано в viewDidLoad
+class OrderService {
+    initial state Unconfigured
 
-    fn viewDidLoad {
-        self.view = View()  // Гарантированно установлено после загрузки
+    state Configured {
+        let repository: Repository
     }
 
-    fn updateUI {
-        view.backgroundColor = .white  // Безопасно, view уже инициализирован
+    fn setup(repo: Repository) state Unconfigured >> Configured {
+        repository = repo
+    }
+
+    fn load(id: Int) -> Order state Configured {
+        return repository.find(id)
     }
 }
 ```
@@ -591,15 +586,12 @@ fn findArea(shape: Shape?) -> Int? {
 выбирает тип и backend с сохранением различимых состояний.
 
 ```efen
-let value1: Int? = 42
-let value2: Option<Int> = Some(42)
-
-let empty1: Int? = null
-let empty2: Option<Int> = None
+let value: Int? = 42
+let empty: Int? = null
 ```
 
-Для `Option<Option<T>>` representation обязана различать `None`, `Some(None)` и
-`Some(Some(value))`.
+Для `Option<Option<T>>` representation обязана различать три состояния: нет
+внешнего уровня, внешний уровень с `null` внутри, значение на обоих уровнях.
 
 ## Сравнение Optional
 

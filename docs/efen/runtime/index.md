@@ -24,7 +24,7 @@ Runtime API организован в следующие модули:
 Механизмы для интроспекции типов и объектов во время выполнения:
 
 ```efen
-import runtime.reflection
+use runtime::reflection
 
 let typeInfo = TypeInfo.of(MyClass.self)
 print(typeInfo.name)           // "MyClass"
@@ -51,7 +51,7 @@ for method in typeInfo.methods {
 Низкоуровневая информация об объектах:
 
 ```efen
-import runtime.introspection
+use runtime::introspection
 
 let obj = MyClass()
 
@@ -75,7 +75,7 @@ print(ownershipInfo.isWeak)
 Встроенные функции компилятора для оптимизации:
 
 ```efen
-import runtime.intrinsics
+use runtime::intrinsics
 
 // Атомарные операции
 let value = Atomic<Int>(0)
@@ -104,7 +104,7 @@ let result = vec1 + vec2
 Прямой доступ к системным вызовам (platform-specific):
 
 ```efen
-import runtime.syscall
+use runtime::syscall
 
 // Linux/Unix
 let fd = syscall.open("/path/to/file", O_RDONLY)
@@ -122,7 +122,7 @@ syscall.CloseHandle(handle)
 Поточно-локальное хранилище:
 
 ```efen
-import runtime.tls
+use runtime::tls
 
 @threadLocal var counter: Int = 0
 
@@ -136,7 +136,7 @@ fn incrementCounter {
 Легковесные потоки выполнения:
 
 ```efen
-import runtime.fiber
+use runtime::fiber
 
 let fiber = Fiber {
     print("Fiber started")
@@ -153,7 +153,7 @@ fiber.resume()  // "Fiber resumed"
 Управление стеком:
 
 ```efen
-import runtime.stack
+use runtime::stack
 
 // Получить текущий размер стека
 let stackSize = getCurrentStackSize()
@@ -172,7 +172,7 @@ setStackGuard(size: 4096)
 Низкоуровневая работа с исключениями:
 
 ```efen
-import runtime.exceptions
+use runtime::exceptions
 
 // Получить текущее исключение
 if let exception = getCurrentException() {
@@ -195,7 +195,7 @@ setUnhandledExceptionHandler => {
 Поддержка отладки:
 
 ```efen
-import runtime.debug
+use runtime::debug
 
 // Breakpoint (только в debug режиме)
 debugBreak()
@@ -240,13 +240,13 @@ Runtime API может вести себя по-разному в зависим
 
 ```efen
 #if os(Linux)
-    import runtime.linux
+    use runtime::linux
     let tid = gettid()
 #elseif os(Windows)
-    import runtime.windows
+    use runtime::windows
     let tid = GetCurrentThreadId()
 #elseif os(macOS)
-    import runtime.darwin
+    use runtime::darwin
     let tid = pthread_self()
 #endif
 ```
@@ -256,7 +256,7 @@ Runtime API может вести себя по-разному в зависим
 Runtime API обеспечивает интероперабельность с C/C++ кодом:
 
 ```efen
-import runtime.ffi
+use runtime::ffi
 
 // Загрузка динамической библиотеки
 let lib = DynamicLibrary.load("libexample.so")
@@ -275,7 +275,7 @@ let result = cFunction(42)
 Runtime предоставляет hooks для управления жизненным циклом:
 
 ```efen
-import runtime.lifecycle
+use runtime::lifecycle
 
 // Регистрация обработчика запуска
 registerStartupHandler {
@@ -300,7 +300,7 @@ registerSignalHandler(.SIGTERM) {
 Встроенные счетчики производительности:
 
 ```efen
-import runtime.perf
+use runtime::perf
 
 let counter = PerfCounter()
 counter.start()
@@ -318,7 +318,7 @@ print("CPU cycles: ${counter.cpuCycles}")
 Барьеры памяти для многопоточности:
 
 ```efen
-import runtime.sync
+use runtime::sync
 
 // Полный барьер памяти
 memoryBarrier()

@@ -179,11 +179,11 @@ efenc --mode=testing main.efen
 ```efen
 fn connectToDatabase {
     #if MODE == "production"
-        return Database::connect("production.db")
+        return Database.connect("production.db")
     #elif MODE == "testing"
-        return MockDatabase::new()
+        return MockDatabase()
     #else
-        return Database::connect("dev.db")
+        return Database.connect("dev.db")
     #endif
 }
 ```

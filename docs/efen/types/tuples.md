@@ -69,6 +69,10 @@ alias Person = (String, Int, Bool)
 let p: Point = (5, 15)
 ```
 
+Каноническая запись типа кортежа — `(Int, String)`. `Tuple<Int, String>` обозначает
+тот же тип, но имя `Tuple` вручную пишется только с раскрытием pack:
+`Tuple<...Types>` (см. [variadic generic-параметры](../generics.md#variadic-generic-параметры)).
+
 ## Создание кортежей
 
 ### Безымянные элементы
@@ -352,7 +356,7 @@ match data {
 
 ### Структуры в EFEN
 
-Структуры создаются с помощью синтаксиса `Name { field: value }`:
+Структуры создаются вызовом конструктора `Name(field: value)`:
 
 ```efen
 struct Point {
@@ -360,14 +364,14 @@ struct Point {
     var y: Int
 }
 
-let point = Point { x: 10, y: 20 }
+let point = Point(x: 10, y: 20)
 ```
 
 ### Ключевые отличия
 
 | Аспект | Tuple | Struct |
 |--------|-------|--------|
-| Синтаксис создания | `(10, 20)` | `Point { x: 10, y: 20 }` |
+| Синтаксис создания | `(10, 20)` | `Point(x: 10, y: 20)` |
 | Определение типа | Не требуется | Требуется `struct` объявление |
 | Изменяемость | Неизменяемы | Поля могут быть `var` или `let` |
 | Доступ к элементам | `.0`, `.1` или `.name` | `.field` |
@@ -470,7 +474,7 @@ struct TempResult {
     var valid: Bool
 }
 fn process {
-    let temp = TempResult { value: 42, valid: true }
+    let temp = TempResult(value: 42, valid: true)
     // Используется только здесь
 }
 
@@ -590,7 +594,7 @@ struct Point {
     var y: Int
 }
 
-var point = Point { x: 10, y: 20 }
+var point = Point(x: 10, y: 20)
 point.x = 30  // ✅ OK
 ```
 
@@ -657,7 +661,7 @@ for (index, item) in indexed {
 
 ```efen
 fn analyzeArray(arr: [Int]) -> (sum: Int, avg: Float, min: Int, max: Int) {
-    let sum = arr.reduce(0) => $0 + $1
+    let sum = arr.reduce(0, (acc, x) => acc + x)
     let avg = Float(sum) / Float(arr.count)
     let min = arr.min()!
     let max = arr.max()!

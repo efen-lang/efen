@@ -18,7 +18,7 @@ class Point {
     var y: Float = 0
     
     @constructor
-    fn init(x: Float, y: Float) {
+    fn init(x: Float, y: Float) -> Self {
         self.x = x
         self.y = y
     }

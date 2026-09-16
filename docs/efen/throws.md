@@ -19,8 +19,8 @@ Efen решает эти проблемы через **автоматическ�
 Функции автоматически наследуют все исключения от вызываемых функций:
 
 ```efen
-class DatabaseError extends Exception { }
-class ValidationError extends Exception { }
+class DatabaseError: Exception { }
+class ValidationError: Exception { }
 
 fn queryDatabase {
     throw DatabaseError("Connection failed")
@@ -197,11 +197,12 @@ contract ErrorHandler extends CatchRules {
 который позволяет использовать синтаксис `required catch`
 или `catch`.
 
-Применить контракт к функции можно с помощью атрибута `conforms`:
+Функция соответствует контракту через объявление `conforms` в теле:
 
 ```efen
-@conforms ErrorHandler
 fn dataOperation {
+    conforms ErrorHandler
+
     try {
         queryDatabase()
     } catch (e: DatabaseError) {
@@ -230,7 +231,7 @@ contract CancellationHandler extends CatchRules {
     required catch CancellationException
 }
 
-class CancellationException extends Exception {
+class CancellationException: Exception {
     conforms CatchRestriction
     
 }
@@ -238,7 +239,7 @@ class CancellationException extends Exception {
 
 Если исключение объявляет `MustHandle` вместе с `CatchRestriction`, оба
 требования действуют сразу: поймать обязан непосредственный вызывающий, и он же
-обязан быть помечен `@conforms` контракта-обработчика.
+обязан объявлять `conforms` контракта-обработчика.
 
 ## Примеры
 
@@ -343,12 +344,16 @@ interface Service {
     fn process throws only ErrorA, ErrorB
 }
 
-class ConcreteService implements Service {
+class ConcreteService {
+    implements Service
+
     fn process throws only ErrorA {  // ✅ Убрали ErrorB
     }
 }
 
-class BrokenService implements Service {
+class BrokenService {
+    implements Service
+
     fn process throws only ErrorA, ErrorB, ErrorC {  // ❌ Добавили ErrorC
     }
 }
@@ -364,7 +369,7 @@ class BrokenService implements Service {
 исключение возникает, независимо от сигнатуры функции:
 
 ```efen
-class CriticalError extends Exception {
+class CriticalError: Exception {
     conforms MustHandle
 }
 ```
@@ -495,20 +500,20 @@ cleanup становится главной; последующие ошибки
 fn wrongInEscaping(register: (@escaping () -> Void) -> Void) {
     try {
         // ❌ Ошибка: вызов уйдёт за пределы try
-        register(() => critical())
+        register => critical()
     } catch e: CriticalError {
         handleCritical(e)
     }
 }
 
 fn correctInEscaping(register: (@escaping () -> Void) -> Void) {
-    register(() -> Void {
+    register => {
         try {
             critical()
         } catch e: CriticalError {
             handleCritical(e)
         }
-    })
+    }
 }
 ```
 

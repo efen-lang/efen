@@ -46,7 +46,7 @@ print(result) // Выведет: Сумма 5 и 10 равна 15.
 ### Сложные выражения в интерполяции
 
 ```efen
-let user = User { name: "Alice", age: 30 }
+let user = User(name: "Alice", age: 30)
 let info = "Пользователь ${user.name}, возраст ${user.age} лет"
 
 let numbers = [1, 2, 3, 4, 5]
@@ -167,13 +167,13 @@ let result = first + " " + second  // "Hello World"
 
 ```efen
 let parts = ["Hello", "World", "!"]
-let result = String::concat(parts, " ")  // "Hello World !"
+let result = String.concat(parts, " ")  // "Hello World !"
 ```
 
 ### StringBuilder для производительности
 
 ```efen
-let builder = StringBuilder::new()
+let builder = StringBuilder()
 builder.append("Hello")
 builder.append(" ")
 builder.append("World")
@@ -316,20 +316,20 @@ let name = "Alice"
 let age = 30
 
 // Позиционные аргументы
-let msg1 = String::format("Name: {}, Age: {}", name, age)
+let msg1 = String.format("Name: {}, Age: {}", name, age)
 
 // Именованные аргументы
-let msg2 = String::format("Name: {name}, Age: {age}", name=name, age=age)
+let msg2 = String.format("Name: {name}, Age: {age}", name=name, age=age)
 
 // Форматирование чисел
 let pi = 3.14159
-String::format("Pi: {:.2}", pi)         // "Pi: 3.14"
-String::format("Pi: {:.4}", pi)         // "Pi: 3.1416"
+String.format("Pi: {:.2}", pi)          // "Pi: 3.14"
+String.format("Pi: {:.4}", pi)          // "Pi: 3.1416"
 
 // Выравнивание
-String::format("{:>10}", "right")       // "     right"
-String::format("{:<10}", "left")        // "left      "
-String::format("{:^10}", "center")      // "  center  "
+String.format("{:>10}", "right")        // "     right"
+String.format("{:<10}", "left")         // "left      "
+String.format("{:^10}", "center")       // "  center  "
 ```
 
 ## Сравнение строк
@@ -408,15 +408,15 @@ text1.normalize() == text2.normalize()   // true
 ### Создание regex
 
 ```efen
-let pattern = Regex::new(r"\d+")
-let email = Regex::new(r"^[a-z0-9]+@[a-z]+\.[a-z]{2,}$")
+let pattern = Regex(r"\d+")
+let email = Regex(r"^[a-z0-9]+@[a-z]+\.[a-z]{2,}$")
 ```
 
 ### Поиск совпадений
 
 ```efen
 let text = "The year is 2024"
-let pattern = Regex::new(r"\d+")
+let pattern = Regex(r"\d+")
 
 if pattern.isMatch(text) {
     println("Found numbers!")
@@ -429,7 +429,7 @@ let matches = pattern.findAll(text)      // ["2024"]
 
 ```efen
 let text = "Phone: 123-456-7890"
-let pattern = Regex::new(r"\d")
+let pattern = Regex(r"\d")
 
 text.replaceRegex(pattern, "X")          // "Phone: XXX-XXX-XXXX"
 ```
@@ -437,7 +437,7 @@ text.replaceRegex(pattern, "X")          // "Phone: XXX-XXX-XXXX"
 ### Группы захвата
 
 ```efen
-let pattern = Regex::new(r"(\d{4})-(\d{2})-(\d{2})")
+let pattern = Regex(r"(\d{4})-(\d{2})-(\d{2})")
 let date = "2024-03-15"
 
 if let captures = pattern.captures(date) {
@@ -454,7 +454,7 @@ if let captures = pattern.captures(date) {
 ```efen
 let text = "Привет"
 let bytes = text.toBytes()               // UTF-8 bytes
-let restored = String::fromBytes(bytes)  // "Привет"
+let restored = String.fromBytes(bytes)  // "Привет"
 ```
 
 ### Другие кодировки
@@ -466,7 +466,7 @@ text.encode("UTF-16")                    // Конвертация в UTF-16
 text.encode("ASCII")                     // Конвертация в ASCII
 text.encode("Windows-1251")              // Конвертация в Windows-1251
 
-String::decode(bytes, "UTF-16")          // Декодирование из UTF-16
+String.decode(bytes, "UTF-16")           // Декодирование из UTF-16
 ```
 
 ## Неизменяемость строк
@@ -487,7 +487,7 @@ println(upper)                            // "HELLO"
 Для изменяемых операций используйте StringBuilder:
 
 ```efen
-let mut builder = StringBuilder::from("Hello")
+let mut builder = StringBuilder.from("Hello")
 builder.append(" World")
 builder.insert(5, ",")
 let result = builder.toString()           // "Hello, World"
@@ -505,7 +505,7 @@ for i in 1..1000 {
 }
 
 // Хорошо - использует StringBuilder
-let builder = StringBuilder::new()
+let builder = StringBuilder()
 for i in 1..1000 {
     builder.append(i.toString())
 }
@@ -559,7 +559,7 @@ let sub = text.substring(0, 5)
 
 5. **StringBuilder для множественных операций**
    ```efen
-   let builder = StringBuilder::new()
+   let builder = StringBuilder()
    builder.append("Line 1\n")
    builder.append("Line 2\n")
    builder.append("Line 3\n")

@@ -140,7 +140,7 @@ strategy FastMath for Int {
 передаётся вместе с ним в generic-код:
 
 ```efen
-let values = new Array<@myattr Int>
+let values = Array<@myattr Int>()
 let readers: Array<@cached &read User>
 ```
 

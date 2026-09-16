@@ -20,11 +20,11 @@ contract Allocator<Type>
 strategy MyAllocator<Type> conforms Allocator<Type> 
 {
     fn allocate(size: Size<Type>) -> Pointer<Type> {
-        return memory::Manager::allocate(size);
+        return memory::Manager.allocate(size);
     }
 
     fn deallocate(pointer: Pointer<Type>) {
-        memory::Manager::deallocate(pointer);
+        memory::Manager.deallocate(pointer);
     }    
 }
 

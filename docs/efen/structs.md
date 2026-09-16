@@ -61,7 +61,7 @@ struct Configuration {
 }
 
 // Можно создать с дефолтными значениями
-let config1 = Configuration {}
+let config1 = Configuration()
 
 // Или переопределить нужные
 let config2 = Configuration(port: 3000)
@@ -85,11 +85,11 @@ struct Entity {
 }
 
 // При использовании поля Position становятся доступны напрямую
-let entity = Entity {
+let entity = Entity(
     name: "Player",
     x: 100,
     y: 200
-}
+)
 
 echo entity.x      // 100
 echo entity.name   // "Player"
@@ -113,12 +113,12 @@ struct MovingSprite {
     var rotation: Float = 0.0
 }
 
-let sprite = MovingSprite {
+let sprite = MovingSprite(
     dx: 5,
     dy: 3,
     texture: "hero.png",
     rotation: 45.0
-}
+)
 ```
 
 ### Паттерн Mixin через композицию
@@ -140,13 +140,13 @@ struct User {
     var email: String
 }
 
-let user = User {
+let user = User(
     id: "user123",
     name: "Alice",
     email: "alice@example.com",
     createdAt: 1234567890,
     updatedAt: 1234567890
-}
+)
 ```
 
 ## Дженерик-структуры
@@ -175,10 +175,10 @@ struct Data {
 }
 
 // RefCounted<Data> будет иметь поля: refCount и bytes
-let data = RefCounted<Data> {
+let data = RefCounted<Data>(
     refCount: 1,
     bytes: [0x01, 0x02, 0x03]
-}
+)
 ```
 
 ### Ограничения дженерик-типов
@@ -250,7 +250,7 @@ data2.buffer[0] = 0xFF
 | Копирование | По `Copyable` / `ImplicitlyCopyable` | По тем же контрактам |
 | Наследование | Нет | Да |
 | Композиция | Через встраивание | Через наследование |
-| Инициализация | Struct literal | Constructor (init) |
+| Инициализация | Вызов `T(…)` | Вызов `T(…)`, конструктор `@constructor fn init` |
 | Методы | Нет | Да |
 | Размер | Статический | Динамический |
 
@@ -333,9 +333,9 @@ struct Outer {
 }
 
 // Использование
-let outer = Outer {
+let outer = Outer(
     data: Outer.Inner(value: 42)
-}
+)
 ```
 
 ## Работа с памятью
@@ -373,11 +373,11 @@ struct Transform2D {
     var scale: Float = 1.0
 }
 
-let transform = Transform2D {
+let transform = Transform2D(
     x: 100.0,
     y: 200.0,
     rotation: 45.0
-}
+)
 ```
 
 ### Структура для конфигурации
@@ -391,10 +391,10 @@ struct DatabaseConfig {
     var maxConnections: Int = 10
 }
 
-let config = DatabaseConfig {
+let config = DatabaseConfig(
     username: "admin",
     password: "secret"
-}
+)
 ```
 
 ### Структура с временными метками

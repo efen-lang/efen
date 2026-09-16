@@ -239,7 +239,9 @@ interface Equatable {
     }
 }
 
-class Person implements Equatable<Person> {
+class Person {
+    implements Equatable<Person>
+
     var age: Int
 
     fn equals -> Bool {
@@ -722,9 +724,11 @@ struct Tuple {
 }
 ```
 
-При `Tuple<Int, String, Bool>` значение `Elements` равно compile-time массиву
-`[Int, String, Bool]` типа `[Type]`. Пустой pack законен. В применении `...`
-раскрывает массив обратно в последовательность аргументов:
+Тип кортежа `(Int, String, Bool)` и есть `Tuple<Int, String, Bool>`; имя `Tuple`
+вручную пишется только с раскрытием pack. Для `(Int, String, Bool)` значение
+`Elements` равно compile-time массиву `[Int, String, Bool]` типа `[Type]`. Пустой
+pack законен. В применении `...` раскрывает массив обратно в последовательность
+аргументов:
 
 ```efen
 Tuple<...Elements>

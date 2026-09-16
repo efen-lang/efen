@@ -109,7 +109,7 @@ class MathConstants {
 }
 
 // Использование
-let circumference = 2 * MathConstants::PI * radius
+let circumference = 2 * MathConstants.PI * radius
 ```
 
 ### Константы в контрактах и интерфейсах
@@ -178,13 +178,13 @@ class Config {
     var host: String
 }
 
-const config = Config { port: 8080, host: "localhost" }
+const config = Config(port: 8080, host: "localhost")
 
 // Можно изменить свойства объекта
 config.port = 9000  // OK
 
 // Но нельзя заменить саму ссылку
-config = Config { port: 3000, host: "127.0.0.1" }  // Ошибка!
+config = Config(port: 3000, host: "127.0.0.1")  // Ошибка!
 ```
 
 Для полной неизменяемости используйте `let` с неизменяемыми свойствами:
@@ -195,7 +195,7 @@ class ImmutableConfig {
     let host: String
 }
 
-const config = ImmutableConfig { port: 8080, host: "localhost" }
+const config = ImmutableConfig(port: 8080, host: "localhost")
 
 // Нельзя изменить ни ссылку, ни свойства
 config.port = 9000   // Ошибка!
@@ -257,8 +257,8 @@ module limits {
 }
 
 // Использование
-import network
-import limits
+use network
+use limits
 
 fn startServer {
     listen(network::DEFAULT_PORT)

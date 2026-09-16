@@ -172,7 +172,9 @@ Variant type может объявлять методы и вычисляемы�
 синтезировать, когда его поддерживают поля всех constructors:
 
 ```efen
-variant Message: Equatable {
+variant Message {
+    conforms Equatable
+
     text { content: String }
     image { url: String, width: Int, height: Int }
 }

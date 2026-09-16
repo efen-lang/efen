@@ -109,7 +109,9 @@ public class Document {
 Стратегии применяются к объектам прозрачно, как если бы методы были частью интерфейса:
 
 ```efen
-class Circle implements Drawable {
+class Circle {
+    implements Drawable
+
     var radius: Float
 
     fn draw {

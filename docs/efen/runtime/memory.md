@@ -30,10 +30,13 @@ interface PoolAllocator : Allocator {
 Стандартный аллокатор, использующий системную heap память:
 
 ```efen
-import runtime.memory
+use runtime::memory
 
-class HeapAllocator implements Allocator {
-    constructor(size: Size) {
+class HeapAllocator {
+    implements Allocator
+
+    @constructor
+    fn init(size: Size) -> Self {
         // Инициализация не требуется для heap
     }
 
@@ -67,14 +70,17 @@ Arena (также известный как region/bump allocator) — быст�
 - Может тратить память впустую
 
 ```efen
-import runtime.memory
+use runtime::memory
 
-class Arena implements ArenaAllocator {
+class Arena {
+    implements ArenaAllocator
+
     private var buffer: Pointer
     private var offset: Size
     private var capacity: Size
 
-    constructor(size: Size) {
+    @constructor
+    fn init(size: Size) -> Self {
         self.buffer = malloc(size)
         self.offset = 0
         self.capacity = size
@@ -157,15 +163,18 @@ Pool allocator выделяет объекты фиксированного ра
 - Может тратить память если пул не полностью используется
 
 ```efen
-import runtime.memory
+use runtime::memory
 
-class Pool implements PoolAllocator {
+class Pool {
+    implements PoolAllocator
+
     private var objectSize: Size
     private var poolSize: Size
     private var buffer: Pointer
     private var freeList: Pointer
 
-    constructor(objectSize: Size, poolSize: Size) {
+    @constructor
+    fn init(objectSize: Size, poolSize: Size) -> Self {
         self.objectSize = objectSize
         self.poolSize = poolSize
 
@@ -280,7 +289,7 @@ fn destroyLinkedList(head: Node?) {
 Аллокатор на стеке — для очень короткоживущих данных:
 
 ```efen
-import runtime.memory
+use runtime::memory
 
 // Аллокатор использует alloca (выделение на стеке)
 fn stackAllocate<T>(count: Int = 1) -> UnsafeMutablePointer<T> {
@@ -306,13 +315,14 @@ fn processData(size: Int) {
 Классы могут указывать собственные аллокаторы:
 
 ```efen
-import runtime.memory
+use runtime::memory
 
 @allocator(Arena)
 class TemporaryData {
     var value: Int
 
-    constructor(value: Int) {
+    @constructor
+    fn init(value: Int) -> Self {
         self.value = value
     }
 }
@@ -333,7 +343,8 @@ class MyClass {
 
     var value: Int
 
-    constructor(value: Int) {
+    @constructor
+    fn init(value: Int) -> Self {
         self.value = value
     }
 }
@@ -345,11 +356,14 @@ class MyClass {
 
 ```efen
 // Fallback allocator: сначала пробует pool, потом heap
-class FallbackAllocator implements Allocator {
+class FallbackAllocator {
+    implements Allocator
+
     private var primary: Allocator
     private var fallback: Allocator
 
-    constructor(primary: Allocator, fallback: Allocator) {
+    @constructor
+    fn init(primary: Allocator, fallback: Allocator) -> Self {
         self.primary = primary
         self.fallback = fallback
     }
@@ -376,7 +390,9 @@ let allocator = FallbackAllocator(
 Для отладки утечек памяти:
 
 ```efen
-class TrackingAllocator implements Allocator {
+class TrackingAllocator {
+    implements Allocator
+
     private var inner: Allocator
     private var allocations: [Pointer: Size] = [:]
 

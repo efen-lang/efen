@@ -80,7 +80,7 @@ open class Animal {
     }
 }
 
-class Dog : Animal {
+class Dog: Animal {
     var breed: String
 
     override fn makeSound {
@@ -102,7 +102,7 @@ dog.fetch()  // Выведет: "Buddy is fetching the ball"
 пишет `open fn`; наличие базового метода уже означает override:
 
 ```efen
-open class Middle : Animal {
+open class Middle: Animal {
     open fn makeSound {
         print("Middle")
     }
@@ -125,7 +125,9 @@ interface Resizable {
     fn resize(scale: Float)
 }
 
-class Circle implements Drawable, Resizable {
+class Circle {
+    implements Drawable, Resizable
+
     var radius: Float
     var position: Point
 
@@ -186,8 +188,9 @@ open class Entity {
     var createdAt: DateTime
 }
 
-class Product : Entity implements Storable {
+class Product: Entity {
     conforms Validatable
+    implements Storable
 
     var name: String
     var price: Float
@@ -207,9 +210,13 @@ class Product : Entity implements Storable {
 ```
 
 Синтаксис:
-- `: BaseClass` — одиночное наследование класса
-- `implements Interface1, Interface2` — реализация интерфейсов
-- `conforms Contract1, Contract2` — соответствие контрактам (множественное)
+- `: BaseClass` в заголовке — одиночное наследование класса. После `:` стоит
+  только базовый класс, интерфейсы там не перечисляются
+- `conforms Contract1, Contract2` в теле — соответствие контрактам (множественное)
+- `implements Interface1, Interface2` в теле — реализация интерфейсов
+
+Каждое из объявлений `conforms` и `implements` пишется одной строкой через запятую.
+В теле первой идёт строка `conforms`, за ней `implements`, затем члены класса.
 
 ## Свойства класса
 

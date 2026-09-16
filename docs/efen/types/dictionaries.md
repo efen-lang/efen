@@ -96,8 +96,8 @@ let config = [
 
 ```efen
 let ages = ["Alice": 25, "Bob": 30]
-let aliceAge = ages["Alice"]        // Int? = Some(25)
-let charlieAge = ages["Charlie"]    // Int? = None
+let aliceAge = ages["Alice"]        // Int? = 25
+let charlieAge = ages["Charlie"]    // Int? = null
 ```
 
 Чтение всегда возвращает `Value?`. Если окружающий контекст требует `Value`,
@@ -123,11 +123,11 @@ let ages: [String: Int]? = loadAges()
 let aliceAge = ages?["Alice"]
 ```
 
-Если `ages` равен `None`, индексирование не выполняется. Если словарь
-существует, внешний уровень равен `Some`, а обычный `[]` формирует внутренний
-optional результата поиска. Выведенный тип `aliceAge` — `Option<Option<Int>>`;
-явно писать его обычно не требуется. Состояния `None`, `Some(None)` и
-`Some(Some(value))` остаются различимы.
+Если `ages` равен `null`, индексирование не выполняется. Если словарь
+существует, внешний уровень присутствует, а обычный `[]` формирует внутренний
+optional результата поиска. Выведенный тип `aliceAge` — `Option<Int?>`; явно
+писать его обычно не требуется. Три состояния — нет словаря, нет ключа,
+значение — остаются различимы.
 
 ## Изменение элементов
 

@@ -142,9 +142,18 @@ let isEven: UnaryPredicate = (n: Int) => n % 2 == 0
 
 ```antlr
 functionType
-    : '(' (type (',' type)*)? ')' '->' type
+    : '(' (parameterType (',' parameterType)*)? ')' '->' type
+    ;
+
+parameterType
+    : (identifier ':')? type
     ;
 ```
+
+Имена параметров необязательны: `(accumulator: Int, item: Int) -> Int`. Они
+не меняют идентичность типа, но по ним привязываются именованные
+placeholder-параметры замыкания `$accumulator`, `$item`. В одном типе имена
+либо есть у всех параметров, либо ни у одного.
 
 Это правило поддерживает:
 - Функции без параметров: `() -> Int`

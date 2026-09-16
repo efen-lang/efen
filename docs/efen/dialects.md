@@ -31,7 +31,7 @@
 // Файл с расширением .efql (Efen + SQL dialect)
 dialect efql
 
-import efen::database::Connection
+use efen::database::Connection
 
 fn getUserByEmail(conn: Connection, email: String) -> Option<User> {
     // SQL диалект с полной интеграцией типов
@@ -51,7 +51,9 @@ fn getUserByEmail(conn: Connection, email: String) -> Option<User> {
 ```efen
 // Плагин компилятора для нового диалекта
 @dialectPlugin
-class MyDialect implements DialectCompiler {
+class MyDialect {
+    implements DialectCompiler
+
     fn name -> String {
         return "mydialect"
     }
@@ -214,7 +216,7 @@ dialect AsyncExtension {
     // Трансформация в базовый Efen
     transform async_fn(name, params, body) -> fn {
         return fn ${name}(${params}) -> Future<T> {
-            return Future::spawn(|| { ${body} })
+            return Future.spawn(|| { ${body} })
         }
     }
 }
@@ -353,7 +355,7 @@ dialect MatrixDialect {
         // Парсинг матричного синтаксиса
         let rows = source.lines()
         let values = rows.map => $0.split().map(parseFloat)
-        return Matrix::new(values)
+        return Matrix(values)
     }
 }
 
@@ -449,10 +451,10 @@ const config = json {
 }
 
 // Эквивалентно:
-const config = JsonObject {
+const config = JsonObject(
     version: "1.0",
     features: ["auth", "api"]
-}
+)
 ```
 
 ### Runtime обработка

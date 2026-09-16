@@ -151,7 +151,8 @@ processLogs(logger: consoleLogger, messages: ["Debug info"])
        var logger: Logger  // Может быть любая реализация
        var database: Database
 
-       constructor(logger: Logger, db: Database) {
+       @constructor
+       fn init(logger: Logger, db: Database) -> Self {
            self.logger = logger
            self.database = db
        }

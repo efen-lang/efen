@@ -138,7 +138,9 @@ enum Direction {
 `CaseIterable` может сгенерировать их полный список:
 
 ```efen
-enum Direction: CaseIterable {
+enum Direction {
+    conforms CaseIterable
+
     north
     south
     east
@@ -159,7 +161,9 @@ for direction in Direction.allCases {
 упорядочиваемого типа может явно запросить `Comparable`:
 
 ```efen
-enum Priority: Int, Comparable {
+enum Priority: Int {
+    conforms Comparable
+
     low = 1
     medium = 2
     high = 3

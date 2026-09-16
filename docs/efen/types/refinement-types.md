@@ -97,7 +97,8 @@ type Email: string { is_valid_email(value) }
 class User {
     email: Email;  // Всегда валидный email
 
-    fn construct(email: string) {
+    @constructor
+    fn init(email: string) -> Self {
         self.email = email.refine();  // Проверка при создании
     }
 }
