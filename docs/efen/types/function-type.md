@@ -74,7 +74,7 @@ echo apply(5, double)  // Выведет: 10
   потреблением callable.
 
 ```efen
-fn runOnce(task: (() -> Void) own) {
+fn runOnce(task: own (() -> Void)) {
     (take task)()
 }
 ```

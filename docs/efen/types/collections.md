@@ -72,14 +72,14 @@ mutable traversal или `take values[index]`.
 ```efen
 class Range<T> {
     @constructor
-    fn init(source: Array<T> own) -> Self
+    fn init(source: own Array<T>) -> Self
 
     #if T conforms Copyable {
         @constructor
-        fn init(source: Array<T> read) -> Self
+        fn init(source: read Array<T>) -> Self
 
         @constructor
-        fn init<Source: Origin>(source: Slice<T, Source> read) -> Self {
+        fn init<Source: Origin>(source: read Slice<T, Source>) -> Self {
             // Копирует выбранные элементы в собственное storage.
         }
     }
@@ -296,7 +296,7 @@ contract Steppable<T> {
 типы используют шаг один; для `Float` стандартный `Steppable` не объявляется.
 
 При `Lower != .unbounded` и `T: Steppable<T>` интервал предоставляет
-`Iterable<Item: T own>`. При отсутствующей нижней границе стандартного обхода
+`Iterable<Item: own T>`. При отсутствующей нижней границе стандартного обхода
 нет: `for i in ..5` является ошибкой, хотя `..5` остаётся законным descriptor
 для среза и pattern.
 
@@ -485,7 +485,7 @@ for item in &collection {
 }
 
 for item in take collection {
-    // Для Array<T>: item имеет тип T own; collection потреблена.
+    // Для Array<T>: item имеет тип own T; collection потреблена.
 }
 ```
 

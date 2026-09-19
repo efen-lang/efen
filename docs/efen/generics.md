@@ -397,7 +397,7 @@ fn consume<T: Iterable>(items: T) {
 Array<User>
 Array<&read User>
 Array<ref read User>
-Array<User shared read>
+Array<shared read User>
 Array<@myattr Int>
 Array<@cached &read User>
 ```

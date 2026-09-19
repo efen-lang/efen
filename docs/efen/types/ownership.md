@@ -80,7 +80,7 @@ fn checksum(buffer: Buffer) -> UInt64 {
 Явная передача владения остаётся частью сигнатуры:
 
 ```efen
-fn consume(file: FileHandle own) {
+fn consume(file: own FileHandle) {
     // функция принимает обязанность уничтожить file
 }
 ```

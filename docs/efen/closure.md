@@ -297,7 +297,7 @@ fn process in Environment {
 Потребляющий вызов явно передаёт замыкание через `take`:
 
 ```efen
-fn send(connection: Connection own)
+fn send(connection: own Connection)
 
 fn makeTask -> () -> Void {
     let connection: Connection = connect()
@@ -550,7 +550,7 @@ fn process(data: [Int], transform: (Int) -> Int) -> [Int] {
 }
 
 // Уходящая задача получает владение callback явно
-fn asyncProcess(completion: () -> Void own) {
+fn asyncProcess(completion: own (() -> Void)) {
     spawn => {
         capture completion = take completion
         completion()
