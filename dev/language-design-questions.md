@@ -1105,9 +1105,10 @@ fn make -> () -> Int throws E                // throws у make
   допустим, виртуальная диспетчеризация остаётся обычной, но каждый достижимый
   override обязан быть доказанно безопасен для текущей фазы инициализации.
 - Projection — typed view той же памяти; её применение требует proof compiler
-  либо обеспечивающего кода.
+  либо обеспечивающего кода, иначе это ошибка.
 - `@erase` не имеет fallback и запрещает strategy-dependent операции; boxing
-  разрешён, но все его contexts и exceptions видны в сводке.
+  разрешён, но все его contexts и exceptions видны в сводке; carrier lowering
+  остаётся внутренним выбором compiler.
 - `const` materialized compile-time; в классе нет `static const`. `static let`
   eager, может бросать, и startup failure завершает приложение.
 - Eager startup соблюдает зависимости `use`; среди готовых независимых модулей
@@ -1123,7 +1124,7 @@ fn make -> () -> Int throws E                // throws у make
   внутри неявной `clean`-области, затем выполняется non-throwing `Disposable`;
   обычный бросающий destructor остаётся явной операцией автора.
 
-Не закрыты: projection proof contract и erased carrier ABI.
+Открытых semantic-развилок из этой сессии не осталось.
 
 Аудит канонических форм от 2026-09-16 (номера A/B — его пункты), ещё не разобраны:
 

@@ -508,4 +508,7 @@ choice объединяет `throws`/`in` и усиливает call right; `var
 в compile-time анализе и не имеет runtime/ABI-хранения. Automatic user
 destructor теперь запускается только в неявной `clean`-области, перед
 non-throwing `Disposable`; обычный бросающий destructor остаётся явным.
-Открытыми остаются projection application proof и erased carrier ABI.
+Projection применима только при обеспечивающем коде или доказательстве compiler,
+иначе это ошибка. `@erase` не имеет fallback; carrier lowering остаётся
+деталью compiler. Тем самым две последние semantic-развилки этого дополнения
+закрыты.

@@ -811,8 +811,9 @@ fn sharedBody<T>(value: T) {
 Операция тела, зависящая от выбранной стратегии, в `@erase` запрещена: compiler
 не передаёт скрытый strategy witness. Он может упаковать значения в box, если
 это нужно carrier-у, но контексты и исключения этой операции входят в итоговую
-сводку callable; compiler никогда их не скрывает. ABI carrier-а, ownership,
-drop и unboxing остаются отдельной открытой границей.
+сводку callable; compiler никогда их не скрывает. Физическая форма carrier-а,
+ownership, drop и unboxing — детали lowering compiler, а не дополнительная
+surface-развилка языка.
 
 Для generic-класса решение принимает `ClassGenericDefinition`: он может
 направить несколько инстанциаций в одну реальную реализацию. Компилятор
