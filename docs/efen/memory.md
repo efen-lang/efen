@@ -2,8 +2,9 @@
 
 > Статус: ранние примеры ARC/`dispose` в этом документе исторические. Текущая
 > модель различает пользовательский деструктор класса и низкоуровневый
-> non-throwing `Disposable`; точный automatic lifecycle пользовательского
-> деструктора ещё проектируется.
+> non-throwing `Disposable`. При исчезновении последнего владельца user
+> destructor запускается только внутри неявной `clean`-области, затем выполняется
+> `Disposable`; обычный бросающий destructor остаётся явной операцией автора.
 
 [Документация](index.md) · [Словарь](glossary.md) · [Тематический memory guide](memory/index.md) · [Ownership](types/ownership.md)
 

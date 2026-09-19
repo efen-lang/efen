@@ -1149,15 +1149,14 @@ fn make -> () -> Int throws E                // throws у make
 
 Найдено при синхронизации документов:
 
-- наследование интерфейсов `interface X : Parent`;
 - `throw` справа от `??`.
 
 Механически синхронизировано 2026-09-19 без новых языковых решений:
 
 - старое `destructor()` и прежний бросающий `Disposable.dispose` больше не
   являются нормативной lifecycle-моделью; разделение user destructor и
-  low-level non-throwing `Disposable` зафиксировано, а `clean`-интеграция
-  остаётся открытой;
+  low-level non-throwing `Disposable` зафиксировано; automatic user destructor
+  выполняется в неявной `clean`-области перед `Disposable`;
 - placeholder-параметры `$имя`, `$0`, `$1` заменены неявными параметрами
   хвостового замыкания; при отсутствии имён нужна полная форма замыкания;
 - примеры `func`/`impliments`, constructor/call/path/optional и короткой/полной
