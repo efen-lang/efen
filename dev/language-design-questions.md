@@ -1119,9 +1119,11 @@ fn make -> () -> Int throws E                // throws у make
 - При потере последнего владельца приостановленного generator уничтожается его
   frame и выполняется только структурированная очистка; код после `yield` не
   возобновляется.
+- При исчезновении последнего владельца user destructor запускается только
+  внутри неявной `clean`-области, затем выполняется non-throwing `Disposable`;
+  обычный бросающий destructor остаётся явной операцией автора.
 
-Не закрыты: projection proof contract, erased carrier ABI и отношение user
-destructor к `clean`-области.
+Не закрыты: projection proof contract и erased carrier ABI.
 
 Аудит канонических форм от 2026-09-16 (номера A/B — его пункты), ещё не разобраны:
 

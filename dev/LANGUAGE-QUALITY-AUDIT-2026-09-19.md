@@ -505,6 +505,7 @@ choice объединяет `throws`/`in` и усиливает call right; `var
 закрыты proof construction safety virtual dispatch, порядок независимой eager
 инициализации, lifecycle приостановленного generator и выбор member при diamond
 наследовании interface. Также уточнено, что callable-summary существует только
-в compile-time анализе и не имеет runtime/ABI-хранения. Открытыми остаются
-projection application proof, erased carrier ABI и `clean`/destructor
-integration.
+в compile-time анализе и не имеет runtime/ABI-хранения. Automatic user
+destructor теперь запускается только в неявной `clean`-области, перед
+non-throwing `Disposable`; обычный бросающий destructor остаётся явным.
+Открытыми остаются projection application proof и erased carrier ABI.
