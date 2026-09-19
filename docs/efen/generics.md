@@ -13,6 +13,7 @@
 - [Множественные параметры типа](#множественные-параметры-типа)
 - [Конструкторы типов](#конструкторы-типов)
 - [Ограничения параметров](#ограничения-параметров)
+- [Типы с параметрами-значениями](types/value-parameterized-types.md)
 - [Generic-параметры с contract](#generic-параметры-с-contract)
 - [Полиморфные функциональные типы](#полиморфные-функциональные-типы)
 - [Variadic generic-параметры](#variadic-generic-параметры)
@@ -306,6 +307,11 @@ generic Size: Int
 compile-time объект декларации interface, доступный reflection и генерации.
 Contract не является runtime-типом, но является допустимым compile-time
 значением для `generic C: Contract`.
+
+Когда compile-time значение является параметром объявления типа, оно входит в
+identity concrete generic-инстанциации. Полная семантика, включая enum-категории,
+runtime-классификацию и HIR-ключ, описана в
+[типах с параметрами-значениями](types/value-parameterized-types.md).
 
 ```efen
 class Adapter<Requirement: Contract, RuntimeAPI: Interface> {

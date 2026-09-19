@@ -104,10 +104,13 @@ class User {
 }
 ```
 
-#### Зависимая индексация
+#### Индексация с compile-time границей
 
-Тип индекса, чей предикат зависит от конкретного массива, требует отдельной
-модели зависимых типов и рассматривается вместе с ней.
+Тип индекса может получить границу обычным compile-time generic-параметром.
+Конкретный `Index<10>` и `Index<20>` являются разными инстанциациями, а
+predicate использует переданный предел. Если длина известна только runtime,
+граница проверяется обычным `refine()` или proof compiler и не создаёт скрытой
+generic identity. См. [типы с параметрами-значениями](value-parameterized-types.md).
 
 #### Non-null значения
 
@@ -159,7 +162,7 @@ try {
 1. **Простые сравнения**: `>`, `<`, `>=`, `<=`, `==`, `!=`
 2. **Логические операции**: `&&`, `||`, `!`
 3. **Функции-предикаты**: чистые функции типа `(T) -> bool`
-4. **Зависимости от других переменных**: dependent types (будущее расширение)
+4. **Compile-time параметры**: условия над явно объявленными generic-значениями
 
 Предикаты должны быть **pure** (без побочных эффектов) для возможности статического анализа.
 
@@ -271,6 +274,14 @@ fn first<T>(arr: NonEmptyArray<T>): T {
 }
 ```
 
+## Типы с compile-time параметрами-значениями
+
+Это действующая generic-возможность Efen. Compile-time значения входят в
+identity конкретной инстанциации типа; runtime-значения проверяются через
+`refine()` или proof compiler и не создают скрытой generic identity. Полные
+правила находятся в
+[типах с параметрами-значениями](value-parameterized-types.md).
+
 ## Будущие расширения
 
 ### 1. Compile-time SMT solver
@@ -287,20 +298,7 @@ fn abs(x: int): Nat {
 }
 ```
 
-### 2. Dependent types
-
-Зависимость от значений других параметров:
-
-```efen
-type BoundedInt<min, max>: int { value >= min && value <= max }
-type Array<T, n>: array<T> { count(value) == n }
-
-fn createFixedArray<T, n>(value: T): Array<T, n> {
-    return array_fill(0, n, value).refine();
-}
-```
-
-### 3. Сложные предикаты
+### 2. Сложные предикаты
 
 ```efen
 type SortedArray<T>: array<T> {
@@ -310,7 +308,7 @@ type SortedArray<T>: array<T> {
 }
 ```
 
-### 4. Refinement inference
+### 3. Refinement inference
 
 Автоматический вывод refinement types:
 

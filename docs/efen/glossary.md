@@ -18,7 +18,7 @@
 | **Contract** | Compile-time набор требований. Сам по себе не является runtime-типом и не создаёт VTBL. | [Контракты](contracts.md) |
 | **Context** | Типизированная зависимость, доступная через ambient context и отражаемая в сигнатуре через `in`. | [Контексты и эффекты](context-and-effects.md) |
 | **Decorator** | Атрибут, чьё выполнение преобразует помеченную декларацию или порождает дополнительный HIR. | [Декораторы](decorators.md), [metadata](aspects/metadata.md) |
-| **Dependent type** | Тип, зависящий от конкретного значения или экземпляра. Полная модель dependent types и `Layout<T>` пока отложена. | [Адреса](memory/addresses.md) |
+| **Тип с compile-time параметром-значением** | Concrete generic-тип, identity которого включает каноническое compile-time значение: например `User<root>` или `Matrix<3, 4>`. Это обычная generic-модель Efen, а не отдельная feature. | [Типы с параметрами-значениями](types/value-parameterized-types.md), [generics](generics.md) |
 | **Dialect** | Frontend-уровень, который отображает другой исходный язык или профиль синтаксиса в семантику Efen и Amber HIR. | [Диалекты](dialects.md) |
 | **Effect** | Статически отслеживаемое внешнее требование или действие, распространяемое по графу вызовов. | [Контексты и эффекты](context-and-effects.md) |
 | **Family** | Открытый tagged carrier `Family<Base>`, куда проверенные новые виды могут добавляться без закрытого множества cases одного `variant`. | [Адреса](memory/addresses.md), [колоночные layout](memory/columnar-layouts.md) |
@@ -26,7 +26,7 @@
 | **HIR** | Высокоуровневое структурное представление программы после frontend. Тела проходят от нетипизированных C0/C1-форм к типизированным и проверенным поздним стадиям; это не машинные инструкции. | [Compile-time API](compile-time/index.md), [Amber HIR](https://github.com/limelight-lang/amber/blob/main/design/hir/README.md) |
 | **Interface** | Runtime-тип с динамической диспетчеризацией. Проекция contract в interface создаётся только явной формой `interface I from C`. | [Интерфейсы](interfaces.md), [контракты](contracts.md#связь-контрактов-с-интерфейсами) |
 | **`isolated`** | Граница, запрещающая неявно расширять набор внешних эффектов функции или региона. Не означает `pure` и не запрещает re-entry. | [Контексты и эффекты](context-and-effects.md) |
-| **Layout / компоновка** | Декларативное описание структур, дескрипторов памяти, их размещения, связей и условий. `Layout<T>` как обобщённый тип является отдельной открытой темой. | [Компоновка и дескрипторы](memory/addresses.md), [примеры](memory/layout-examples/) |
+| **Layout / компоновка** | Декларативное описание структур, дескрипторов памяти, их размещения, связей и условий. Операции выделения принадлежат конкретным дескрипторам памяти; отдельный универсальный generic-тип для allocation не требуется. | [Компоновка и дескрипторы](memory/addresses.md), [примеры](memory/layout-examples/) |
 | **Layer** | Compile-time архитектурная группа пакетов с отношениями `uses`, `exposes` и `provides`; runtime-сущностью не является. | [Слои](layers.md) |
 | **Managed slot** | Режим конкретного storage-слота, где lifetime-операции строит выбранная модель управления, а не обычный borrow checker. Это не право типа и не исходный модификатор. | [Ownership](types/ownership.md) |
 | **Metadata** | Типизированные compile-time данные декларации; отдельное решение определяет, какая добавленная metadata нужна runtime. | [Metadata](aspects/metadata.md) |

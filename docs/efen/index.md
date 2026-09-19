@@ -52,9 +52,8 @@ source syntax
 `enum` или case `variant` с заглавной является ошибкой компиляции, а не стилевым
 предупреждением.
 
-Точное имя неявного receiver (`self` или `this`) ещё находится в очереди A21.
-До решения примеры с обоими словами показывают требуемую семантику доступа к
-текущему экземпляру, но не фиксируют окончательную surface-запись.
+Каноническое имя неявного receiver — `self`; `Self` обозначает его лексический
+тип.
 
 ## Язык выражений и управление потоком
 
@@ -74,7 +73,7 @@ source syntax
 | Основы типов | [Типы](types/type.md), [константы](types/constants.md), [алиасы](type-aliases.md), [refinement types](types/refinement-types.md) |
 | Составные значения | [Tuple](types/tuples.md), [enum](types/enum.md), [variant](types/variant.md), [structural union](type-aliases.md#union-типы), [optional](types/optional.md), [проекции](types/projection.md) |
 | Коллекции и строки | [Коллекции](types/collections.md), [словари](types/dictionaries.md), [строки](types/strings.md) |
-| Generics | [Generics](generics.md), [built-in contracts](types/built-in-contracts.md) |
+| Generics | [Generics](generics.md), [типы с compile-time параметрами-значениями](types/value-parameterized-types.md), [built-in contracts](types/built-in-contracts.md) |
 | Состояния и ресурсы | [Typestate](types/typestate.md), [ownership](types/ownership.md), [disposable](disposable.md) |
 | Проверка программ | [Тесты и failure-сценарии](tests/tests.md), [группы диагностик](diagnostic-groups.md) |
 
@@ -112,9 +111,9 @@ source syntax
 | Verification boundary | [Efen → Viper](memory/viper-verification-backend.md) |
 | Исторические низкоуровневые наброски | [Allocator](memory/allocator.md), [class internals](memory/classes-internal.md) |
 
-`Layout<T>` и dependent types остаются отдельной отложенной темой. Документы о
-Viper задают проект proof boundary, но не являются свидетельством выполненного
-machine proof.
+Типы, параметризованные compile-time значениями, уже являются частью обычной
+generic-модели Efen и не требуют отдельной feature. Документы о Viper задают
+проект proof boundary, но не являются свидетельством выполненного machine proof.
 
 ## Compile-time и toolchain
 
