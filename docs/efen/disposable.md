@@ -336,7 +336,7 @@ Disposable можно использовать в коллекциях:
 
 ```efen
 fn processMultipleFiles(paths: [String]) {
-    let disposable files = paths.map => File.open($path)
+    let disposable files = paths.map => File.open(path)
 
     for file in files {
         processFile(file)

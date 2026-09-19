@@ -1,4 +1,5 @@
-aspect DoubleLinkedList<Target> conforms Representation<Target> {
+aspect DoubleLinkedList<Target> {
+    conforms Representation<Target>
     layout {
         set Items: Item {
             chained from self.head by Item.next

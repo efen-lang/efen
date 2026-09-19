@@ -1,4 +1,5 @@
-aspect DynamicContiguous<Target> conforms Representation<Target> {
+aspect DynamicContiguous<Target> {
+    conforms Representation<Target>
     layout {
         set Items: Item {
             value in self.root[0..<self.length]

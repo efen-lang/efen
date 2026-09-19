@@ -188,20 +188,20 @@ try {
     print("Другая ошибка")
 }
 
-// Catch без try — охватывает весь scope
+// Catch без try — охватывает код выше себя в scope
 fn process(data: String) {
     validateInput(data)
     saveToDatabase(data)
     
     catch e: ValidationError {
         print("Ошибка валидации")
-        return
     }
     catch e: DatabaseError {
         print("Ошибка БД")
         rollback()
     }
-    
+
+    // После каждого обработанного исключения выполнение продолжается здесь.
     print("Успех")
 }
 

@@ -44,7 +44,8 @@ contract Coerce<Source> {
     static fn coerce(value: Source) -> Self
 }
 
-strategy for UserId conforms Coerce<Int> {
+strategy for UserId {
+    conforms Coerce<Int>
     static fn coerce(value: Int) -> UserId {
         return value.refine()
     }
@@ -55,7 +56,8 @@ strategy for UserId conforms Coerce<Int> {
 стратегия может получить конкретную цель через `provide`:
 
 ```efen
-strategy MyAllocator<T> conforms Allocator<T> {
+strategy MyAllocator<T> {
+    conforms Allocator<T>
     // реализация контракта
 }
 
@@ -297,7 +299,8 @@ where target is Box<T> {
 для проверяемого разворачивания optional:
 
 ```efen
-strategy OptionalOrThrow<T> for T conforms Coerce<T?> {
+strategy OptionalOrThrow<T> for T {
+    conforms Coerce<T?>
     static fn coerce(value: T?) -> T throws MissingOptionalError {
         if let result = value {
             return result
@@ -357,7 +360,8 @@ contract DrawingContract {
     fn resize(scale: Float)
 }
 
-strategy CircleDrawing for Shape conforms DrawingContract {
+strategy CircleDrawing for Shape {
+    conforms DrawingContract
     fn draw {
         print("Drawing circle")
     }
@@ -367,7 +371,8 @@ strategy CircleDrawing for Shape conforms DrawingContract {
     }
 }
 
-strategy SquareDrawing for Shape conforms DrawingContract {
+strategy SquareDrawing for Shape {
+    conforms DrawingContract
     fn draw {
         print("Drawing square")
     }
@@ -447,20 +452,23 @@ contract LoggerContract {
     fn log(message: String)
 }
 
-strategy ConsoleLogger for Request conforms LoggerContract {
+strategy ConsoleLogger for Request {
+    conforms LoggerContract
     fn log(message: String) {
         print("[CONSOLE] ${message}")
     }
 }
 
-strategy FileLogger for Request conforms LoggerContract {
+strategy FileLogger for Request {
+    conforms LoggerContract
     fn log(message: String) {
         // Запись в файл
         writeToFile(message)
     }
 }
 
-strategy NetworkLogger for Request conforms LoggerContract {
+strategy NetworkLogger for Request {
+    conforms LoggerContract
     fn log(message: String) {
         // Отправка по сети
         sendToServer(message)

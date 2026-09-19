@@ -41,8 +41,8 @@ Efen поддерживает несколько форм сокращённог
 Использование оператора `=>` для определения замыкания как параметра метода:
 
 ```efen
-var y = array.map => $item + 1
-var natural = [-100..100].filter => $item >= 0
+var y = array.map => item + 1
+var natural = [-100..100].filter => item >= 0
 ```
 
 Хвостовая форма допустима, только когда замыкание — единственный аргумент
@@ -50,7 +50,7 @@ var natural = [-100..100].filter => $item >= 0
 
 ```efen
 numbers.reduce(0, (acc, x) => acc + x)   // ✅
-numbers.reduce(0) => $0 + $1             // ❌ недопустимо
+numbers.reduce(0) => left + right         // ❌ замыкание среди нескольких аргументов
 ```
 
 Единственное замыкание в скобках (`numbers.map((x) => x * 2)`) или после `<|`
@@ -62,17 +62,17 @@ numbers.reduce(0) => $0 + $1             // ❌ недопустимо
 
 ```efen
 // ❌ ЗАПРЕЩЕНО - неоднозначный синтаксис
-numbers.map { $0 * 2 }
+numbers.map { item * 2 }
 
 // ✅ ПРАВИЛЬНО - однозначный синтаксис
-numbers.map => $item * 2
-numbers.map => { $item * 2 }
+numbers.map => item * 2
+numbers.map => { item * 2 }
 ```
 
 Вызов с цепочкой методов с замыканиями:
 ```efen
-var result = data.filter => $item > 0
-            .map => $item * 2
+var result = data.filter => item > 0
+            .map => item * 2
             .reduce(0, (acc, x) => acc + x)
 ```
 
@@ -84,7 +84,7 @@ var result = data.filter => $item > 0
 стрелки. Общие правила — [перенос строк](operators.md#перенос-строк).
 
 Тело в `{ }` кончается на своей закрывающей скобке, поэтому постфикс после `}`
-относится к вызову, а не к телу: в `numbers.map => { $item * 2 }.collect()` метод `collect` вызывается у результата
+относится к вызову, а не к телу: в `numbers.map => { item * 2 }.collect()` метод `collect` вызывается у результата
 `map`.
 
 Строка, начинающаяся с `.` или с бинарного оператора, продолжает выражение
@@ -100,64 +100,48 @@ let x = a + b
 ровно свою строку:
 
 ```efen
-var result = data.filter => $item > 0   // тело замыкания кончается здесь
-            .map => $item * 2           // строка начинается с `.` — продолжение
+var result = data.filter => item > 0    // тело замыкания кончается здесь
+            .map => item * 2            // строка начинается с `.` — продолжение
             .reduce(0, (acc, x) => acc + x)
 
 // Многострочное тело требует скобок
 var filtered = data.filter => {
-    let normalized = normalize($item)
+    let normalized = normalize(item)
     normalized > 0
 }
 ```
 
-### Placeholder-параметры
+### Неявные параметры хвостового замыкания
 
-Placeholder-параметр обращается к параметру замыкания без его объявления.
-Записей две: `$имя` и нумерованная `$0`, `$1`. Одиночный `$` в грамматику не
-входит, в одном замыкании имена и номера не смешиваются.
-
-- Один параметр — любое имя: `users.filter => $user.age > 18`. Все упоминания
-  пишутся одним именем; `$0` здесь получает диагностику стиля.
-- Несколько параметров — имена из функционального типа вызываемой функции:
-  тип `(accumulator: Int, item: Int) -> Int` даёт `$accumulator + $item`.
-  Если сменилась сигнатура, меняется и замыкание, как при именованном аргументе.
-- `$0`, `$1` пишутся, только если у параметров функционального типа нет имён.
+У хвостовой формы параметры берутся из ожидаемого функционального типа и
+пишутся как обычные имена, без `$`. Сокращение доступно, только если имена есть
+у всех параметров ожидаемого типа.
 
 ```efen
-let adults = users.filter => $user.age > 18 && $user.isActive
-let names = users.map => $user.name
-dict.forEach => print($key, $value)               // тип (key: K, value: V) -> Void
-let sorted = pairs.sorted => $0.key < $1.key      // тип без имён параметров
+let adults = users.filter => user.age > 18 && user.isActive
+let names = users.map => user.name
+dict.forEach => print(key, value)                 // тип (key: K, value: V) -> Void
+pairs.sorted((left, right) => left.key < right.key) // тип без имён параметров
 ```
 
 Правила:
 
-- placeholder бывает только в хвостовом замыкании; в скобках параметры
-  объявляются литералом;
-- `$имя` относится к ближайшему хвостовому замыканию. Обращение к placeholder
-  внешнего замыкания — ошибка:
+- имена из ожидаемого типа существуют только в ближайшем хвостовом замыкании;
+  параметр внутреннего замыкания затеняет параметр внешнего;
+- одноимённая внешняя переменная затеняется неявным параметром; компилятор
+  выдаёт предупреждение, но выбирает внутренний параметр;
+- если у ожидаемого типа нет имён либо их нельзя определить однозначно,
+  используется полная форма с явными параметрами:
 
   ```efen
-  groups.filter => $group.members.any => $member.isActive   // допустимо
-  groups.filter => $group.members.any => $group.isActive    // ошибка
-  ```
-
-- каждый параметр упоминается хотя бы одним placeholder, иначе ошибка. Пропуск
-  параметра или его тип записываются литералом в скобках, и такая запись
-  канонична при единственном аргументе-замыкании:
-
-  ```efen
-  pairs.sorted => $a.key < $a.key                 // ошибка: $b не упомянут
   button.onClick((_) => counter += 1)             // пропуск параметра
   button.on((event: MouseEvent) => print(event.x)) // тип выбирает перегрузку
   ```
 
 - третий вложенный `=>` в одном выражении получает диагностику стиля:
   внутреннее замыкание выносится в переменную или функцию;
-- `$имя` не сверяется с видимыми переменными: `$` всегда обозначает параметр.
 
-`${…}` — отдельный токен вставки кода в метафункциях и с `$имя` не пересекается.
+`${…}` — отдельный токен вставки кода в метафункциях.
 
 Замыкание в качестве аргумента метода:
 ```efen
@@ -211,8 +195,8 @@ let doubled = processArray(numbers, (x) => x * 2)  // [2, 4, 6, 8, 10]
 тело с ней делает, как у параметра:
 
 ```efen
-let total = items.map => $item * factor     // read-заимствование factor
-items.forEach => sum += $item               // write-заимствование sum
+let total = items.map => item * factor     // read-заимствование factor
+items.forEach => sum += item               // write-заимствование sum
 ```
 
 Заимствование не продлевает жизнь переменной. Замыкание, которое переживает её
@@ -262,7 +246,7 @@ let report = () -> Void {
   `capture let` получает диагностику стиля `S`;
 - выражение вычисляется один раз, при создании замыкания, а не при вызове;
 - имена в выражении разрешаются в области, окружающей литерал замыкания:
-  `param`, `generic`, `$0` и предыдущие `capture` в нём не видны; совпадение
+  `param`, `generic` и предыдущие `capture` в нём не видны; совпадение
   имени `capture` с именем `param` — ошибка;
 - результат обязан быть владением: `capture items = items` для типа без
   `ImplicitlyCopyable` даёт заимствование и является ошибкой с подсказкой
@@ -378,7 +362,7 @@ assert(() => x > 0, message: "x must be positive")
 
 ```efen
 let numbers = [1, 2, 3, 4, 5]
-let squared = numbers.map => $item * $item
+let squared = numbers.map => item * item
 print(squared)  // [1, 4, 9, 16, 25]
 ```
 
@@ -386,7 +370,7 @@ print(squared)  // [1, 4, 9, 16, 25]
 
 ```efen
 let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-let evenNumbers = numbers.filter => $item % 2 == 0
+let evenNumbers = numbers.filter => item % 2 == 0
 print(evenNumbers)  // [2, 4, 6, 8, 10]
 ```
 
@@ -405,7 +389,7 @@ print(product)  // 120
 
 ```efen
 let names = ["Иван", "Алексей", "Мария", "Анна"]
-let sorted = names.sorted => $0 < $1
+let sorted = names.sorted => left < right
 print(sorted)  // ["Алексей", "Анна", "Иван", "Мария"]
 ```
 
@@ -414,7 +398,7 @@ print(sorted)  // ["Алексей", "Анна", "Иван", "Мария"]
 ```efen
 let numbers = [1, 2, 3, 4, 5]
 numbers.forEach => {
-    print("Number: ${$number}")
+    print("Number: ${number}")
 }
 ```
 
@@ -459,11 +443,11 @@ Trailing closure позволяет передать замыкание как �
 numbers.map((x: Int) => x * 2)
 
 // Trailing closure с выражением
-numbers.map => $item * 2
+numbers.map => item * 2
 
 // Trailing closure с блоком
 numbers.map => {
-    return $item * 2
+    return item * 2
 }
 
 // Замыкание среди нескольких аргументов пишется в скобках
@@ -517,28 +501,28 @@ print(factorial(5))  // 120
 ```efen
 // ❌ Излишне многословно
 numbers.map => {
-    return $item * 2
+    return item * 2
 }
 
 // ✅ Лаконично
-numbers.map => $item * 2
+numbers.map => item * 2
 ```
 
 ### 2. Используйте правильный синтаксис trailing closures
 
 ```efen
 // ❌ ЗАПРЕЩЕНО - неоднозначный синтаксис
-numbers.map { $0 * 2 }
+numbers.map { item * 2 }
 
 // ✅ ПРАВИЛЬНО - используйте оператор =>
-numbers.map => $item * 2
+numbers.map => item * 2
 ```
 
 ### 3. Именуйте параметры для сложной логики
 
 ```efen
-// ❌ S: для одного параметра канонично выбранное автором имя
-users.filter => $0.age > 18 && $0.isActive && !$0.isBanned
+// ❌ S: единственное замыкание в скобках пишется хвостовой формой
+users.filter((user) => user.age > 18 && user.isActive && !user.isBanned)
 
 // ✅ Понятно с явными параметрами
 users.filter((user) => user.age > 18 && user.isActive && !user.isBanned)
@@ -592,7 +576,7 @@ fn asyncProcess(completion: () -> Void own) {
 
 ```efen
 // ✅ Часто инлайнится
-let doubled = numbers.map => $item * 2
+let doubled = numbers.map => item * 2
 
 // ⚠️ Сложнее инлайнить
 let processed = numbers.map((value: Int) -> Int {

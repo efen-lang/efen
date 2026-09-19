@@ -1,4 +1,5 @@
-aspect Contiguous<Target> conforms Representation<Target> {
+aspect Contiguous<Target> {
+    conforms Representation<Target>
     layout {
         set Items: Item {
             value in self.root[0..<self.length]

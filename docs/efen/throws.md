@@ -182,20 +182,17 @@ fn process {
 Выход по `return` и `break` проверяется так же, как конец блока: до него не
 должно быть непойманного выброса.
 
-## Контракты на обработку исключений — открытая поверхность
+## Контракты на обработку исключений
 
-Семантически contract может требовать обработки определённых исключений, но
-Q46 ещё не определил запись уточнения одного contract другим. Поэтому
-`extends CatchRules` ниже — исследовательский вариант, а не текущий синтаксис:
+Contract может уточнять другой contract через `:`:
 
-```text
-contract ErrorHandler extends CatchRules {
+```efen
+contract ErrorHandler : CatchRules {
     required catch DatabaseError
 }
 ```
 
-Предполагаемая роль `CatchRules` — разрешить требования `required catch`; её
-surface-форма будет зафиксирована вместе с общим уточнением contract.
+`CatchRules` разрешает требования `required catch`.
 
 Функция соответствует контракту через объявление `conforms` в теле:
 
@@ -226,8 +223,8 @@ fn dataOperation {
 Он указывает компилятору, что это исключение может быть поймано 
 только в функциях, которые поддерживают контракт, где указана возможность обработки этого исключения.
 
-```text
-contract CancellationHandler extends CatchRules {
+```efen
+contract CancellationHandler : CatchRules {
     required catch CancellationException
 }
 
@@ -444,7 +441,7 @@ fn correctCaller {
 ```efen
 fn correctInClosure(items: [Item]) {
     try {
-        items.forEach => critical($item)
+        items.forEach => critical(item)
     } catch e: CriticalError {
         handleCritical(e)
     }

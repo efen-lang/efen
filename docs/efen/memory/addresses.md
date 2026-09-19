@@ -81,7 +81,8 @@ Self   = Array<User, List>
 `use R<Element>`. `self` — текущий экземпляр `Self` во время выполнения.
 
 ```efen
-aspect List<Target> conforms Representation<Target> {
+aspect List<Target> {
+    conforms Representation<Target>
     layout {
         // Структуры и дескрипторы памяти Self.
     }

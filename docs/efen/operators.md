@@ -247,7 +247,7 @@ save <| load(path)       // save(load(path))
 
 ```efen
 let double = (x) => x * 2
-numbers.map => $item * 2
+numbers.map => item * 2
 ```
 
 ---

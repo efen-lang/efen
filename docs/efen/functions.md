@@ -116,7 +116,7 @@ fn wrap<T>: Wrapper<T> {
 
 ```efen
 fn map<T, U>(items: [T], transform: (T) -> U) -> [U] {
-    return items.map => transform($item)
+    return items.map => transform(item)
 }
 
 let numbers = [1, 2, 3]
@@ -225,7 +225,7 @@ class SimpleCalculator {
 fn sum -> Int {
     param numbers: ...Int
     var total: Int = 0
-    numbers.for => total += $number
+    numbers.for => total += number
     return total
 }
 ```

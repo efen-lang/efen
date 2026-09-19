@@ -1,4 +1,5 @@
-aspect Chunked<Target> conforms Representation<Target> {
+aspect Chunked<Target> {
+    conforms Representation<Target>
     const CHUNK_SIZE: Size = 256
 
     layout {

@@ -272,7 +272,7 @@ for row in matrix {
 
 ```efen
 let numbers = [1, 2, 3, 4, 5]
-let doubled = numbers.map => $item * 2
+let doubled = numbers.map => item * 2
 print(doubled) // [2, 4, 6, 8, 10]
 ```
 
@@ -280,7 +280,7 @@ print(doubled) // [2, 4, 6, 8, 10]
 
 ```efen
 let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-let evenNumbers = numbers.filter => $item % 2 == 0
+let evenNumbers = numbers.filter => item % 2 == 0
 print(evenNumbers) // [2, 4, 6, 8, 10]
 ```
 
@@ -298,7 +298,7 @@ print(sum) // 15
 let numbers = [1, 2, 3, 4, 5]
 
 numbers.forEach => {
-    print($item)
+    print(item)
 }
 ```
 
@@ -312,10 +312,10 @@ numbers.forEach => {
 let numbers = 1..1000000
 
 // Без ленивых вычислений создаются промежуточные массивы
-let result1 = numbers.map => { $item * 2 }.filter => { $item % 3 == 0 }.prefix(5)
+let result1 = numbers.map => { item * 2 }.filter => { item % 3 == 0 }.prefix(5)
 
 // С ленивыми вычислениями вычисляются только нужные элементы
-let result2 = numbers.lazy.map => { $item * 2 }.filter => { $item % 3 == 0 }.prefix(5)
+let result2 = numbers.lazy.map => { item * 2 }.filter => { item % 3 == 0 }.prefix(5)
 ```
 
 ## Производительность
@@ -367,7 +367,7 @@ var numbers = [1, 2, 3, 4, 5]
 // }
 
 // ✅ Правильно — создаём новую коллекцию
-numbers = numbers.filter => $item % 2 != 0
+numbers = numbers.filter => item % 2 != 0
 
 // ✅ Правильно — итерация в обратном порядке для удаления
 for i in (0..<numbers.count).reversed() {

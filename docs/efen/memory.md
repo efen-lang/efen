@@ -230,7 +230,8 @@ interface RefCountInterface {
     private var refCount: AtomicInt    
 }
 
-aspect RefCount implements RefCountInterface {
+aspect RefCount {
+    implements RefCountInterface
 
     // Соответствие контракту
     conforms RefCountContract

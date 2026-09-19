@@ -145,7 +145,7 @@ echo format(value)    // echo(format(value))
 
 ```efen
 echo x + 5               // канонично
-log items.map => $item * 2  // log(items.map => $item * 2)
+log items.map => item * 2  // log(items.map => item * 2)
 let v = f y              // простой аргумент
 let x = fun <| x + 5     // большой аргумент не в начале инструкции
 return f(y)              // после ключевого слова
@@ -203,10 +203,10 @@ save <| load path
 ```efen
 user.getName()
 list.add item
-numbers.map => $item * 2
+numbers.map => item * 2
 
 process user.getName()
-let names = users.map => $user.name
+let names = users.map => user.name
 ```
 
 Единственный аргумент-замыкание передаётся хвостом через `=>`. Замыкание среди
@@ -215,7 +215,7 @@ let names = users.map => $user.name
 
 ```efen
 numbers.reduce(0, (acc, x) => acc + x)
-numbers.reduce(0) => $0 + $1                // недопустимо
+numbers.reduce(0) => left + right                // недопустимо
 
 let names = users.map((u) => u.name)        // S: каноническая форма — хвостовая
 let names = users.map <| (u) => u.name      // S: каноническая форма — хвостовая
@@ -230,7 +230,7 @@ let names = users.map <| (u) => u.name      // S: каноническая фо�
 | `f(a, b)` | Вызов с несколькими аргументами | `add(1, 2)` |
 | `f expression` | Вызов с одним аргументом-выражением | `echo x + 1` |
 | `f <| expression` | Большой аргумент вне начала инструкции | `let t = sum <| a + b` |
-| `f => closure` | Единственный аргумент-замыкание | `numbers.map => $item * 2` |
+| `f => closure` | Единственный аргумент-замыкание | `numbers.map => item * 2` |
 
 Ключевые ограничения:
 

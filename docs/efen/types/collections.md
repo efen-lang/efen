@@ -522,14 +522,14 @@ while let number = iter.next() {
 let numbers = [1, 2, 3, 4, 5]
 
 // map - преобразование каждого элемента
-let doubled = numbers.map => $item * 2  // [2, 4, 6, 8, 10]
+let doubled = numbers.map => item * 2  // [2, 4, 6, 8, 10]
 
 // filter - фильтрация элементов
-let evens = numbers.filter => $item % 2 == 0  // [2, 4]
+let evens = numbers.filter => item % 2 == 0  // [2, 4]
 
 // flatMap - преобразование с развёртыванием
 let nested = [[1, 2], [3, 4], [5]]
-let flattened = nested.flatMap => $items  // [1, 2, 3, 4, 5]
+let flattened = nested.flatMap => items  // [1, 2, 3, 4, 5]
 ```
 
 #### Агрегация
@@ -556,13 +556,13 @@ let total = numbers.sum()  // 15
 let numbers = [1, 2, 3, 4, 5]
 
 // find - поиск первого подходящего элемента
-let found = numbers.find => $number > 3  // 4
+let found = numbers.find => number > 3  // 4
 
 // any - проверка существования элемента
-let hasEven = numbers.any => $number % 2 == 0  // true
+let hasEven = numbers.any => number % 2 == 0  // true
 
 // all - проверка всех элементов
-let allPositive = numbers.all => $number > 0  // true
+let allPositive = numbers.all => number > 0  // true
 
 // contains - проверка наличия элемента
 let hasThree = numbers.contains(3)  // true
@@ -580,10 +580,10 @@ let first3 = numbers.take(3)  // [1, 2, 3]
 let last2 = numbers.skip(3)  // [4, 5]
 
 // takeWhile - брать элементы пока условие истинно
-let taken = numbers.takeWhile => $number < 4  // [1, 2, 3]
+let taken = numbers.takeWhile => number < 4  // [1, 2, 3]
 
 // skipWhile - пропускать элементы пока условие истинно
-let skipped = numbers.skipWhile => $number < 4  // [4, 5]
+let skipped = numbers.skipWhile => number < 4  // [4, 5]
 
 // first - первый элемент
 let first = numbers.first()  // 1
@@ -619,12 +619,12 @@ let numbers = [1, 2, 3, 4, 5]
 // Цепочка операций не выполняется сразу
 let lazyResult = numbers
     .map => {
-        println("Mapping: ${$item}")
-        $item * 2
+        println("Mapping: ${item}")
+        item * 2
     }
     .filter => {
-        println("Filtering: ${$item}")
-        $item > 5
+        println("Filtering: ${item}")
+        item > 5
     }
 
 // Вычисление начнётся только здесь
@@ -647,10 +647,10 @@ for value in lazyResult {
 
 ```efen
 // collect - собрать результат в коллекцию
-let result = numbers.map => { $item * 2 }.collect()  // [2, 4, 6, 8, 10]
+let result = numbers.map => { item * 2 }.collect()  // [2, 4, 6, 8, 10]
 
 // toArray - преобразовать в массив
-let arr = numbers.filter => { $item > 2 }.toArray()  // [3, 4, 5]
+let arr = numbers.filter => { item > 2 }.toArray()  // [3, 4, 5]
 
 // toSet - преобразовать в множество
 let set = numbers.toSet()
@@ -801,8 +801,8 @@ for value in dict.values() {
 ```efen
 // Ленивые операции не создают промежуточных коллекций
 let result = numbers
-    .map => $item * 2       // Не создаёт массив
-    .filter => $item > 5    // Не создаёт массив
+    .map => item * 2       // Не создаёт массив
+    .filter => item > 5    // Не создаёт массив
     .take(3)             // Не создаёт массив
     .collect()           // Создаёт финальный массив
 
@@ -826,16 +826,16 @@ for x in numbers {
 1. **Используйте ленивые вычисления** для больших коллекций:
    ```efen
    // Хорошо: обрабатывает только нужные элементы
-   let found = largeList.find => $item > 100
+   let found = largeList.find => item > 100
 
    // Плохо: фильтрует всю коллекцию
-   let found = largeList.filter => { $item > 100 }.first()
+   let found = largeList.filter => { item > 100 }.first()
    ```
 
 2. **Предпочитайте методы итераторов императивным циклам**:
    ```efen
    // Хорошо
-   let sum = numbers.filter => { $item > 0 }.sum()
+   let sum = numbers.filter => { item > 0 }.sum()
 
    // Хуже
    let sum = 0
@@ -849,8 +849,8 @@ for x in numbers {
 3. **Комбинируйте операции в цепочки**:
    ```efen
    let result = users
-       .filter => $user.active
-       .map => $user.email
+       .filter => user.active
+       .map => user.email
        .sorted()
        .collect()
    ```
@@ -868,12 +868,12 @@ for x in numbers {
 let numbers = [1, 2, 3, 4, 5]
 
 // partition - разделение на две коллекции
-let (evens, odds) = numbers.partition => $number % 2 == 0
+let (evens, odds) = numbers.partition => number % 2 == 0
 // evens: [2, 4], odds: [1, 3, 5]
 
 // groupBy - группировка по ключу
 let items = ["apple", "banana", "apricot", "blueberry"]
-let grouped = items.groupBy => $item[0]
+let grouped = items.groupBy => item[0]
 // { 'a': ["apple", "apricot"], 'b': ["banana", "blueberry"] }
 
 // sorted - сортировка
@@ -881,7 +881,7 @@ let sorted = numbers.sorted()  // [1, 2, 3, 4, 5]
 
 // sortedBy - сортировка по ключу
 let words = ["zebra", "apple", "banana"]
-let sorted = words.sortedBy => $word.length()  // ["apple", "zebra", "banana"]
+let sorted = words.sortedBy => word.length()  // ["apple", "zebra", "banana"]
 
 // reversed - переворот
 let reversed = numbers.reversed()  // [5, 4, 3, 2, 1]

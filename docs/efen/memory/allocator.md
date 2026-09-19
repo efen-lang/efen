@@ -17,8 +17,9 @@ contract Allocator<Type>
 ```
 
 ```efen
-strategy MyAllocator<Type> conforms Allocator<Type> 
-{
+strategy MyAllocator<Type> {
+    conforms Allocator<Type>
+
     fn allocate(size: Size<Type>) -> Pointer<Type> {
         return memory::Manager.allocate(size);
     }
