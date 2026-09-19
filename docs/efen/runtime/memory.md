@@ -12,12 +12,18 @@ interface Allocator {
     fn deallocate(ptr: Pointer)        
 }
 
-interface ArenaAllocator : Allocator {
+interface ArenaAllocator {
+    fn allocate(size: Size) -> Pointer
+    fn reallocate(ptr: Pointer, size: Int) -> Pointer
+    fn deallocate(ptr: Pointer)
     fn reset
     fn clear
 }
 
-interface PoolAllocator : Allocator {
+interface PoolAllocator {
+    fn allocate(size: Size) -> Pointer
+    fn reallocate(ptr: Pointer, size: Int) -> Pointer
+    fn deallocate(ptr: Pointer)
     fn acquire -> Pointer
     fn release(ptr: Pointer)
 }
@@ -73,7 +79,7 @@ Arena (также известный как region/bump allocator) — быст�
 use runtime::memory
 
 class Arena {
-    implements ArenaAllocator
+    implements ArenaAllocator, Disposable
 
     private var buffer: Pointer
     private var offset: Size
@@ -120,7 +126,7 @@ class Arena {
         self.capacity = 0
     }
 
-    destructor() {
+    fn dispose {
         if self.buffer != null {
             free(self.buffer)
         }
@@ -166,7 +172,7 @@ Pool allocator выделяет объекты фиксированного ра
 use runtime::memory
 
 class Pool {
-    implements PoolAllocator
+    implements PoolAllocator, Disposable
 
     private var objectSize: Size
     private var poolSize: Size
@@ -232,7 +238,7 @@ class Pool {
         release(ptr)
     }
 
-    destructor() {
+    fn dispose {
         free(self.buffer)
     }
 }

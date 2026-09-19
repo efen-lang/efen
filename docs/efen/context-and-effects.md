@@ -34,12 +34,9 @@ fn saveUser(name: String) in LoggerEffect {
 }
 
 fn main {
-    let logger = LoggerEffect {
-        fn log(message: String) {
-            // Реализация логгера, например, вывод в консоль
-            Console.print(message)
-        }
-    }
+    // Фабрика возвращает реализацию LoggerEffect. Синтаксис анонимной
+    // реализации `LoggerEffect { ... }` не входит в текущий язык.
+    let logger = createLoggerEffect()
 
     with logger {
         saveUser("Alice")
@@ -435,18 +432,13 @@ fn main {
 Семантика границы принята; слово `without` для неё остаётся кандидатом и может
 быть переименовано без изменения модели.
 
-## Наследование контекстов
+## Наследование контекстов — открытая поверхность
 
-Контексты могут наследовать свойства и методы других контекстов с помощью ключевого слова `extends`.
-```efen
-context BaseContext {
-    let baseValue: String
-}
-
-context ExtendedContext extends BaseContext {
-    let extendedValue: Int
-}
-```
+Отношение расширения контекста ещё не имеет принятой записи. Вариант
+`context ExtendedContext extends BaseContext` встречался в ранних примерах, но
+не является текущим синтаксисом Efen. До отдельного решения используйте
+композицию ниже; вопрос о том, нужна ли отличная от композиции семантика
+наследования, остаётся открытым.
 
 ## Композиционное объединение контекстов
 

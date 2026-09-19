@@ -68,9 +68,7 @@ Readonly-тип не даёт `write`. CoW-тип при записи снача
 не-владеющих прав и сужает их до реально использованных.
 
 ```efen
-fn checksum -> UInt64 {
-    param buffer: Buffer
-
+fn checksum(buffer: Buffer) -> UInt64 {
     // Итоговая сигнатура получает только реально потребовавшиеся права.
 }
 ```
@@ -82,14 +80,17 @@ fn checksum -> UInt64 {
 Явная передача владения остаётся частью сигнатуры:
 
 ```efen
-fn consume {
-    param file: FileHandle own
-
+fn consume(file: FileHandle own) {
     // функция принимает обязанность уничтожить file
 }
 ```
 
 ## Ссылки
+
+Точная surface-запись ссылочной формы остаётся вопросом A14: `&` или `ref`,
+положение права и возможное слово `mut` ещё не выбраны. Ниже используется
+рабочая нотация текущей модели; нормативны происхождение, права и проверки
+живости, а не окончательное написание типа.
 
 Ссылка не получает `own`. Ссылочная форма и доступные через неё права являются
 частью статического типа, поэтому такой тип можно использовать в результате,
@@ -135,21 +136,15 @@ var tail: read Items.Item? = null
 Один лишь `read Items.Item` права записи не создаёт и не преобразуется в него.
 
 ```efen
-fn increment {
-    param value: &Int
-
+fn increment(value: &Int) {
     value = value + 1
 }
 
-fn inspect {
-    param value: &read Int
-
+fn inspect(value: &read Int) {
     echo value
 }
 
-fn initialize {
-    param value: &out Int
-
+fn initialize(value: &out Int) {
     value = 0
 }
 ```
@@ -164,9 +159,7 @@ fn initialize {
 ```efen
 // Полная форма результата: ref read[values] Int
 // Короткая форма результата: &read[values] Int
-fn first -> &read[values] Int {
-    param values: &read Array<Int>
-
+fn first(values: &read Array<Int>) -> &read[values] Int {
     return &read values[0]
 }
 ```
@@ -176,20 +169,15 @@ fn first -> &read[values] Int {
 origin. Несколько возможных источников перечисляются вместе:
 
 ```efen
-fn choose -> &read[left, right] Int {
-    param left: &read Int
-    param right: &read Int
-    param condition: Bool
-}
+fn choose(left: &read Int, right: &read Int, condition: Bool)
+    -> &read[left, right] Int
 ```
 
 Origin можно опустить, когда компилятор однозначно выводит его из всех путей
 возврата. Выведенная связь сохраняется в сигнатуре так же, как выведенные права:
 
 ```efen
-fn first -> &read Int {
-    param values: &read Array<Int>
-}
+fn first(values: &read Array<Int>) -> &read Int
 ```
 
 Если origin вывести нельзя, отсутствие `[origin]` является ошибкой, а не
@@ -201,9 +189,7 @@ fn first -> &read Int {
 и компилятор доказывает, что origin живёт не меньше содержащего значения:
 
 ```efen
-struct View {
-    generic T: Type
-    generic Source: Origin
+struct View<T, Source: Origin> {
     let value: &read[Source] T
 }
 ```
@@ -235,10 +221,7 @@ User inspect
 Один generic-компонент может работать с ними без отдельного объявления:
 
 ```efen
-fn identity -> T {
-    generic T: Type
-    param value: T
-
+fn identity<T>(value: T) -> T {
     return value
 }
 ```

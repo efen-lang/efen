@@ -30,11 +30,8 @@ let print: (String) -> Void
 Типы функций можно использовать для объявления переменных, которые будут хранить ссылки на функции:
 
 ```efen
-// Объявление переменной с типом функции
-let f: (Int, Int) -> Int
-
-// Присваивание лямбда-выражения
-f = (a: Int, b: Int) => a + b
+// Объявление сразу инициализирует let
+let f: (Int, Int) -> Int = (a: Int, b: Int) => a + b
 
 // Использование
 echo f(5, 3)  // Выведет: 8
@@ -45,8 +42,7 @@ echo f(5, 3)  // Выведет: 8
 Тип функции может быть опциональным:
 
 ```efen
-let optionalFunc: ((Int) -> Int)?
-optionalFunc = null
+let optionalFunc: ((Int) -> Int)? = null
 ```
 
 ## Функции высшего порядка
@@ -78,9 +74,7 @@ echo apply(5, double)  // Выведет: 10
   потреблением callable.
 
 ```efen
-fn runOnce {
-    param task: (() -> Void) own
-
+fn runOnce(task: (() -> Void) own) {
     (take task)()
 }
 ```

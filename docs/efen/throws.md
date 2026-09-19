@@ -182,20 +182,20 @@ fn process {
 Выход по `return` и `break` проверяется так же, как конец блока: до него не
 должно быть непойманного выброса.
 
-## Контракты на обработку исключений
+## Контракты на обработку исключений — открытая поверхность
 
-`Efen` использует контракты для описания возможностей обработки исключений.
-Контракт может требовать обработки определённых исключений. Например:
+Семантически contract может требовать обработки определённых исключений, но
+Q46 ещё не определил запись уточнения одного contract другим. Поэтому
+`extends CatchRules` ниже — исследовательский вариант, а не текущий синтаксис:
 
-```efen
+```text
 contract ErrorHandler extends CatchRules {
     required catch DatabaseError
 }
 ```
 
-Чтобы контракт работал правильно, он должен наследовать `CatchRules`, 
-который позволяет использовать синтаксис `required catch`
-или `catch`.
+Предполагаемая роль `CatchRules` — разрешить требования `required catch`; её
+surface-форма будет зафиксирована вместе с общим уточнением contract.
 
 Функция соответствует контракту через объявление `conforms` в теле:
 
@@ -226,7 +226,7 @@ fn dataOperation {
 Он указывает компилятору, что это исключение может быть поймано 
 только в функциях, которые поддерживают контракт, где указана возможность обработки этого исключения.
 
-```efen
+```text
 contract CancellationHandler extends CatchRules {
     required catch CancellationException
 }
@@ -444,7 +444,7 @@ fn correctCaller {
 ```efen
 fn correctInClosure(items: [Item]) {
     try {
-        items.forEach => critical($0)
+        items.forEach => critical($item)
     } catch e: CriticalError {
         handleCritical(e)
     }
@@ -490,14 +490,15 @@ cleanup становится главной; последующие ошибки
 
 Тело `flow generator` выполняется на вызове `next()`, то есть после того, как
 вызов генератора вернул управление. Поэтому оно тоже считается отдельной
-функцией — так же, как `@escaping`-замыкание.
+функцией — так же, как сохранённое для последующего вызова замыкание.
 
-`@escaping`-замыкание переживает вызов и выполняется отдельно, поэтому `try`
-вокруг его регистрации ничего не ловит. Обработчик пишется внутри самого
-замыкания:
+Сохранённое замыкание переживает вызов регистрации и выполняется отдельно,
+поэтому `try` вокруг регистрации ничего не ловит. Точная surface-аннотация
+права получателя сохранить callback остаётся открытой; ниже показано только
+правило границы обработки, а параметр `register` уже имеет такой контракт:
 
 ```efen
-fn wrongInEscaping(register: (@escaping () -> Void) -> Void) {
+fn wrongForStoredCallback(register: (() -> Void) -> Void) {
     try {
         // ❌ Ошибка: вызов уйдёт за пределы try
         register => critical()
@@ -506,7 +507,7 @@ fn wrongInEscaping(register: (@escaping () -> Void) -> Void) {
     }
 }
 
-fn correctInEscaping(register: (@escaping () -> Void) -> Void) {
+fn correctForStoredCallback(register: (() -> Void) -> Void) {
     register => {
         try {
             critical()

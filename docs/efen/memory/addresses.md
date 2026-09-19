@@ -63,10 +63,7 @@
 Логический тип передаёт аспекту представления исходный тип элемента:
 
 ```efen
-struct Array {
-    generic Element: Type
-    generic R<Target>: Representation<Target>
-
+struct Array<Element: Type, R<Target>: Representation<Target>> {
     conforms IndexedSequence<Element>
     use R<Element>
 }

@@ -93,10 +93,7 @@ api fn apiFunction {
 `Efen` поддерживает параметры типа (generics) для функций, позволяя создавать универсальные алгоритмы:
 
 ```efen
-fn identity -> T {
-    generic T: Type
-    param value: T
-
+fn identity<T>(value: T) -> T {
     return value
 }
 
@@ -108,8 +105,7 @@ let str = identity<String>("hello")
 
 ```efen
 alias Wrapper<T> = (value: T) -> T
-fn wrap: Wrapper<T> {
-    generic T: Type
+fn wrap<T>: Wrapper<T> {
     return value
 }
 ```
@@ -119,12 +115,7 @@ fn wrap: Wrapper<T> {
 Функции могут иметь несколько параметров типа:
 
 ```efen
-fn map -> [U] {
-    generic T: Type
-    generic U: Type
-    param items: [T]
-    param transform: (T) -> U
-
+fn map<T, U>(items: [T], transform: (T) -> U) -> [U] {
     return items.map => transform($item)
 }
 
@@ -194,10 +185,7 @@ fn multiply -> Int {
 записывается отдельным ключевым словом `generic` и предшествует всем `param`:
 
 ```efen
-fn identity -> T {
-    generic T: Type
-    param value: T
-
+fn identity<T>(value: T) -> T {
     return value
 }
 ```
@@ -211,19 +199,13 @@ fn identity -> T {
 
 ```efen
 interface Calculator {
-    fn add -> Int {
-        param a: Int
-        param b: Int
-    }
+    fn add(a: Int, b: Int) -> Int
 
-    fn subtract -> Int {
-        param a: Int
-        param b: Int
-    }
+    fn subtract(a: Int, b: Int) -> Int
 }
 
 class SimpleCalculator {
-    impliments Calculator
+    implements Calculator
 
     fn add {
         return a + b
@@ -342,16 +324,16 @@ println "Result: " + result
 log x + y * 2
 assert count > 0 && count < 100
 
-// Замыкания и блоки
-test "my test" {
+// Замыкание среди нескольких аргументов пишется внутри списка
+test("my test", () -> Void {
     assert x == 5
-}
+})
 
-describe "feature" {
-    it "should work" {
+describe("feature", () -> Void {
+    it("should work", () -> Void {
         assert result == true
-    }
-}
+    })
+})
 ```
 
 ### Вызов методов без скобок
@@ -428,10 +410,7 @@ let result = getValue + 5  // Ошибка компиляции!
 
 Функции в `Efen` поддерживают именованные параметры, что позволяет явно указывать имена параметров при вызове функции.
 ```efen
-fn greet {
-    param firstName: String
-    param lastName: String
-
+fn greet(firstName: String, lastName: String) {
     print("Hello, ${firstName} ${lastName}!")
 }
 greet(firstName: "John", lastName: "Doe")
@@ -470,8 +449,7 @@ fn add: Adder {
 
 Синтаксис:
 ```efen
-fn saveUser in LoggerEffect {
-    param name: String
+fn saveUser(name: String) in LoggerEffect {
 
     LoggerEffect.log("Saving user: ${name}")
 }
@@ -486,9 +464,7 @@ fn saveUser in LoggerEffect {
 ```efen
 
 @attribute
-fn compute -> Int {
-    param a: Int
-    param b: Int
+fn compute(a: Int, b: Int) -> Int {
 
     return a * b
 }
@@ -497,9 +473,7 @@ fn compute -> Int {
 Когда декораторов очень много, их разумно расположить внутри тела функции:
 
 ```efen
-fn compute -> Int {
-    param a: Int
-    param b: Int
+fn compute(a: Int, b: Int) -> Int {
 
     use attribute
     use {

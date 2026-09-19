@@ -10,6 +10,10 @@
 Код строится только из типизированных `Statement`, `Expression` и
 `InlineClosure`. Строка не преобразуется в код.
 
+Точная лексическая граница форм `code { ... }` и других конструкций вида
+`Имя { ... }` остаётся вопросом B1. Ниже `code { ... }` используется как рабочая
+нотация compile-time API, а не как утверждение о завершённой грамматике parser.
+
 ## Философия дизайна
 
 ### Проблема сырой генерации кода
@@ -257,7 +261,7 @@ meta fn forEach(items: comptime Array, body: InlineClosure) -> InlineClosure {
 }
 
 // Использование - два параметра
-forEach([1, 2, 3], (value, index) {
+forEach([1, 2, 3], (value, index) -> Void {
     println("Item ${index}: ${value}")
 })
 ```
@@ -268,7 +272,7 @@ forEach([1, 2, 3], (value, index) {
 |--------|-----|-------------------|
 | Нужно модифицировать код | `Statement` | `fun(code: { })` |
 | Нужно только вставить код | `InlineClosure` | `fun => { }` |
-| Closure с параметрами | `InlineClosure` | `fun => (a, b) { }` |
+| Closure с параметрами | `InlineClosure` | `fun((a, b) -> Void { })` |
 
 #### Передача Statement в метафункцию
 
@@ -359,7 +363,7 @@ retry(3, code {
 })
 
 // ✅ ПРАВИЛЬНО - с параметрами closure
-retry(3, (attempt) {
+retry(3, (attempt) -> Void {
     connectToAPI()
     println("Attempt ${attempt}")
 })
@@ -600,9 +604,9 @@ meta fn wrapWithCheck(varName: Expression, code: Statement) -> InlineClosure {
 }
 
 // Использование
-wrapWithCheck(user) {
+wrapWithCheck(user, code {
     println("User: ${user.name}")
-}
+})
 ```
 
 **Важно:** `efen::code {}` возвращает объект типа `Statement`, который можно хранить в переменных, передавать в функции и использовать с placeholders внутри `inline closure`.
@@ -1545,7 +1549,7 @@ meta fn forEach<T>(
 }
 
 // Использование - два параметра
-forEach([1, 2, 3], (value, index) {
+forEach([1, 2, 3], (value, index) -> Void {
     println("Item ${index}: ${value}")
 })
 ```
@@ -2216,7 +2220,7 @@ meta fn createValidator<T>(
 
 // Использование
 let validateAge = CreateValidator<Int>(
-    validationFn: => (age) { age >= 0 && age <= 150 },
+    validationFn: (age) => age >= 0 && age <= 150,
     errorMsg: "Age must be between 0 and 150"
 )
 
@@ -2295,7 +2299,7 @@ meta fn stateMachine(
 
 ```efen
 meta fn createLogDecorator -> Decorator {
-    return Decorator => (method: Method) {
+    return Decorator((method: Method) -> InlineClosure {
         let methodName = method.getName()
 
         return inline {
@@ -2304,7 +2308,7 @@ meta fn createLogDecorator -> Decorator {
             log("INFO", "Exiting ${methodName}")
             result
         }
-    }
+    })
 }
 
 @createLogDecorator()

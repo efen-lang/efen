@@ -70,23 +70,16 @@ mutable traversal или `take values[index]`.
 Одно написание `Range(...)` объединяет две перегрузки библиотечного constructor:
 
 ```efen
-class Range {
-    generic T: Type
+class Range<T> {
     @constructor
-    fn init -> Self {
-        param source: Array<T> own
-    }
+    fn init(source: Array<T> own) -> Self
 
     #if T conforms Copyable {
         @constructor
-        fn init -> Self {
-            param source: Array<T> read
-        }
+        fn init(source: Array<T> read) -> Self
 
         @constructor
-        fn init -> Self {
-            generic Source: Origin
-            param source: Slice<T, Source> read
+        fn init<Source: Origin>(source: Slice<T, Source> read) -> Self {
             // Копирует выбранные элементы в собственное storage.
         }
     }
@@ -289,11 +282,14 @@ class Interval {
 возрастающего обхода используется библиотечный contract:
 
 ```efen
-contract Steppable: Comparable<T>, ImplicitlyCopyable, Movable {
-    generic T: Type
+contract Steppable<T> {
     fn successor -> T?
 }
 ```
+
+Стандартная реализация обхода дополнительно требует сравнимость, неявное
+копирование и перемещение значения. Точная запись уточнения одного contract
+другими остаётся открытой частью Q46 и здесь не вводится через `:`.
 
 `successor()` возвращает строго следующее представимое значение либо `null` и
 никогда не переполняется с переходом к меньшему значению. Стандартные целые
@@ -418,16 +414,11 @@ let slice8 = arr[..<3]     // [10, 20, 30] - от начала до индекс
 типами runtime-значений:
 
 ```efen
-contract Iterator {
-    generic Item: Type
-
+contract Iterator<Item> {
     fn next -> Item?
 }
 
-contract Iterable {
-    generic Item: Type
-    generic Cursor: Iterator<Item>
-
+contract Iterable<Item, Cursor: Iterator<Item>> {
     fn iterator -> Cursor
 }
 ```
@@ -437,8 +428,7 @@ contract Iterable {
 `Iterator<String>` и `Iterator<Item: String>` равнозначны.
 
 ```efen
-class ArrayIterator {
-    generic T: Type
+class ArrayIterator<T> {
     conforms Iterator<Item: T>
 
     private let items: [T]
@@ -455,8 +445,7 @@ class ArrayIterator {
     }
 }
 
-class MyCollection {
-    generic T: Type
+class MyCollection<T> {
     conforms Iterable<Item: T>
 
     private var items: [T] = []
@@ -533,14 +522,14 @@ while let number = iter.next() {
 let numbers = [1, 2, 3, 4, 5]
 
 // map - преобразование каждого элемента
-let doubled = numbers.map => $0 * 2  // [2, 4, 6, 8, 10]
+let doubled = numbers.map => $item * 2  // [2, 4, 6, 8, 10]
 
 // filter - фильтрация элементов
-let evens = numbers.filter => $0 % 2 == 0  // [2, 4]
+let evens = numbers.filter => $item % 2 == 0  // [2, 4]
 
 // flatMap - преобразование с развёртыванием
 let nested = [[1, 2], [3, 4], [5]]
-let flattened = nested.flatMap => $0  // [1, 2, 3, 4, 5]
+let flattened = nested.flatMap => $items  // [1, 2, 3, 4, 5]
 ```
 
 #### Агрегация
@@ -567,13 +556,13 @@ let total = numbers.sum()  // 15
 let numbers = [1, 2, 3, 4, 5]
 
 // find - поиск первого подходящего элемента
-let found = numbers.find => $0 > 3  // 4
+let found = numbers.find => $number > 3  // 4
 
 // any - проверка существования элемента
-let hasEven = numbers.any => $0 % 2 == 0  // true
+let hasEven = numbers.any => $number % 2 == 0  // true
 
 // all - проверка всех элементов
-let allPositive = numbers.all => $0 > 0  // true
+let allPositive = numbers.all => $number > 0  // true
 
 // contains - проверка наличия элемента
 let hasThree = numbers.contains(3)  // true
@@ -591,10 +580,10 @@ let first3 = numbers.take(3)  // [1, 2, 3]
 let last2 = numbers.skip(3)  // [4, 5]
 
 // takeWhile - брать элементы пока условие истинно
-let taken = numbers.takeWhile => $0 < 4  // [1, 2, 3]
+let taken = numbers.takeWhile => $number < 4  // [1, 2, 3]
 
 // skipWhile - пропускать элементы пока условие истинно
-let skipped = numbers.skipWhile => $0 < 4  // [4, 5]
+let skipped = numbers.skipWhile => $number < 4  // [4, 5]
 
 // first - первый элемент
 let first = numbers.first()  // 1
@@ -630,12 +619,12 @@ let numbers = [1, 2, 3, 4, 5]
 // Цепочка операций не выполняется сразу
 let lazyResult = numbers
     .map => {
-        println("Mapping: ${$0}")
-        $0 * 2
+        println("Mapping: ${$item}")
+        $item * 2
     }
     .filter => {
-        println("Filtering: ${$0}")
-        $0 > 5
+        println("Filtering: ${$item}")
+        $item > 5
     }
 
 // Вычисление начнётся только здесь
@@ -658,10 +647,10 @@ for value in lazyResult {
 
 ```efen
 // collect - собрать результат в коллекцию
-let result = numbers.map => { $0 * 2 }.collect()  // [2, 4, 6, 8, 10]
+let result = numbers.map => { $item * 2 }.collect()  // [2, 4, 6, 8, 10]
 
 // toArray - преобразовать в массив
-let arr = numbers.filter => { $0 > 2 }.toArray()  // [3, 4, 5]
+let arr = numbers.filter => { $item > 2 }.toArray()  // [3, 4, 5]
 
 // toSet - преобразовать в множество
 let set = numbers.toSet()
@@ -680,9 +669,7 @@ class CountingIterator {
     private var current: Int
 
     @constructor
-    fn init -> Self {
-        param start: Int
-        param end: Int
+    fn init(start: Int, end: Int) -> Self {
 
         this.start = start
         this.end = end
@@ -718,8 +705,7 @@ class IntList {
 
     private var items: [Int] = []
 
-    fn add {
-        param item: Int
+    fn add(item: Int) {
 
         this.items[] = item
     }
@@ -736,8 +722,7 @@ class IntListIterator {
     private var index: Int = 0
 
     @constructor
-    fn init -> Self {
-        param items: [Int]
+    fn init(items: [Int]) -> Self {
 
         this.items = items
     }
@@ -816,8 +801,8 @@ for value in dict.values() {
 ```efen
 // Ленивые операции не создают промежуточных коллекций
 let result = numbers
-    .map => $0 * 2       // Не создаёт массив
-    .filter => $0 > 5    // Не создаёт массив
+    .map => $item * 2       // Не создаёт массив
+    .filter => $item > 5    // Не создаёт массив
     .take(3)             // Не создаёт массив
     .collect()           // Создаёт финальный массив
 
@@ -841,16 +826,16 @@ for x in numbers {
 1. **Используйте ленивые вычисления** для больших коллекций:
    ```efen
    // Хорошо: обрабатывает только нужные элементы
-   let found = largeList.find => $0 > 100
+   let found = largeList.find => $item > 100
 
    // Плохо: фильтрует всю коллекцию
-   let found = largeList.filter => { $0 > 100 }.first()
+   let found = largeList.filter => { $item > 100 }.first()
    ```
 
 2. **Предпочитайте методы итераторов императивным циклам**:
    ```efen
    // Хорошо
-   let sum = numbers.filter => { $0 > 0 }.sum()
+   let sum = numbers.filter => { $item > 0 }.sum()
 
    // Хуже
    let sum = 0
@@ -864,8 +849,8 @@ for x in numbers {
 3. **Комбинируйте операции в цепочки**:
    ```efen
    let result = users
-       .filter => $0.active
-       .map => $0.email
+       .filter => $user.active
+       .map => $user.email
        .sorted()
        .collect()
    ```
@@ -883,12 +868,12 @@ for x in numbers {
 let numbers = [1, 2, 3, 4, 5]
 
 // partition - разделение на две коллекции
-let (evens, odds) = numbers.partition => $0 % 2 == 0
+let (evens, odds) = numbers.partition => $number % 2 == 0
 // evens: [2, 4], odds: [1, 3, 5]
 
 // groupBy - группировка по ключу
 let items = ["apple", "banana", "apricot", "blueberry"]
-let grouped = items.groupBy => $0[0]
+let grouped = items.groupBy => $item[0]
 // { 'a': ["apple", "apricot"], 'b': ["banana", "blueberry"] }
 
 // sorted - сортировка
@@ -896,7 +881,7 @@ let sorted = numbers.sorted()  // [1, 2, 3, 4, 5]
 
 // sortedBy - сортировка по ключу
 let words = ["zebra", "apple", "banana"]
-let sorted = words.sortedBy => $0.length()  // ["apple", "zebra", "banana"]
+let sorted = words.sortedBy => $word.length()  // ["apple", "zebra", "banana"]
 
 // reversed - переворот
 let reversed = numbers.reversed()  // [5, 4, 3, 2, 1]

@@ -176,16 +176,16 @@ processLogs(logger: consoleLogger, messages: ["Debug info"])
 См. также: [contracts.md](contracts.md) для подробного сравнения.
 
 Пример интерфейса:
-```efenswift
+```efen
 interface MyInterface {
     var myProperty: Int { get set }
-    func myMethod
+    fn myMethod
 }
 ```
 
 Пример использования интерфейса:
-```efenswift
-func useInterface(interface: MyInterface) {
+```efen
+fn useInterface(interface: MyInterface) {
     interface.myProperty = 42
     interface.myMethod()
 }

@@ -33,8 +33,8 @@ struct Name {
 ```efen
 struct Array {
     enum Representation {
-        AoS
-        SoA
+        aos
+        soa
     }
 }
 ```
@@ -45,8 +45,8 @@ struct Array {
 Конкретная инстанциация имеет одну форму:
 
 ```efen
-type ParticleAoS: Array<Particle, AoS>
-type ParticleSoA: Array<Particle, SoA>
+type ParticleAoS: Array<Particle, aos>
+type ParticleSoA: Array<Particle, soa>
 ```
 
 `AoS` хранит целые элементы последовательно. `SoA` строит отдельное хранилище

@@ -122,7 +122,7 @@ struct MyStruct {
 Использование:
 
 ```efen
-let view = MyStruct::Public(...);
+let view = MyStruct.Public(...);
 ```
 
 ---

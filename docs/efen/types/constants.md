@@ -285,7 +285,7 @@ enum LogLevel {
 }
 
 // Использование
-if status == HttpStatus::OK {
+if status == HttpStatus.OK {
     // ...
 }
 ```

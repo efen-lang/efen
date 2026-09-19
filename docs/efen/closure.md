@@ -41,8 +41,8 @@ Efen поддерживает несколько форм сокращённог
 Использование оператора `=>` для определения замыкания как параметра метода:
 
 ```efen
-var y = array.map => $0 + 1
-var natural = [-100..100].filter => $0 >= 0
+var y = array.map => $item + 1
+var natural = [-100..100].filter => $item >= 0
 ```
 
 Хвостовая форма допустима, только когда замыкание — единственный аргумент
@@ -65,14 +65,14 @@ numbers.reduce(0) => $0 + $1             // ❌ недопустимо
 numbers.map { $0 * 2 }
 
 // ✅ ПРАВИЛЬНО - однозначный синтаксис
-numbers.map => $0 * 2
-numbers.map => { $0 * 2 }
+numbers.map => $item * 2
+numbers.map => { $item * 2 }
 ```
 
 Вызов с цепочкой методов с замыканиями:
 ```efen
-var result = data.filter => $0 > 0
-            .map => $0 * 2
+var result = data.filter => $item > 0
+            .map => $item * 2
             .reduce(0, (acc, x) => acc + x)
 ```
 
@@ -84,7 +84,7 @@ var result = data.filter => $0 > 0
 стрелки. Общие правила — [перенос строк](operators.md#перенос-строк).
 
 Тело в `{ }` кончается на своей закрывающей скобке, поэтому постфикс после `}`
-относится к вызову, а не к телу: в `numbers.map => { $0 * 2 }.collect()` метод `collect` вызывается у результата
+относится к вызову, а не к телу: в `numbers.map => { $item * 2 }.collect()` метод `collect` вызывается у результата
 `map`.
 
 Строка, начинающаяся с `.` или с бинарного оператора, продолжает выражение
@@ -100,13 +100,13 @@ let x = a + b
 ровно свою строку:
 
 ```efen
-var result = data.filter => $0 > 0   // тело замыкания кончается здесь
-            .map => $0 * 2           // строка начинается с `.` — продолжение
+var result = data.filter => $item > 0   // тело замыкания кончается здесь
+            .map => $item * 2           // строка начинается с `.` — продолжение
             .reduce(0, (acc, x) => acc + x)
 
 // Многострочное тело требует скобок
 var filtered = data.filter => {
-    let normalized = normalize($0)
+    let normalized = normalize($item)
     normalized > 0
 }
 ```
@@ -211,8 +211,8 @@ let doubled = processArray(numbers, (x) => x * 2)  // [2, 4, 6, 8, 10]
 тело с ней делает, как у параметра:
 
 ```efen
-let total = items.map => $0 * factor     // read-заимствование factor
-items.forEach => sum += $0               // write-заимствование sum
+let total = items.map => $item * factor     // read-заимствование factor
+items.forEach => sum += $item               // write-заимствование sum
 ```
 
 Заимствование не продлевает жизнь переменной. Замыкание, которое переживает её
@@ -313,9 +313,7 @@ fn process in Environment {
 Потребляющий вызов явно передаёт замыкание через `take`:
 
 ```efen
-fn send {
-    param connection: Connection own
-}
+fn send(connection: Connection own)
 
 fn makeTask -> () -> Void {
     let connection: Connection = connect()
@@ -343,72 +341,36 @@ let task = makeTask()
 Efen три отдельных встроенных contract: различие выражается существующими
 правами `read`, `write` и `own`.
 
-## Escaping и Non-Escaping замыкания
+## Сохранение замыкания после вызова
 
-### Non-Escaping замыкания
+Факт сохранения замыкания не продлевает жизнь его заимствований. Если callback
+возвращается, записывается в поле или передаётся уходящей задаче, каждый
+захваченный `origin` обязан жить не меньше сохранённого значения; иначе это
+ошибка. Независимые данные переносятся в окружение через `capture`.
 
-По умолчанию замыкания являются non-escaping — они не могут пережить вызов функции:
+Для косвенного вызова право получателя сохранить переданный callback должно
+быть частью доступного контракта функционального значения. Точная
+surface-аннотация этого права ещё не выбрана: ранняя форма `@escaping` не
+является текущим синтаксисом Efen.
 
-```efen
-fn processData(data: [Int], transform: (Int) -> Int) -> [Int] {
-    return data.map(transform)  // transform используется только внутри функции
-}
+## Ленивый аргумент и autoclosure
 
-let numbers = [1, 2, 3]
-let doubled = processData(data: numbers, transform: (x) => x * 2)
-```
-
-### Escaping замыкания
-
-Если замыкание сохраняется для последующего использования, оно должно быть помечено как `@escaping`:
+Текущий язык выражает ленивый аргумент явным замыканием:
 
 ```efen
-var callbacks: [(Int) -> Void] = []
-
-fn registerCallback(callback: @escaping (Int) -> Void) {
-    callbacks.append(callback)  // callback сохраняется за пределами функции
-}
-
-fn executeCallbacks(value: Int) {
-    for callback in callbacks {
-        callback(value)
-    }
-}
-
-registerCallback => {
-    print("Callback 1: ${$0}")
-}
-
-registerCallback => {
-    print("Callback 2: ${$0}")
-}
-
-executeCallbacks(value: 42)
-// Callback 1: 42
-// Callback 2: 42
-```
-
-## Автозамыкания (Autoclosure)
-
-Автозамыкание автоматически оборачивает выражение в замыкание без параметров:
-
-```efen
-fn assert(_ condition: @autoclosure () -> Bool, message: String) {
+fn assert(condition: () -> Bool, message: String) {
     if !condition() {
         print("Assertion failed: ${message}")
     }
 }
 
-// Использование
 let x = 5
-assert(x > 0, message: "x must be positive")  // x > 0 автоматически завёрнут в замыкание
+assert(() => x > 0, message: "x must be positive")
 ```
 
-Без `@autoclosure` пришлось бы писать:
-
-```efen
-assert({ x > 0 }, message: "x must be positive")
-```
+Возможность автоматически оборачивать выражение остаётся открытой. Ранняя
+аннотация `@autoclosure` не является текущим синтаксисом, пока не решены её
+отражение в функциональном типе и поведение при косвенном вызове.
 
 ## Замыкания в коллекциях
 
@@ -416,7 +378,7 @@ assert({ x > 0 }, message: "x must be positive")
 
 ```efen
 let numbers = [1, 2, 3, 4, 5]
-let squared = numbers.map => $0 * $0
+let squared = numbers.map => $item * $item
 print(squared)  // [1, 4, 9, 16, 25]
 ```
 
@@ -424,7 +386,7 @@ print(squared)  // [1, 4, 9, 16, 25]
 
 ```efen
 let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-let evenNumbers = numbers.filter => $0 % 2 == 0
+let evenNumbers = numbers.filter => $item % 2 == 0
 print(evenNumbers)  // [2, 4, 6, 8, 10]
 ```
 
@@ -452,7 +414,7 @@ print(sorted)  // ["Алексей", "Анна", "Иван", "Мария"]
 ```efen
 let numbers = [1, 2, 3, 4, 5]
 numbers.forEach => {
-    print("Number: ${$0}")
+    print("Number: ${$number}")
 }
 ```
 
@@ -497,11 +459,11 @@ Trailing closure позволяет передать замыкание как �
 numbers.map((x: Int) => x * 2)
 
 // Trailing closure с выражением
-numbers.map => $0 * 2
+numbers.map => $item * 2
 
 // Trailing closure с блоком
 numbers.map => {
-    return $0 * 2
+    return $item * 2
 }
 
 // Замыкание среди нескольких аргументов пишется в скобках
@@ -555,11 +517,11 @@ print(factorial(5))  // 120
 ```efen
 // ❌ Излишне многословно
 numbers.map => {
-    return $0 * 2
+    return $item * 2
 }
 
 // ✅ Лаконично
-numbers.map => $0 * 2
+numbers.map => $item * 2
 ```
 
 ### 2. Используйте правильный синтаксис trailing closures
@@ -569,43 +531,43 @@ numbers.map => $0 * 2
 numbers.map { $0 * 2 }
 
 // ✅ ПРАВИЛЬНО - используйте оператор =>
-numbers.map => $0 * 2
+numbers.map => $item * 2
 ```
 
 ### 3. Именуйте параметры для сложной логики
 
 ```efen
-// ❌ Неясно с placeholders
+// ❌ S: для одного параметра канонично выбранное автором имя
 users.filter => $0.age > 18 && $0.isActive && !$0.isBanned
 
 // ✅ Понятно с явными параметрами
 users.filter((user) => user.age > 18 && user.isActive && !user.isBanned)
 ```
 
-### 4. Используйте @autoclosure для ленивого вычисления
+### 4. Передавайте ленивое вычисление явным замыканием
 
 ```efen
-fn log(_ message: @autoclosure () -> String, level: LogLevel) {
+fn log(message: () -> String, level: LogLevel) {
     if level >= currentLogLevel {
         print(message())  // Вычисляется только при необходимости
     }
 }
 
 // Дорогое вычисление message() выполнится только если уровень логирования подходит
-log("User data: ${fetchExpensiveUserData()}", level: .debug)
+log(() => "User data: ${fetchExpensiveUserData()}", level: .debug)
 ```
 
-### 5. Предпочитайте non-escaping когда возможно
+### 5. Не позволяйте заимствованию пережить свой origin
 
 ```efen
-// ✅ Non-escaping по умолчанию — быстрее
+// Callback исполняется во время вызова
 fn process(data: [Int], transform: (Int) -> Int) -> [Int] {
     return data.map(transform)
 }
 
-// ⚠️ Escaping только когда необходимо
-fn asyncProcess(completion: @escaping () -> Void) {
-    spawn {
+// Уходящая задача получает владение callback явно
+fn asyncProcess(completion: () -> Void own) {
+    spawn => {
         capture completion = take completion
         completion()
     }
@@ -630,7 +592,7 @@ fn asyncProcess(completion: @escaping () -> Void) {
 
 ```efen
 // ✅ Часто инлайнится
-let doubled = numbers.map => $0 * 2
+let doubled = numbers.map => $item * 2
 
 // ⚠️ Сложнее инлайнить
 let processed = numbers.map((value: Int) -> Int {

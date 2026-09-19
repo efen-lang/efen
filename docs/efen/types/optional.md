@@ -322,7 +322,7 @@ for number in numbers {
 
 ```efen
 let numbers: [Int?] = [1, 2, null, 4, null, 6]
-let validNumbers = numbers.compactMap => $0  // [1, 2, 4, 6]
+let validNumbers = numbers.compactMap => $number  // [1, 2, 4, 6]
 ```
 
 ### Optional массив
@@ -445,10 +445,10 @@ class OrderService {
 
 ```efen
 let optionalNumber: Int? = 42
-let doubled = optionalNumber.map => $0 * 2  // Int? = 84
+let doubled = optionalNumber.map => $value * 2  // Int? = 84
 
 let empty: Int? = null
-let result = empty.map => $0 * 2  // Int? = null
+let result = empty.map => $value * 2  // Int? = null
 ```
 
 ### FlatMap
@@ -457,10 +457,10 @@ let result = empty.map => $0 * 2  // Int? = null
 
 ```efen
 let optionalString: String? = "42"
-let number = optionalString.flatMap => parseInt($0)  // Int?
+let number = optionalString.flatMap => parseInt($value)  // Int?
 
 // Без flatMap получили бы Int??
-let nested = optionalString.map => parseInt($0)  // Int?? (nested optional!)
+let nested = optionalString.map => parseInt($value)  // Int?? (nested optional!)
 ```
 
 ## Лучшие практики

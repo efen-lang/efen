@@ -52,6 +52,10 @@ source syntax
 `enum` или case `variant` с заглавной является ошибкой компиляции, а не стилевым
 предупреждением.
 
+Точное имя неявного receiver (`self` или `this`) ещё находится в очереди A21.
+До решения примеры с обоими словами показывают требуемую семантику доступа к
+текущему экземпляру, но не фиксируют окончательную surface-запись.
+
 ## Язык выражений и управление потоком
 
 | Тема | Документы |
@@ -130,6 +134,6 @@ machine proof.
 | Как конструкция Efen ведёт себя сейчас? | Тематический документ в `docs/efen/` |
 | Что означает термин? | [Словарь Efen](glossary.md) |
 | Почему решение принято или отменено? | [Amber decision log](https://github.com/limelight-lang/amber/blob/main/dev/DECISIONS.md) |
-| Что ещё предстоит спроектировать или реализовать? | [Amber plan](https://github.com/limelight-lang/amber/blob/main/dev/PLAN.md) и явно открытые разделы тематических документов |
+| Что ещё предстоит спроектировать или реализовать? | [Очередь вопросов Efen](../../dev/language-design-questions.md#очередь-на-2026-09-17), [Amber plan](https://github.com/limelight-lang/amber/blob/main/dev/PLAN.md) и явно открытые разделы тематических документов |
 | Как семантика хранится в HIR? | [Amber HIR guide](https://github.com/limelight-lang/amber/blob/main/design/hir/README.md) |
 | Это уже работает в компиляторе? | Нужны код и runtime/compiler tests; одна документация этого не доказывает |

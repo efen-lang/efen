@@ -88,7 +88,7 @@ class Button {
 }
 
 let button = Button()
-button.setClickHandler((event) {
+button.setClickHandler((event: Event) -> Void {
     echo "Button clicked!"
 })
 ```

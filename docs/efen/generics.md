@@ -26,10 +26,7 @@
 типа `Type`:
 
 ```efen
-fn identity -> T {
-    generic T: Type
-    param value: T
-
+fn identity<T>(value: T) -> T {
     return value
 }
 ```
@@ -50,10 +47,7 @@ fn identity -> T {
 ### Базовый синтаксис
 
 ```efen
-fn identity -> T {
-    generic T: Type
-    param value: T
-
+fn identity<T>(value: T) -> T {
     return value
 }
 
@@ -68,12 +62,7 @@ let explicit = identity<Int>(42)
 ### Множественные параметры типа
 
 ```efen
-fn map -> [U] {
-    generic T: Type
-    generic U: Type
-    param items: [T]
-    param transform: (T) -> U
-
+fn map<T, U>(items: [T], transform: (T) -> U) -> [U] {
     var result: [U] = []
     for item in items {
         result.append(transform(item))
@@ -102,12 +91,7 @@ let doubled = map([1, 2, 3], (x) => x * 2)  // T=Int, U=Int
 
 ```efen
 class Transformer {
-    fn apply -> U {
-        generic T: Type
-        generic U: Type
-        param value: T
-        param transform: (T) -> U
-
+    fn apply<T, U>(value: T, transform: (T) -> U) -> U {
         return transform(value)
     }
 }
@@ -125,14 +109,11 @@ let text = transformer.apply(42, (number) => String(number))
 Классы могут иметь параметры типа, которые применяются ко всему классу.
 
 ```efen
-class Box {
-    generic T: Type
+class Box<T> {
     var value: T
 
     @constructor
-    fn init -> Self {
-        param value: T
-
+    fn init(value: T) -> Self {
         self.value = value
     }
 
@@ -140,9 +121,7 @@ class Box {
         return value
     }
 
-    fn setValue {
-        param newValue: T
-
+    fn setValue(newValue: T) {
         value = newValue
     }
 }
@@ -171,22 +150,16 @@ echo intBox.getValue()  // 42
 ### Наследование с дженериками
 
 ```efen
-open class Container {
-    generic T: Type
+open class Container<T> {
     var items: [T] = []
 
-    fn add {
-        param item: T
-
+    fn add(item: T) {
         items.append(item)
     }
 }
 
-class Stack: Container<T> {
-    generic T: Type
-    fn push {
-        param item: T
-
+class Stack<T>: Container<T> {
+    fn push(item: T) {
         add(item)
     }
 
@@ -204,9 +177,7 @@ class Stack: Container<T> {
 Структуры поддерживают дженерики с композицией типов.
 
 ```efen
-struct Pair {
-    generic T: Type
-    generic U: Type
+struct Pair<T, U> {
     var first: T
     var second: U
 }
@@ -218,8 +189,7 @@ let pair = Pair<Int, String>(first: 42, second: "answer")
 ### Композиция с дженериками
 
 ```efen
-struct RefCounted {
-    generic T: Type
+struct RefCounted<T> {
     var refCount: Int = 0
     var value: T
 }
@@ -232,11 +202,8 @@ let value = RefCounted<String>(refCount: 1, value: "hello")
 Интерфейсы также могут быть дженерик-типами.
 
 ```efen
-interface Equatable {
-    generic T: Type
-    fn equals -> Bool {
-        param other: T
-    }
+interface Equatable<T> {
+    fn equals(other: T) -> Bool
 }
 
 class Person {
@@ -244,9 +211,7 @@ class Person {
 
     var age: Int
 
-    fn equals -> Bool {
-        param other: Person
-
+    fn equals(other: Person) -> Bool {
         return age == other.age
     }
 }
@@ -257,19 +222,12 @@ class Person {
 Параметры типа могут иметь ограничения (constraints) для указания требований к типам.
 
 ```efen
-contract Comparable {
-    generic T: Type
-    fn compareTo -> Int {
-        param other: T
-    }
+contract Comparable<T> {
+    fn compareTo(other: T) -> Int
 }
 
 // Базовое ограничение
-fn compare -> Int {
-    generic T: Comparable<T>
-    param left: T
-    param right: T
-
+fn compare<T: Comparable<T>>(left: T, right: T) -> Int {
     return left.compareTo(right)
 }
 
@@ -289,11 +247,7 @@ fn process
 Функции, классы и другие конструкции могут иметь несколько параметров типа.
 
 ```efen
-fn zip -> [(T, U)] {
-    generic T: Type
-    generic U: Type
-    param first: [T]
-    param second: [U]
+fn zip<T, U>(first: [T], second: [U]) -> [(T, U)] {
 
     var result: [(T, U)] = []
     let minCount = min(first.count, second.count)
@@ -321,9 +275,7 @@ alias Handler<T> = (T) -> Void
 alias Transformer<T, U> = (T) -> U
 
 // Использование
-fn processData {
-    generic T: Type
-    param handler: Handler<T>
+fn processData<T>(handler: Handler<T>) {
 
     // ...
 }
@@ -356,9 +308,7 @@ Contract не является runtime-типом, но является доп�
 значением для `generic C: Contract`.
 
 ```efen
-class Adapter {
-    generic Requirement: Contract
-    generic RuntimeAPI: Interface
+class Adapter<Requirement: Contract, RuntimeAPI: Interface> {
 
     #if Self conforms Requirement {
         // compile-time формирование реализации RuntimeAPI
@@ -370,10 +320,10 @@ Enum, объявленный владельцем generic-типа, позвол
 реализаций без отдельной глобальной конструкции:
 
 ```efen
-type ParticleColumns: Array<Particle, SoA>
+type ParticleColumns: Array<Particle, soa>
 ```
 
-Здесь `Particle` — аргумент параметра типа `Element`, а `SoA` — значение enum
+Здесь `Particle` — аргумент параметра типа `Element`, а `soa` — значение enum
 внутри `Array`.
 Конкретная инстанциация имеет одну определённую representation.
 Запись `[T]` сокращает `Array<T, default>`.
@@ -386,8 +336,8 @@ struct Array {
     generic Form: Representation = default
 
     enum Representation {
-        AoS
-        SoA
+        aos
+        soa
     }
 }
 ```
@@ -395,9 +345,7 @@ struct Array {
 Атрибут можно передать отдельным параметром:
 
 ```efen
-class AnnotatedStorage {
-    generic Element: Type
-    generic Annotation: Attribute
+class AnnotatedStorage<Element: Type, Annotation: Attribute> {
 }
 
 let values = AnnotatedStorage<Int, @myattr>()
@@ -414,11 +362,11 @@ AnnotatedStorage<Int, @myattr>    // @myattr является отдельным
 имени:
 
 ```efen
-Array<Particle, SoA>
-Array<Element: Particle, Form: SoA>
+Array<Particle, soa>
+Array<Element: Particle, Form: soa>
 ```
 
-`SoA` может быть записан без квалификации, когда ожидаемый тип параметра
+`soa` может быть записан без квалификации, когда ожидаемый тип параметра
 однозначно указывает на enum, объявленный `Array`. Вне такого контекста имя
 квалифицируется владельцем. Две одноимённые константы, подходящие ожидаемому
 типу, создают ошибку неоднозначности, а не выбираются по порядку импортов.
@@ -429,15 +377,11 @@ Array<Element: Particle, Form: SoA>
 компилятор требует именованный аргумент:
 
 ```efen
-fn consumeInts {
-    generic T: Iterable<Item: Int>
-    param items: T
+fn consumeInts<T: Iterable<Item: Int>>(items: T) {
     // Cursor выводится из выбранного соответствия T контракту Iterable.
 }
 
-fn consume {
-    generic T: Iterable
-    param items: T
+fn consume<T: Iterable>(items: T) {
 
     // Item и Cursor выводятся из T, если соответствие единственно.
 }
@@ -525,13 +469,9 @@ Box <Int>(42)            // сравнение Box < Int > (42): ошибка, �
 собственным списком типовых параметров принимает конструктор типов:
 
 ```efen
-interface Repository {
-    generic Entity: Type
-    generic Result<T>: Type
+interface Repository<Entity: Type, Result<T>: Type> {
 
-    fn load -> Result<Entity?> {
-        param id: Id
-    }
+    fn load(id: Id) -> Result<Entity?>
 }
 
 alias Identity<T> = T
@@ -649,9 +589,7 @@ fn processSameElements
 Generic-функция всегда объявляет конкретный тип отдельно от runtime-параметра:
 
 ```efen
-fn printAll {
-    generic Items: Iterable<Item: String>
-    param items: Items
+fn printAll<Items: Iterable<Item: String>>(items: Items) {
 
     // ...
 }
@@ -660,10 +598,7 @@ fn printAll {
 То же имя используется во всех местах сигнатуры, которым нужна эта идентичность:
 
 ```efen
-fn printAll {
-    generic T: Iterable<Item: String>
-    param first: T
-    param second: T
+fn printAll<T: Iterable<Item: String>>(first: T, second: T) {
 
     // ...
 }
@@ -673,11 +608,7 @@ Contract не становится runtime-типом и не выполняет
 независимых конкретных типов объявляются два generic-параметра:
 
 ```efen
-fn merge {
-    generic Left: Iterable<Item: String>
-    generic Right: Iterable<Item: String>
-    param left: Left
-    param right: Right
+fn merge<Left: Iterable<Item: String>, Right: Iterable<Item: String>>(left: Left, right: Right) {
 
     // left и right могут иметь разные конкретные типы.
 }
@@ -687,10 +618,7 @@ fn merge {
 объявляется одна общая идентичность:
 
 ```efen
-fn merge {
-    generic T: Iterable<Item: String>
-    param left: T
-    param right: T
+fn merge<T: Iterable<Item: String>>(left: T, right: T) {
 
     // left и right имеют один конкретный тип T.
 }
@@ -701,9 +629,7 @@ fn merge {
 Generic-функцию можно передать как значение, не выбирая одну инстанциацию:
 
 ```efen
-fn test {
-    generic transform: <T>(T) -> T
-
+fn test<transform: <T>(T) -> T> {
     let number = transform(42)
     let text = transform("hello")
 }
@@ -811,8 +737,7 @@ Generic-тип может соответствовать contract только �
 выполнено compile-time условие:
 
 ```efen
-class Box {
-    generic T: Type
+class Box<T> {
     var value: T
 
     #if T conforms Copyable {
@@ -855,8 +780,7 @@ metadata:
 Параметр типа доступен type-aware операциям:
 
 ```efen
-fn printType {
-    generic T: Type
+fn printType<T> {
     let descriptor = typeof(T)
     print T
 }
@@ -872,15 +796,11 @@ runtime-печати текущего конкретного типа.
 
 ```efen
 @monomorphize
-fn specialized {
-    generic T: Type
-    param value: T
+fn specialized<T>(value: T) {
 }
 
 @erase
-fn sharedBody {
-    generic T: Type
-    param value: T
+fn sharedBody<T>(value: T) {
 }
 ```
 
@@ -907,18 +827,13 @@ interface Producer<out T> {
 
 // Контравариантность (in) - тип может быть только входным параметром
 interface Consumer<in T> {
-    fn consume {
-        param item: T
-    }
+    fn consume(item: T)
 }
 
 // Инвариантность (по умолчанию) - тип может быть и входным, и выходным
-interface Storage {
-    generic T: Type
+interface Storage<T> {
     fn get -> T
-    fn set {
-        param item: T
-    }
+    fn set(item: T)
 }
 ```
 
@@ -933,11 +848,7 @@ interface Storage {
 /// Трансформирует элементы одного типа в другой
 /// - TInput: Тип входных элементов
 /// - TOutput: Тип выходных элементов
-fn transform -> [TOutput] {
-    generic TInput: Type
-    generic TOutput: Type
-    param items: [TInput]
-    param mapper: (TInput) -> TOutput
+fn transform<TInput, TOutput>(items: [TInput], mapper: (TInput) -> TOutput) -> [TOutput] {
 
     var result: [TOutput] = []
     for item in items {

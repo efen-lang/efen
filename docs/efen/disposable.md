@@ -43,7 +43,7 @@ fn handleFile(path: str) {
 
 ```efen
 interface Disposable {
-    fn dispose -> void
+    fn dispose -> Void
 }
 ```
 
@@ -275,7 +275,7 @@ class FileProcessor {
 
 ```efen
 interface AsyncDisposable {
-    async fn disposeAsync -> void
+    async fn disposeAsync -> Void
 }
 
 class AsyncDatabase {
@@ -306,7 +306,7 @@ async fn useDatabase {
 class FallibleResource {
     implements Disposable
 
-    fn dispose -> void throws DisposeError {
+    fn dispose -> Void throws DisposeError {
         this.connection.close()
     }
 }
@@ -336,7 +336,7 @@ Disposable можно использовать в коллекциях:
 
 ```efen
 fn processMultipleFiles(paths: [String]) {
-    let disposable files = paths.map => File.open($0)
+    let disposable files = paths.map => File.open($path)
 
     for file in files {
         processFile(file)

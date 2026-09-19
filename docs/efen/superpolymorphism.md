@@ -14,8 +14,8 @@
 
 ```efen
 interface Drawable {
-    func draw
-    func resize(scale: Float)
+    fn draw
+    fn resize(scale: Float)
 }
 
 class Shape {
@@ -38,21 +38,21 @@ class Shape {
 
 ```efen
 strategy SVGDrawing for Drawable {
-    func draw {
+    fn draw {
         print("Drawing as SVG")
     }
 
-    func resize(scale: Float) {
+    fn resize(scale: Float) {
         print("Resizing SVG by ${scale}")
     }
 }
 
 strategy CanvasDrawing for Drawable {
-    func draw {
+    fn draw {
         print("Drawing on Canvas")
     }
 
-    func resize(scale: Float) {
+    fn resize(scale: Float) {
         print("Resizing Canvas by ${scale}")
     }
 }
@@ -72,26 +72,26 @@ shape.draw()  // Выведет: "Drawing on Canvas"
 
 ```efen
 interface Renderer {
-    func render(scene: Scene)
-    func clear
+    fn render(scene: Scene)
+    fn clear
 }
 
 strategy OpenGLRenderer for Renderer {
-    func render(scene: Scene) {
+    fn render(scene: Scene) {
         // Рендеринг через OpenGL
     }
 
-    func clear {
+    fn clear {
         // Очистка OpenGL буфера
     }
 }
 
 strategy VulkanRenderer for Renderer {
-    func render(scene: Scene) {
+    fn render(scene: Scene) {
         // Рендеринг через Vulkan
     }
 
-    func clear {
+    fn clear {
         // Очистка Vulkan буфера
     }
 }
@@ -103,7 +103,7 @@ class GraphicsEngine {
 
     var scenes: [Scene]
 
-    func renderAll {
+    fn renderAll {
         for scene in scenes {
             render(scene: scene)  // Делегируется renderer.render()
         }
@@ -128,12 +128,12 @@ engine.renderAll()  // Использует выбранный рендерер
 
 ```efen
 interface Drawable {
-    func draw
+    fn draw
 }
 
 interface Serializable {
-    func serialize -> String
-    func deserialize(data: String)
+    fn serialize -> String
+    fn deserialize(data: String)
 }
 
 class Document {
@@ -161,8 +161,8 @@ let data = doc.serialize()  // Использует JSONSerializer
 
 ```efen
 interface Drawable {
-    func draw
-    func clear
+    fn draw
+    fn clear
 }
 
 class Shape {
@@ -171,7 +171,7 @@ class Shape {
     interface drawable: Drawable  // Динамическая реализация draw()
 
     // Статическая реализация clear()
-    func clear {
+    fn clear {
         print("Clearing shape")
     }
 }
@@ -238,4 +238,3 @@ shape.draw() → shape.drawable.draw() → vtable[draw](shape.drawable)
 ```
 
 Это медленнее статической реализации, но дает максимальную гибкость во время выполнения.
-

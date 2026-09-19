@@ -162,6 +162,8 @@ fn example {
 
 ```efen
 class Box {
+    implements Disposable
+
     var point: Point
 
     @constructor
@@ -169,7 +171,7 @@ class Box {
         self.point = value
     }
     
-    destructor() {
+    fn dispose {
         print("Box is being destroyed")
     }
     
@@ -187,42 +189,9 @@ fn example {
 
 ## Особые случаи
 
-`Efen` поддерживает слабые ссылки (weak references) как для объектов с подсчётом ссылок,
-так и для объектов без подсчёта ссылок.
-
-```efen
-class Box {
-    var weak point?: Point
-
-    @constructor
-    fn init(value: Point) -> Self {
-        self.point = value
-    }
-    
-    destructor() {
-        print("Box is being destroyed")
-    }
-    
-    fn print {
-        if point == null {
-            print("Point has been deallocated")
-        } else {
-            print("Point(x: ${point!.x}, y: ${point!.y}")
-        }
-    }
-}
-```
-
-`Efen` предлагает два типа слабых ссылок:
-- Слабые ссылки `weak` - время жизни может быть меньше времени жизни объекта.
-- Обратные ссылки `back` или `unowned` - время жизни больше или равно времени жизни объекта.
-
-Для объектов без подсчёта ссылок weak ссылки учитываются, однако 
-компилятор позволяет нарушать правила владения.
-С точки зрения результата компиляции, weak ссылки требуют скрытого кода для проверки валидности ссылки.
-
-Для объектов с подсчётом ссылок weak ссылки не учитываются в счётчике ссылок, 
-однако может участвовать в tracing ссылок в отладочных целях.
+Слабые ссылки пока не входят в текущую нормативную модель. Их связь с `origin`,
+владением и стратегиями управления памятью остаётся отдельной отложенной темой;
+ключевое слово или иной source-синтаксис для них не принят.
 
 ## Абстракции без подсчета ссылок
 
@@ -278,7 +247,7 @@ aspect RefCount implements RefCountInterface {
         self.refCount -= 1
         
         if self.refCount == 0 {
-            self.destructor()
+            self.dispose()
         }
     }
 }

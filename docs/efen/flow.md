@@ -16,12 +16,12 @@ Flow — это синтаксис для описания монадическ�
 
 Один `flow` использует один вычислительный контекст. Все операции `<-`, ветви и
 итоговый `return` должны принадлежать ему. Компилятор не смешивает, например,
-`Future<T>` и `Option<U>` автоматически:
+`Future<T>` и `U?` автоматически:
 
 ```efen
 flow {
     user <- loadUser()        // Future<User>
-    token <- findToken(user)  // Option<Token>: ошибка контекста
+    token <- findToken(user)  // Token?: ошибка контекста
     return token
 }
 ```

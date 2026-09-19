@@ -49,5 +49,9 @@ Efen определяет исходную семантику. [Amber](https://g
 - Принятые межрепозиторные решения и план реализации ведутся в Amber:
   [decision log](https://github.com/limelight-lang/amber/blob/main/dev/DECISIONS.md) и
   [plan](https://github.com/limelight-lang/amber/blob/main/dev/PLAN.md).
+- Актуальная очередь ещё не решённых вопросов поверхности Efen ведётся в
+  [`dev/language-design-questions.md`](dev/language-design-questions.md); пометка
+  «решено» у Q01–Q55 не закрывает перечисленные там дочерние вопросы и следующую
+  очередь.
 
 Историческое обсуждение и review не переопределяют текущие языковые документы.

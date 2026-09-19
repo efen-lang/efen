@@ -10,7 +10,7 @@
 ```efen
 contract MyContract {
     var myProperty: Int { get set }
-    func myMethod
+    fn myMethod
 }
 ```
 
@@ -75,17 +75,12 @@ class Circle {
 
 ```efen
 // Compile-time: компилятор проверяет что draw() есть
-fn renderStatic {
-    generic T: Drawable
-    param object: T
-
+fn renderStatic<T: Drawable>(object: T) {
     object.draw()  // STATIC DISPATCH - прямой вызов
 }
 
 // Runtime: используется VTBL для полиморфизма
-fn calculateArea -> Float {
-    param shape: Shape
-
+fn calculateArea(shape: Shape) -> Float {
     return shape.area()  // DYNAMIC DISPATCH - вызов через VTBL
 }
 ```
@@ -127,9 +122,7 @@ contract Serializable {
 
 // Интерфейс для runtime полиморфизма
 interface Storable {
-    fn save {
-        param path: String
-    }
+    fn save(path: String)
 }
 
 class Document {
@@ -140,27 +133,20 @@ class Document {
         return "..."
     }
 
-    fn save {
-        param path: String
-
+    fn save(path: String) {
         let data = serialize()  // Статический вызов
         writeToFile(path, data)
     }
 }
 
 // Generic с контрактом - нулевой overhead
-fn sendOver {
-    generic T: Serializable
-    param object: T
-
+fn sendOver<T: Serializable>(object: T) {
     let data = object.serialize()  // STATIC - оптимально
     network.send(data)
 }
 
 // Полиморфный с интерфейсом - runtime гибкость
-fn saveAll {
-    param objects: [Storable]
-
+fn saveAll(objects: [Storable]) {
     for obj in objects {
         obj.save("/tmp/file")  // DYNAMIC - через VTBL
     }
@@ -182,10 +168,17 @@ contract Movable {
 contract Copyable {
     fn copy -> Self
 }
+```
 
+Кандидат записи пока показывается только как текст:
+
+```text
 contract ImplicitlyCopyable : Copyable {
 }
 ```
+
+Отношение `ImplicitlyCopyable` уточняет `Copyable` семантически, но показанная
+запись через `:` остаётся кандидатом Q46, а не принятой surface-формой.
 
 `Movable` разрешает передать существующее значение через `take`. `Copyable`
 разрешает создать независимое значение явным `copy()`. Ни один из этих
@@ -220,9 +213,7 @@ let second = first
 значением типа записывается как `generic Name: Type`:
 
 ```efen
-contract Iterator {
-    generic Item: Type
-
+contract Iterator<Item> {
     fn next -> Item?
 }
 ```
@@ -244,10 +235,7 @@ class AnotherStringIterator {
 контракту:
 
 ```efen
-contract Iterable {
-    generic Item: Type
-    generic Cursor: Iterator<Item>
-
+contract Iterable<Item, Cursor: Iterator<Item>> {
     fn iterator -> Cursor
 }
 ```
@@ -281,8 +269,7 @@ Generic-тип может объявить соответствие условн
 запрещает создать сам тип:
 
 ```efen
-class Box {
-    generic T: Type
+class Box<T> {
     #if T conforms Copyable {
         conforms Copyable
     }
@@ -294,22 +281,23 @@ class Box {
 
 ## Наследование контрактов
 
-Контракты могут наследоваться друг от друга. При наследовании правила контрактов не должны противоречить друг другу.
+Q46 оставляет запись уточнения и наследования контрактов открытой. Следующие
+фрагменты — только варианты для исследования, а не допустимый синтаксис Efen.
 
-```efen
+```text
 contract BaseContract {
     var baseProperty: Int { get set }
-    func baseMethod
+    fn baseMethod
 }
 
 contract DerivedContract : BaseContract {
     var derivedProperty: String { get set }
-    func derivedMethod
+    fn derivedMethod
 }
 ```
 
-Множественное наследование контрактов:
-```efen
+Множественное наследование контрактов также является открытым вариантом:
+```text
 contract FirstContract {
     var firstProperty: Int { get set }
 }
@@ -319,11 +307,12 @@ contract SecondContract {
 }
 
 contract CombinedContract : FirstContract, SecondContract {
-    func combinedMethod
+    fn combinedMethod
 }
 ```
 
-**Важно:** При множественном наследовании компилятор проверит, что требования базовых контрактов не противоречат друг другу.
+Правила проверки и форма множественного наследования будут добавлены после
+отдельного решения Q46.
 
 ## Связь контрактов с интерфейсами
 
@@ -362,11 +351,12 @@ interface MyInterface {
 }
 ```
 
-Интерфейс с наследованием от родительского интерфейса:
-```efen
+Наследование интерфейсов также остаётся открытым; ниже приведён
+исследовательский вариант, а не нормативный синтаксис:
+```text
 interface ParentInterface {
     var parentProperty: Bool { get set }
-    func parentMethod
+    fn parentMethod
 }
 
 interface MyInterface : ParentInterface {
@@ -376,10 +366,11 @@ interface MyInterface : ParentInterface {
 }
 ```
 
-Множественные контракты:
-```efen
+Множественные контракты в conforms уже определены Q46; открытой остаётся
+только форма наследования самих интерфейсов:
+```text
 contract SecondContract {
-    func additionalMethod
+    fn additionalMethod
 }
 
 interface MyInterface : ParentInterface {
@@ -389,8 +380,9 @@ interface MyInterface : ParentInterface {
 }
 ```
 
-Множественное наследование интерфейсов с контрактами:
-```efen
+Множественное наследование интерфейсов с контрактами также является
+исследовательским вариантом:
+```text
 interface AnotherParentInterface {
     var anotherParentProperty: Float { get set }
 }
@@ -418,11 +410,7 @@ contract RefCountedContract {
         T
     }
 
-    fn retain {
-        param self: Self
-    }
-    fn release {
-        param self: Self
-    }
+    fn retain(self: Self)
+    fn release(self: Self)
 }
 ```

@@ -3,6 +3,11 @@
 `Efen` является мультидиалектным языком программирования, что позволяет использовать различные синтаксисы
 и семантики в рамках одного проекта для решения специфических задач.
 
+Границы встроенного блока вида `sql { ... }`/`query { ... }` относятся к
+открытому вопросу B1. Также ещё не решено, как `$имя` внутри такого блока
+отличается от placeholder-параметра окружающего Efen-замыкания. Примеры ниже
+показывают требуемую интеграцию, но не закрывают эти две лексические развилки.
+
 ## Типы диалектов
 
 Различаются диалекты трёх видов:
@@ -33,7 +38,7 @@ dialect efql
 
 use efen::database::Connection
 
-fn getUserByEmail(conn: Connection, email: String) -> Option<User> {
+fn getUserByEmail(conn: Connection, email: String) -> User? {
     // SQL диалект с полной интеграцией типов
     let result = query {
         SELECT id, name, email
@@ -354,7 +359,7 @@ dialect MatrixDialect {
     fn parse(source: String) -> Matrix {
         // Парсинг матричного синтаксиса
         let rows = source.lines()
-        let values = rows.map => $0.split().map(parseFloat)
+        let values = rows.map => $row.split().map(parseFloat)
         return Matrix(values)
     }
 }

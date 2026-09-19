@@ -138,11 +138,11 @@ fn incrementCounter {
 ```efen
 use runtime::fiber
 
-let fiber = Fiber {
+let fiber = Fiber(() -> Void {
     print("Fiber started")
     yield()
     print("Fiber resumed")
-}
+})
 
 fiber.resume()  // "Fiber started"
 fiber.resume()  // "Fiber resumed"
@@ -253,22 +253,11 @@ Runtime API может вести себя по-разному в зависим
 
 ## Интеграция с C/C++
 
-Runtime API обеспечивает интероперабельность с C/C++ кодом:
-
-```efen
-use runtime::ffi
-
-// Загрузка динамической библиотеки
-let lib = DynamicLibrary.load("libexample.so")
-
-// Получение символа
-let symbol = lib.symbol("my_function")
-
-// Вызов C функции
-typealias MyCFunction = @convention(c) (Int32) -> Int32
-let cFunction = unsafeBitCast(symbol, to: MyCFunction.self)
-let result = cFunction(42)
-```
+Raw-cast указателя на динамический символ не является операцией Efen: в языке
+нет `unsafeBitCast` или другого обхода проверки типов и памяти. C/C++ API
+попадает в программу через проверенное foreign-объявление, построенное
+build-time importer; точная surface-запись импортируемого объявления относится
+к отдельному FFI-контракту.
 
 ## Управление жизненным циклом приложения
 
@@ -278,21 +267,21 @@ Runtime предоставляет hooks для управления жизне�
 use runtime::lifecycle
 
 // Регистрация обработчика запуска
-registerStartupHandler {
+registerStartupHandler => {
     print("Application starting...")
 }
 
 // Регистрация обработчика завершения
-registerShutdownHandler {
+registerShutdownHandler => {
     print("Application shutting down...")
     cleanup()
 }
 
 // Регистрация обработчика сигналов
-registerSignalHandler(.SIGTERM) {
+registerSignalHandler(.sigterm, () -> Void {
     print("Received SIGTERM")
     gracefulShutdown()
-}
+})
 ```
 
 ## Performance Monitoring

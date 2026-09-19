@@ -39,7 +39,7 @@
 см. [Функции](functions.md):
 
 ```efen
-fn calculateDiscount(orderId: String) -> Float {
+fn calculateDiscount -> Float {
     /// Customer's order identifier
     /// Must be a valid UUID v4
     param orderId: String
@@ -168,11 +168,8 @@ calculateDiscount(
 ```efen
 /// Validates user email address
 /// Returns true if email format is valid
+/// - email: Must follow RFC 5322 format
 fn validateEmail(email: String) -> Bool {
-    /// Email address to validate
-    /// Must follow RFC 5322 format
-    param email: String
-
     return email.matches(emailRegex)
 }
 ```
@@ -182,7 +179,6 @@ fn validateEmail(email: String) -> Bool {
 ```efen
 // this function validates email  (обычный комментарий вместо doc)
 fn validateEmail(email: String) -> Bool {
-    param email: String  // missing documentation
     return email.matches(emailRegex)
 }
 ```

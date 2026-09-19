@@ -145,7 +145,7 @@ echo format(value)    // echo(format(value))
 
 ```efen
 echo x + 5               // канонично
-log items.map => $0 * 2  // log(items.map => $0 * 2)
+log items.map => $item * 2  // log(items.map => $item * 2)
 let v = f y              // простой аргумент
 let x = fun <| x + 5     // большой аргумент не в начале инструкции
 return f(y)              // после ключевого слова
@@ -203,7 +203,7 @@ save <| load path
 ```efen
 user.getName()
 list.add item
-numbers.map => $0 * 2
+numbers.map => $item * 2
 
 process user.getName()
 let names = users.map => $user.name
@@ -225,12 +225,12 @@ let names = users.map <| (u) => u.name      // S: каноническая фо�
 
 | Форма | Назначение | Пример |
 |---|---|---|
-| `func()` | Вызов без аргументов | `getValue()` |
-| `func(arg)` | Один аргумент там, где пробел запрещён | `return f(y)` |
-| `func(a, b)` | Вызов с несколькими аргументами | `add(1, 2)` |
-| `func expression` | Вызов с одним аргументом-выражением | `echo x + 1` |
-| `func <| expression` | Большой аргумент вне начала инструкции | `let t = sum <| a + b` |
-| `func => closure` | Единственный аргумент-замыкание | `numbers.map => $0 * 2` |
+| `f()` | Вызов без аргументов | `getValue()` |
+| `f(arg)` | Один аргумент там, где пробел запрещён | `return f(y)` |
+| `f(a, b)` | Вызов с несколькими аргументами | `add(1, 2)` |
+| `f expression` | Вызов с одним аргументом-выражением | `echo x + 1` |
+| `f <| expression` | Большой аргумент вне начала инструкции | `let t = sum <| a + b` |
+| `f => closure` | Единственный аргумент-замыкание | `numbers.map => $item * 2` |
 
 Ключевые ограничения:
 
