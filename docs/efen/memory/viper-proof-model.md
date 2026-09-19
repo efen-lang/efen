@@ -718,7 +718,7 @@ pre:
     все ElementOwn occupants принадлежат уничтожаемому owner tree
 
 normal, no-throw/no-suspend/no-reenter:
-    drop slots в descriptor-declared DropOrder
+    drop slots в любом порядке, допустимом опубликованным contract descriptor
     каждый initialized logical field dropped exactly once
     все occupants retired; a removed from liveAlloc
     AllocationOwn(a), ElementOwn occupants, Init slots consumed
@@ -727,14 +727,13 @@ exception:
     absent
 ```
 
-Текущие документы не задают наблюдаемый порядок destructor-ов элементов.
-Поэтому `DropOrder` является обязательным ещё не принятым контрактом descriptor,
-а не скрытым выбором emitter-а. Первый Box spike использует только trivial-drop
-payload `Int`: он доказывает одно потребление owner token, field/storage
-permissions и один `free`, не устанавливая порядок generic array destruction.
-Любой proof с наблюдаемыми generic destructors получает `unsupported`, пока
-порядок не будет принят; emitter не вправе выбрать прямой или обратный порядок
-как trusted assumption.
+По умолчанию Efen не задаёт наблюдаемый порядок destructor-ов элементов.
+Emitter может выбрать любой порядок, но обязан уничтожить каждый
+инициализированный элемент ровно один раз. Программа не может зависеть от
+выбранного порядка. Конкретная абстракция может опубликовать более сильный
+contract; тогда representation и emitter обязаны его доказать и сохранить.
+Первый Box spike с trivial-drop payload `Int` доказывает одно потребление owner
+token, field/storage permissions и один `free` без дополнительного порядка.
 
 ## 5. Open/close и точки наблюдения
 
@@ -1713,7 +1712,7 @@ block; увеличение не `endChunk`; неправильный `lastOccup
 | `chained` требует proof witness порядка | compiler-known layout contract | вывести ghost `Seq` и доказать update каждой операцией |
 | Связь `Items` с `Chunks` | generated compiler invariant | вывести coverage, disjointness, sum и flattening из полного набора descriptor transitions |
 | Не задано, бросают ли `initialize`, `move`, field move, drop | descriptor/runtime contract | зафиксировать prepare/commit/cleanup effects |
-| Не задан порядок drop area | descriptor contract | принять `DropOrder`, не выбирать его молча в emitter |
+| Не задан порядок drop area | принятое умолчание | порядок не определён; доказать exactly-once drop, а объявленную конкретной абстракцией гарантию проверять отдельно |
 | Не задана identity area occupant при move/realloc | proof-model contract | использовать `ElementId + LocationLease + Epoch` |
 
 `assume` не исправляет ни одну строку таблицы. Пока нужный contract не принят,

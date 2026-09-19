@@ -239,8 +239,10 @@ layout BoxStore {
 Первый Viper slice использует `new`, отдельный линейный ресурс `Own(box)` и
 physical field permission. Простого `box in Live` недостаточно.
 Payload `Int` имеет trivial drop: этот этап доказывает exactly-once resources и
-`free`, но не выбирает порядок наблюдаемых generic destructors. Такие proofs
-остаются unsupported до отдельного решения `DropOrder`.
+`free`, но не выбирает порядок наблюдаемых generic destructors. Для абстракции
+без опубликованной гарантии порядок не определён, поэтому proof требует только
+exactly-once drop каждого инициализированного элемента. Если конкретная
+абстракция объявляет порядок, её emitter дополнительно обязан его сохранить.
 
 Критерий этапа: каждая отрицательная мутация падает на ожидаемом
 `obligationId`, а ошибка отображается на исходный Efen `SourceSpan`.
