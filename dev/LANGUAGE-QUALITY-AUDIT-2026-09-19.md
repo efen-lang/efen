@@ -504,5 +504,7 @@ choice объединяет `throws`/`in` и усиливает call right; `var
 `defer`-механику `suppressed` на automatic user destructor. После этой сессии
 закрыты proof construction safety virtual dispatch, порядок независимой eager
 инициализации, lifecycle приостановленного generator и выбор member при diamond
-наследовании interface. Открытыми остаются projection application proof, erased
-carrier ABI, callable storage/ABI и `clean`/destructor integration.
+наследовании interface. Также уточнено, что callable-summary существует только
+в compile-time анализе и не имеет runtime/ABI-хранения. Открытыми остаются
+projection application proof, erased carrier ABI и `clean`/destructor
+integration.
