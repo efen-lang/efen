@@ -1108,12 +1108,14 @@ fn make -> () -> Int throws E                // throws у make
   разрешён, но все его contexts и exceptions видны в сводке.
 - `const` materialized compile-time; в классе нет `static const`. `static let`
   eager, может бросать, и startup failure завершает приложение.
+- Eager startup соблюдает зависимости `use`; среди готовых независимых модулей
+  выбирается лексикографически наименьший полный путь, а `static let` одного
+  модуля идут в порядке объявления.
 - Interface имеет public typestate и множественное наследование без storage.
 
 Не закрыты: proof construction safety виртуального override, projection proof
-contract, erased carrier ABI, storage/ABI callable summary, порядок независимой
-module initialization, generator lifecycle и отношение user destructor к
-`clean`-области.
+contract, erased carrier ABI, storage/ABI callable summary, generator lifecycle
+и отношение user destructor к `clean`-области.
 
 Аудит канонических форм от 2026-09-16 (номера A/B — его пункты), ещё не разобраны:
 
