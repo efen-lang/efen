@@ -351,9 +351,9 @@ interface MyInterface {
 }
 ```
 
-Наследование интерфейсов также остаётся открытым; ниже приведён
-исследовательский вариант, а не нормативный синтаксис:
-```text
+Интерфейс может наследовать один или несколько interface. Это расширяет
+runtime-протокол, не добавляя storage:
+```efen
 interface ParentInterface {
     var parentProperty: Bool { get set }
     fn parentMethod
@@ -366,9 +366,8 @@ interface MyInterface : ParentInterface {
 }
 ```
 
-Множественные контракты в conforms уже определены Q46; открытой остаётся
-только форма наследования самих интерфейсов:
-```text
+Множественные контракты в conforms уже определены Q46:
+```efen
 contract SecondContract {
     fn additionalMethod
 }
@@ -380,9 +379,8 @@ interface MyInterface : ParentInterface {
 }
 ```
 
-Множественное наследование интерфейсов с контрактами также является
-исследовательским вариантом:
-```text
+Множественное наследование интерфейсов с контрактами допустимо:
+```efen
 interface AnotherParentInterface {
     var anotherParentProperty: Float { get set }
 }

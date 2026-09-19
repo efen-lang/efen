@@ -59,6 +59,13 @@ class Rectangle {
 let rect = Rectangle(width: 10.0, height: 5.0)
 ```
 
+До полной инициализации `self` не может escape: его нельзя вернуть, сохранить,
+захватить или передать внешнему вызову. Compiler-proven `private final` helper
+допустим, если он не выпускает `self` и не читает неинициализированные поля.
+Обычная виртуальная диспетчеризация не отключается в constructor, включая
+наиболее производный override; порядок и proof construction safety остаются
+явной открытой границей.
+
 ## Наследование классов
 
 Классы и методы являются final по умолчанию. `open class` разрешает
@@ -272,7 +279,7 @@ class Temperature {
 
 ```efen
 class Math {
-    static let PI: Float = 3.14159
+    const PI: Float = 3.14159
 
     static fn max(a: Float, b: Float) -> Float {
         return a > b ? a : b
@@ -286,6 +293,13 @@ class Math {
 let maxValue = Math.max(a: 10.0, b: 20.0)
 let pi = Math.PI
 ```
+
+`const` в классе уже является static compile-time значением. `static let` —
+другая конструкция: один runtime-слот класса, который инициализируется eagerly.
+Его initializer может бросить; такая ошибка завершает startup приложения, а не
+откладывается до первого чтения поля. Зависимость инициализируется полностью до
+использующего её класса. Порядок независимых модулей и инстанциаций generic
+классов остаётся отдельной темой.
 
 ### Методы экземпляра
 

@@ -1,5 +1,10 @@
 # Projection Types
 
+> Статус surface-синтаксиса: семантика projection ниже актуальна, но старые
+> фрагменты с `;`, `cap`, `Ctor` и `...` — исторические эскизы, не исходный
+> синтаксис Efen. Точная запись объявления и применения projection остаётся
+> отдельной задачей.
+
 ## 1. Определение
 
 **Projection** — это тип-представление поверх существующей структуры.
@@ -67,15 +72,10 @@ let movement = particles.{position, velocity}
 alias Movement = [Particle].{position, velocity}
 ```
 
-Если алиас объявлен в области, где доступно значение, тип проекции может быть
-выведен из этого значения:
-
-```efen
-alias Movement = particles.{position, velocity}
-```
-
-Это не объявляет новую projection и не меняет representation: `alias` только
-даёт имя уже существующему анонимному проекционному типу.
+Alias всегда зависит от типа, а не от runtime-значения. Поэтому
+`alias Movement = particles.{position, velocity}` недопустим: `particles` —
+значение. Alias даёт имя type-level projection, например
+`[Particle].{position, velocity}`, и не меняет representation.
 
 ---
 
@@ -97,6 +97,12 @@ projection <Name> for <BaseType> {
     let name: <Type>
 }
 ```
+
+Именованная projection задаёт другое типизированное понимание той же памяти, а
+не copy и не новый object. Применение projection к конкретному значению требует
+либо доказательства compiler, либо кода, обеспечивающего её условия. Точная
+surface-форма применения, proof contract и сохранение условий при mutation через
+aliases ещё проектируются.
 
 Проекция может быть определена прямо внутри структуры или класса:
 

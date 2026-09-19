@@ -1090,17 +1090,40 @@ fn make -> () -> Int throws E                // throws у make
 
 ## Очередь на 2026-09-17
 
+### Решения сессии 2026-09-19
+
+- `&read T` — каноническая ссылка; `ref read T` семантически равнозначна.
+- `add (x, y)` — вызов с двумя аргументами; один tuple-аргумент пишется
+  `add((x, y))`.
+- Шаги `flow` независимы по умолчанию; `|-` явно добавляет зависимость.
+- Два активных значения одного nominal context, как и одновременные base/derived
+  context, запрещены. Неоднозначный `%field` требует `%Context::field`.
+- Выбор callable объединяет `throws` и `in` и усиливает право вызова
+  `read < write < own`; `var` не расширяет свою сводку неявным присваиванием.
+- Constructor не выпускает incomplete `self`; доказуемый `private final` helper
+  допустим, виртуальная диспетчеризация остаётся обычной.
+- Projection — typed view той же памяти; её применение требует proof compiler
+  либо обеспечивающего кода.
+- `@erase` не имеет fallback и запрещает strategy-dependent операции; boxing
+  разрешён, но все его contexts и exceptions видны в сводке.
+- `const` materialized compile-time; в классе нет `static const`. `static let`
+  eager, может бросать, и startup failure завершает приложение.
+- Interface имеет public typestate и множественное наследование без storage.
+
+Не закрыты: proof construction safety виртуального override, projection proof
+contract, erased carrier ABI, storage/ABI callable summary, порядок независимой
+module initialization, generator lifecycle и отношение user destructor к
+`clean`-области.
+
 Аудит канонических форм от 2026-09-16 (номера A/B — его пункты), ещё не разобраны:
 
-- A14 — ссылки и права: `&` или `ref`, право до или после типа, `mut`;
 - B1 — оставшиеся прочтения `Имя { }`: диалект `sql {`, блоки метафункций
   `code {`, реализация эффекта, заголовки с блоком;
-- B4 — `add (x, y)`: пробельный вызов с кортежем или вызов с двумя аргументами;
 - B7 — роли `:` в выражениях: пара, именованный аргумент, кортеж, словарь,
   ветка `match`, тернарный, метка;
 - P2: A16 запись `Void`, A17 ограничения generic, A18 позиционные и именованные
   generic-аргументы, A19 образцы, A20 `use` для декораторов, A21 `self`/`this`,
-  `static let`/`const`, A22 контексты и эффекты, A23 условная компиляция,
+  A22 контексты и эффекты, A23 условная компиляция,
   A24 коллекции, A25 `flow`, A26 сигнатура реализации, A27 union в скобках,
   A28 циклы; B8–B15.
 
@@ -1111,8 +1134,10 @@ fn make -> () -> Int throws E                // throws у make
 
 Механически синхронизировано 2026-09-19 без новых языковых решений:
 
-- `destructor()` удалён из нормативных примеров в пользу действующего
-  `Disposable.dispose`;
+- старое `destructor()` и прежний бросающий `Disposable.dispose` больше не
+  являются нормативной lifecycle-моделью; разделение user destructor и
+  low-level non-throwing `Disposable` зафиксировано, а `clean`-интеграция
+  остаётся открытой;
 - placeholder-параметры `$имя`, `$0`, `$1` заменены неявными параметрами
   хвостового замыкания; при отсутствии имён нужна полная форма замыкания;
 - примеры `func`/`impliments`, constructor/call/path/optional и короткой/полной
