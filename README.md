@@ -42,7 +42,6 @@ Efen определяет исходную семантику. [Amber](https://g
 
 - Текущая модель языка: [`docs/efen/`](docs/efen/index.md).
 - Термины языка: [`docs/efen/glossary.md`](docs/efen/glossary.md).
-- Незавершённый аудит документации: [`docs/DOCUMENTATION-AUDIT.md`](docs/DOCUMENTATION-AUDIT.md).
 - Принятые межрепозиторные решения и план реализации ведутся в Amber:
   [decision log](https://github.com/limelight-lang/amber/blob/main/dev/DECISIONS.md) и
   [plan](https://github.com/limelight-lang/amber/blob/main/dev/PLAN.md).

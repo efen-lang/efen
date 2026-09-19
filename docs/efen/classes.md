@@ -305,7 +305,14 @@ let pi = Math.PI
 сначала сравниваются сегменты пути, затем следующие сегменты. Поэтому порядок
 не зависит от обхода файлов, порядка линковки или параллелизма сборки. Внутри
 одного модуля `static let` инициализируются в порядке объявления. Порядок
-инстанциаций generic-классов остаётся отдельной темой.
+инстанциаций generic-классов определён так же строго. У каждой concrete
+инстанциации свой logical slot: `Cache<Int>.table` и `Cache<String>.table` —
+разные значения, даже если lowering выбрал общую erased-реализацию. Compiler
+собирает все достижимые concrete инстанциации linked application в startup-граф;
+текстовое generic-объявление без concrete инстанциации узла не создаёт. После
+зависимостей initializer порядок задают enclosing module path, затем canonical
+ключ инстанциации (generic declaration, resolved compile-time arguments и
+selected strategy witnesses), а внутри specialization — порядок объявления.
 
 ### Методы экземпляра
 

@@ -228,6 +228,29 @@ interface Connection {
 Реализующий тип обязан предоставить совместимые состояния и переходы. Он может
 иметь дополнительные приватные состояния, не нарушающие публичный протокол.
 
+Concrete type сопоставляет свои состояния публичному протоколу явно, после
+`implements` и до members:
+
+```efen
+class TcpConnection {
+    implements Connection
+
+    initial state Resolving
+    state Handshaking
+    state Ready
+
+    state Connection.Disconnected = Resolving | Handshaking
+    state Connection.Connected = Ready
+}
+```
+
+Правая часть mapping непуста; один concrete state не может соответствовать двум
+states одного interface. Для каждого interface transition `P >> Q` реализация
+обязана покрыть каждый concrete state из mapping `P` совместимым переходом в
+state из mapping `Q`. Exceptional path сохраняет concrete `Before` и тем самым
+остаётся в public `P`. Interface value создаётся только в состоянии из mapping;
+compiler не добавляет скрытый runtime dispatch для непокрытого состояния.
+
 ## Диагностика
 
 Ошибка должна показывать найденное и требуемое состояния:

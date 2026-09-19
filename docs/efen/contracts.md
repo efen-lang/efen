@@ -281,38 +281,21 @@ class Box<T> {
 
 ## Наследование контрактов
 
-Q46 оставляет запись уточнения и наследования контрактов открытой. Следующие
-фрагменты — только варианты для исследования, а не допустимый синтаксис Efen.
+`:` у contract уточняет всех перечисленных parents. Соответствующий тип обязан
+удовлетворять транзитивному объединению их требований:
 
-```text
-contract BaseContract {
-    var baseProperty: Int { get set }
-    fn baseMethod
-}
-
-contract DerivedContract : BaseContract {
-    var derivedProperty: String { get set }
-    fn derivedMethod
+```efen
+contract Seekable : Readable, Writable {
+    fn seek(position: Int)
 }
 ```
 
-Множественное наследование контрактов также является открытым вариантом:
-```text
-contract FirstContract {
-    var firstProperty: Int { get set }
-}
-
-contract SecondContract {
-    var secondProperty: String { get set }
-}
-
-contract CombinedContract : FirstContract, SecondContract {
-    fn combinedMethod
-}
-```
-
-Правила проверки и форма множественного наследования будут добавлены после
-отдельного решения Q46.
+Повтор одного ancestor с теми же resolved generic arguments дедуплицируется.
+Members с одним именем допустимы лишь при идентичной нормализованной
+requirement-signature: parameters, result, state, contexts, `throws` и rights.
+Иначе declaration самого contract ошибочна. `use`/`as` не применяются: они
+разрешают runtime member conflicts interface, а contract задаёт compile-time
+requirements.
 
 ## Связь контрактов с интерфейсами
 

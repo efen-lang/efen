@@ -32,11 +32,11 @@ binary compatibility целой логической структуры.
 
 ## Анонимные проекции
 
-Оператор `.{...}` создаёт анонимную проекцию значения или коллекции без
+Оператор `.{...}` создаёт анонимную проекцию типа или типа коллекции без
 предварительного объявления именованного projection-типа:
 
 ```efen
-let movement = particles.{position, velocity}
+let movement = Particles.{position, velocity}
 ```
 
 Такая проекция:
@@ -48,8 +48,8 @@ let movement = particles.{position, velocity}
 - для коллекции логически представляет выбранные колонки всех элементов.
 
 ```efen
-let positions = particles.{position}
-let movement = particles.{position, velocity}
+let positions = Particles.{position}
+let movement = Particles.{position, velocity}
 ```
 
 Физический доступ к выбранным полям обеспечивает активная representation
@@ -76,10 +76,9 @@ let movement = particles.{position, velocity}
 alias Movement = [Particle].{position, velocity}
 ```
 
-Alias всегда зависит от типа, а не от runtime-значения. Поэтому
-`alias Movement = particles.{position, velocity}` недопустим: `particles` —
-значение. Alias даёт имя type-level projection, например
-`[Particle].{position, velocity}`, и не меняет representation.
+Alias всегда зависит от типа, а не от runtime-значения. Alias даёт имя
+type-level projection, например `[Particle].{position, velocity}`, и не меняет
+representation.
 
 ---
 
@@ -92,49 +91,6 @@ Alias всегда зависит от типа, а не от runtime-значе
 
 ---
 
-## 3. Синтаксис
-
-### 3.1. Объявление
-
-```efen
-projection <Name> for <BaseType> {
-    let name: <Type>
-}
-```
-
-Именованная projection задаёт другое типизированное понимание той же памяти, а
-не copy и не новый object. Применение projection к конкретному значению требует
-либо доказательства compiler, либо кода, обеспечивающего её условия. Точная
-surface-форма применения, proof contract и сохранение условий при mutation через
-aliases ещё проектируются.
-
-Проекция может быть определена прямо внутри структуры или класса:
-
-```efen
-struct MyStruct {
-    private let id:    Int;
-    private let name:  String cap read;
-    private let flags: UInt32;
-
-    projection Public {
-        public let id;
-        public let name;
-        private let ptr;
-    }
-
-    projection Ctor {
-        let id: Optional;
-        let name: Optional;
-    }
-}
-```
-
-Использование:
-
-```efen
-let view = MyStruct.Public(...);
-```
-
----
-
-## 4. Примеры
+Точная surface-форма именованного projection остаётся отдельной задачей; она не
+меняет принятое правило применения: требуются обеспечивающий код или
+доказательство compiler.
