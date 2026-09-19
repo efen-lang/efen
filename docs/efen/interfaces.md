@@ -197,5 +197,30 @@ fn useInterface(interface: MyInterface) {
 
 Интерфейсы имеют множественное наследование и могут задавать публичный
 typestate-протокол, но не владеют собственным storage. Реализующий тип явно
-сопоставляет свои состояния и переходы интерфейсному протоколу; правила
-diamond merge остаются отдельной темой.
+сопоставляет свои состояния и переходы интерфейсному протоколу.
+
+### Множественное наследование и конфликты members
+
+Если два предка дают member с одним именем, interface явно выбирает источник
+через `use Parent.member`. Запись с `as` вводит member под новым именем:
+
+```efen
+interface Reader {
+    fn read -> [Byte]
+}
+
+interface Writer {
+    fn read -> [Byte]
+}
+
+interface Duplex : Reader, Writer {
+    use Reader.read
+    use Writer.read as write
+}
+```
+
+Здесь `Duplex.read` взят из `Reader.read`, а `Duplex.write` — из
+`Writer.read`. Внутри тела interface `use` разрешает конфликт наследуемого
+member, а не импортирует модуль; путь `Parent.member` всегда называет
+исходный member. Если конфликт не разрешён явным `use`, это ошибка с указанием
+обоих путей. Новое имя не должно совпадать с другим доступным member.

@@ -501,7 +501,8 @@ choice объединяет `throws`/`in` и усиливает call right; `var
 
 Также отклонены две рекомендации отчёта: нельзя запрещать typestate transition
 только из-за живой ссылки, и нельзя без дополнительного решения переносить
-`defer`-механику `suppressed` на automatic user destructor. Открытыми остаются
-proof construction safety virtual dispatch, projection application proof,
-erased carrier ABI, callable storage/ABI, independent initialization order,
-generator lifecycle и `clean`/destructor integration.
+`defer`-механику `suppressed` на automatic user destructor. После этой сессии
+закрыты proof construction safety virtual dispatch, порядок независимой eager
+инициализации, lifecycle приостановленного generator и выбор member при diamond
+наследовании interface. Открытыми остаются projection application proof, erased
+carrier ABI, callable storage/ABI и `clean`/destructor integration.

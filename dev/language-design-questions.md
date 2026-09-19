@@ -1101,7 +1101,8 @@ fn make -> () -> Int throws E                // throws у make
 - Выбор callable объединяет `throws` и `in` и усиливает право вызова
   `read < write < own`; `var` не расширяет свою сводку неявным присваиванием.
 - Constructor не выпускает incomplete `self`; доказуемый `private final` helper
-  допустим, виртуальная диспетчеризация остаётся обычной.
+  допустим, виртуальная диспетчеризация остаётся обычной, но каждый достижимый
+  override обязан быть доказанно безопасен для текущей фазы инициализации.
 - Projection — typed view той же памяти; её применение требует proof compiler
   либо обеспечивающего кода.
 - `@erase` не имеет fallback и запрещает strategy-dependent операции; boxing
@@ -1111,11 +1112,15 @@ fn make -> () -> Int throws E                // throws у make
 - Eager startup соблюдает зависимости `use`; среди готовых независимых модулей
   выбирается лексикографически наименьший полный путь, а `static let` одного
   модуля идут в порядке объявления.
-- Interface имеет public typestate и множественное наследование без storage.
+- Interface имеет public typestate и множественное наследование без storage;
+  конфликт member разрешается `use Parent.member`, а
+  `use Parent.member as name` вводит выбранный member под новым именем.
+- При потере последнего владельца приостановленного generator уничтожается его
+  frame и выполняется только структурированная очистка; код после `yield` не
+  возобновляется.
 
-Не закрыты: proof construction safety виртуального override, projection proof
-contract, erased carrier ABI, storage/ABI callable summary, generator lifecycle
-и отношение user destructor к `clean`-области.
+Не закрыты: projection proof contract, erased carrier ABI, storage/ABI callable
+summary и отношение user destructor к `clean`-области.
 
 Аудит канонических форм от 2026-09-16 (номера A/B — его пункты), ещё не разобраны:
 
