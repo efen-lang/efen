@@ -13,8 +13,11 @@ Efen — компилируемый язык с программируемыми
 | Понять модель языка | [Абстракции](abstractions.md) → [типы и данные](types/README.md) → [функции](functions.md) → [классы](classes.md) |
 | Написать обычный код | [Философия и синтаксис](philosophy.md) → [вызовы](function-call-syntax.md) → [управляющие конструкции](blocks/README.md) → [ошибки](throws.md) |
 | Работать с данными и ресурсами | [Типы и данные](types/README.md) → [ownership](types/ownership.md) → [memory guide](memory/README.md) |
-| Расширить тип или компилятор | [Контракты](contracts.md) → [расширяемость](aspects/README.md) → [Compile-time API](compile-time/README.md) |
-| Понять модули и окружение | [Пакеты](packages.md) → [видимость](visibility.md) → [контексты и эффекты](context-and-effects.md) → [слои](layers.md) |
+| Расширить поведение типа | [Контракты](contracts.md) → [interfaces](interfaces.md) → [стратегии](strategies.md) |
+| Писать метапрограммирование | [Аспекты](aspects/README.md) → [Compile-time API](compile-time/README.md) → [метафункции](compile-time/metafunctions.md) |
+| Понять toolchain | [Режимы компиляции](compilation-modes.md) → [диалекты](dialects.md) → [Amber](https://github.com/efen-lang/amber/blob/main/design/README.md) |
+| Понять модули и архитектурные границы | [Пакеты](packages.md) → [видимость](visibility.md) → [слои](layers.md) |
+| Работать с ambient-зависимостями и ошибками | [Контексты и эффекты](context-and-effects.md) → [`throws`](throws.md) → [code regions](code-regions.md) |
 
 ## Карта разделов
 
@@ -23,10 +26,12 @@ Efen — компилируемый язык с программируемыми
 | [Выражения и поток](blocks/README.md) | [функции](functions.md), [вызовы](function-call-syntax.md), [замыкания](closure.md), [генераторы](generators.md), [flow](flow.md), [`is`](is.md), [деструктуризация](destructuring.md), [операторы](operators.md), [комментарии](comments.md), [условная компиляция](сonditional_compilation.md) |
 | [Типы и данные](types/README.md) | Формы данных, коллекции, generics, ownership и typestate |
 | [Абстракции](abstractions.md) | [классы](classes.md), [структуры](structs.md), [контракты](contracts.md), [interfaces](interfaces.md), [superpolymorphism](superpolymorphism.md) |
-| [Расширяемость](aspects/README.md) | Стратегии, аспекты, построение класса, member resolver, metadata и декораторы |
-| [Модули и окружение](packages.md) | Пакеты, видимость, контексты, эффекты и слои |
+| [Расширение поведения](contracts.md) | Контракты, interfaces, superpolymorphism и стратегии |
+| [Метапрограммирование](aspects/README.md) | Аспекты, построение класса, member resolver, metadata, декораторы и Compile-time API |
+| [Модули и архитектура](packages.md) | Пакеты, модули, пространства имён, видимость и слои |
+| [Контексты, эффекты и ошибки](context-and-effects.md) | Ambient-зависимости, `throws`, `try/catch`, `guard` и code regions |
 | [Память и представление](memory/README.md) | Владение, representation, layout, примеры и proof boundary |
-| [Compile-time и toolchain](compile-time/README.md) | API, метафункции, режимы, диалекты, runtime API и Amber |
+| [Toolchain и интеграция](compile-time/README.md) | Режимы компиляции, диалекты, runtime API и Amber |
 
 ## Ориентиры и границы
 

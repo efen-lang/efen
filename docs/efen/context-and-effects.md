@@ -1,6 +1,6 @@
 # Эффекты и контексты
 
-[Документация](README.md) · [Словарь](glossary.md) · [Throws](throws.md) · [Слои](layers.md)
+[Документация](README.md) · [Словарь](glossary.md) · [Throws](throws.md) · [Code regions](code-regions.md)
 
 > Эффекты - это внешняя зависимость, 
 > которая не передаётся явно в параметры функции,

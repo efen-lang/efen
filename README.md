@@ -13,8 +13,9 @@ Efen — компилируемый язык, в котором классы, с
 |---|---|
 | Быстро понять язык | [Карта документации](docs/efen/README.md) → [абстракции](docs/efen/abstractions.md) → [классы](docs/efen/classes.md) |
 | Разобраться в типах и памяти | [Типы и данные](docs/efen/types/README.md) → [ownership](docs/efen/types/ownership.md) → [управление памятью](docs/efen/memory/README.md) |
-| Понять расширяемость | [Контракты](docs/efen/contracts.md) → [расширяемость](docs/efen/aspects/README.md) → [Compile-time API](docs/efen/compile-time/README.md) |
-| Писать compile-time код | [Compile-time и toolchain](docs/efen/compile-time/README.md) → [метафункции](docs/efen/compile-time/metafunctions.md) → [metadata](docs/efen/aspects/metadata.md) |
+| Расширить поведение типа | [Контракты](docs/efen/contracts.md) → [interfaces](docs/efen/interfaces.md) → [стратегии](docs/efen/strategies.md) |
+| Писать метапрограммирование | [Аспекты](docs/efen/aspects/README.md) → [Compile-time API](docs/efen/compile-time/README.md) → [метафункции](docs/efen/compile-time/metafunctions.md) |
+| Понять toolchain | [Режимы компиляции](docs/efen/compilation-modes.md) → [диалекты](docs/efen/dialects.md) → [Amber](https://github.com/efen-lang/amber) |
 | Найти определение термина | [Словарь Efen](docs/efen/glossary.md) |
 | Понять принципы синтаксиса | [Философия языка](docs/efen/philosophy.md) |
 | Читать внешние исследования | [Исследования](docs/research/README.md) |
