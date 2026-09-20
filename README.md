@@ -11,15 +11,16 @@ Efen — компилируемый язык, в котором классы, с
 
 | Цель | Маршрут |
 |---|---|
-| Быстро понять язык | [Обзор документации](docs/efen/index.md) → [абстракции](docs/efen/abstractions.md) → [классы](docs/efen/classes.md) |
-| Разобраться в типах и памяти | [Типы](docs/efen/types/type.md) → [ownership](docs/efen/types/ownership.md) → [управление памятью](docs/efen/memory/index.md) |
-| Понять расширяемость | [Контракты](docs/efen/contracts.md) → [стратегии](docs/efen/strategies.md) → [аспекты](docs/efen/aspects/aspect.md) |
-| Писать compile-time код | [Compile-time API](docs/efen/compile-time/index.md) → [метафункции](docs/efen/compile-time/metafunctions.md) → [metadata](docs/efen/aspects/metadata.md) |
+| Быстро понять язык | [Карта документации](docs/efen/README.md) → [абстракции](docs/efen/abstractions.md) → [классы](docs/efen/classes.md) |
+| Разобраться в типах и памяти | [Типы и данные](docs/efen/types/README.md) → [ownership](docs/efen/types/ownership.md) → [управление памятью](docs/efen/memory/README.md) |
+| Понять расширяемость | [Контракты](docs/efen/contracts.md) → [расширяемость](docs/efen/aspects/README.md) → [Compile-time API](docs/efen/compile-time/README.md) |
+| Писать compile-time код | [Compile-time и toolchain](docs/efen/compile-time/README.md) → [метафункции](docs/efen/compile-time/metafunctions.md) → [metadata](docs/efen/aspects/metadata.md) |
 | Найти определение термина | [Словарь Efen](docs/efen/glossary.md) |
 | Понять принципы синтаксиса | [Философия языка](docs/efen/philosophy.md) |
+| Читать внешние исследования | [Исследования](docs/research/README.md) |
 
 Полный тематический каталог и дополнительные маршруты находятся в
-[индексе документации](docs/efen/index.md).
+[карте документации](docs/efen/README.md).
 
 ## Место Efen в toolchain
 
@@ -40,7 +41,7 @@ Efen определяет исходную семантику. [Amber](https://g
 
 ## Источники истины
 
-- Текущая модель языка: [`docs/efen/`](docs/efen/index.md).
+- Текущая модель языка: [`docs/efen/`](docs/efen/README.md).
 - Термины языка: [`docs/efen/glossary.md`](docs/efen/glossary.md).
 - Принятые межрепозиторные решения и план реализации ведутся в Amber:
   [decision log](https://github.com/efen-lang/amber/blob/main/dev/DECISIONS.md) и

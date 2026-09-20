@@ -1,6 +1,6 @@
 # Flow
 
-[Документация](index.md) · [Словарь](glossary.md) · [Генераторы](generators.md) · [Контексты и эффекты](context-and-effects.md)
+[Документация](README.md) · [Словарь](glossary.md) · [Генераторы](generators.md) · [Контексты и эффекты](context-and-effects.md)
 
 Flow — это синтаксис для описания монадических последовательностей вычислений в языке Efen.
 

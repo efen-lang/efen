@@ -1,6 +1,6 @@
 # Словарь Efen
 
-[Документация Efen](index.md) · [Amber glossary](https://github.com/efen-lang/amber/blob/main/design/glossary.md)
+[Документация Efen](README.md) · [Amber glossary](https://github.com/efen-lang/amber/blob/main/design/glossary.md)
 
 Термины ниже описывают текущую модель языка. Физические структуры HIR и стадии
 компиляции вынесены в отдельный словарь Amber.

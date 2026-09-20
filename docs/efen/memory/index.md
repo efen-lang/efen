@@ -1,6 +1,6 @@
 # Управление памятью
 
-[Документация](../index.md) · [Словарь](../glossary.md) · [Ownership](../types/ownership.md) · [Representations](../representations.md)
+[Документация](../README.md) · [Словарь](../glossary.md) · [Ownership](../types/ownership.md) · [Representations](../representations.md)
 
 `Efen` является языком программирования, 
 который одновременно предоставляет максимально низкий уровень управления памятью,

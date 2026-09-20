@@ -6,7 +6,7 @@
 > destructor запускается только внутри неявной `clean`-области, затем выполняется
 > `Disposable`; обычный бросающий destructor остаётся явной операцией автора.
 
-[Документация](index.md) · [Словарь](glossary.md) · [Тематический memory guide](memory/index.md) · [Ownership](types/ownership.md)
+[Документация](README.md) · [Словарь](glossary.md) · [Тематический memory guide](memory/README.md) · [Ownership](types/ownership.md)
 
 С одной стороны `Efen` позволяет управлять памятью напрямую, 
 а с другой стороны содержит все необходимые абстракции, чтобы скрыть этот процесс.

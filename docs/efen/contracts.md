@@ -1,6 +1,6 @@
 # Контракты
 
-[Документация](index.md) · [Словарь](glossary.md) · [Interfaces](interfaces.md) · [Стратегии](strategies.md)
+[Документация](README.md) · [Словарь](glossary.md) · [Interfaces](interfaces.md) · [Стратегии](strategies.md)
 
 > Контакт -- высшая языковая абстракция времени компиляции, которая описывает правила формирования других абстракций.
 

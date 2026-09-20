@@ -1,6 +1,6 @@
 # Стратегии
 
-[Документация](index.md) · [Словарь](glossary.md) · [Контракты](contracts.md) · [Member resolver](aspects/members-resolving.md)
+[Документация](README.md) · [Словарь](glossary.md) · [Контракты](contracts.md) · [Member resolver](aspects/members-resolving.md)
 
 > **Стратегия** — отдельная реализация поведения для типа. Она может участвовать
 > в compile-time разрешении и не становится физическим членом целевого типа.

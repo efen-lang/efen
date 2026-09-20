@@ -1,6 +1,6 @@
 # Ownership
 
-[Документация](../index.md) · [Словарь](../glossary.md) · [Memory](../memory/index.md) · [Representations](../representations.md)
+[Документация](../README.md) · [Словарь](../glossary.md) · [Memory](../memory/README.md) · [Representations](../representations.md)
 
 Efen разделяет право владения ресурсом и права доступа к нему. Система типов
 проверяет эти права во время компиляции.

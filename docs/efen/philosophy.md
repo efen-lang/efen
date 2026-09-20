@@ -1,6 +1,6 @@
 # Философия языка Efen
 
-[Документация](index.md) · [Функции](functions.md) · [Синтаксис вызова](function-call-syntax.md)
+[Документация](README.md) · [Функции](functions.md) · [Синтаксис вызова](function-call-syntax.md)
 
 ## Один канонический способ
 
