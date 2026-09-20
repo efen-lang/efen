@@ -1,6 +1,6 @@
 # Словарь Efen
 
-[Документация Efen](index.md) · [Amber glossary](https://github.com/limelight-lang/amber/blob/main/design/glossary.md)
+[Документация Efen](index.md) · [Amber glossary](https://github.com/efen-lang/amber/blob/main/design/glossary.md)
 
 Термины ниже описывают текущую модель языка. Физические структуры HIR и стадии
 компиляции вынесены в отдельный словарь Amber.
@@ -23,7 +23,7 @@
 | **Effect** | Статически отслеживаемое внешнее требование или действие, распространяемое по графу вызовов. | [Контексты и эффекты](context-and-effects.md) |
 | **Family** | Открытый tagged carrier `Family<Base>`, куда проверенные новые виды могут добавляться без закрытого множества cases одного `variant`. | [Адреса](memory/addresses.md), [колоночные layout](memory/columnar-layouts.md) |
 | **Flow** | Монадическая последовательность вычислений. `<-` связывает значение контекста, а `return` завершает только сам `flow`. | [Flow](flow.md) |
-| **HIR** | Высокоуровневое структурное представление программы после frontend. Тела проходят от нетипизированных C0/C1-форм к типизированным и проверенным поздним стадиям; это не машинные инструкции. | [Compile-time API](compile-time/index.md), [Amber HIR](https://github.com/limelight-lang/amber/blob/main/design/hir/README.md) |
+| **HIR** | Высокоуровневое структурное представление программы после frontend. Тела проходят от нетипизированных C0/C1-форм к типизированным и проверенным поздним стадиям; это не машинные инструкции. | [Compile-time API](compile-time/index.md), [Amber HIR](https://github.com/efen-lang/amber/blob/main/design/hir/README.md) |
 | **Interface** | Runtime-тип с динамической диспетчеризацией. Проекция contract в interface создаётся только явной формой `interface I from C`. | [Интерфейсы](interfaces.md), [контракты](contracts.md#связь-контрактов-с-интерфейсами) |
 | **`isolated`** | Граница, запрещающая неявно расширять набор внешних эффектов функции или региона. Не означает `pure` и не запрещает re-entry. | [Контексты и эффекты](context-and-effects.md) |
 | **Layout / компоновка** | Декларативное описание структур, дескрипторов памяти, их размещения, связей и условий. Операции выделения принадлежат конкретным дескрипторам памяти; отдельный универсальный generic-тип для allocation не требуется. | [Компоновка и дескрипторы](memory/addresses.md), [примеры](memory/layout-examples/) |

@@ -1,6 +1,6 @@
 # API времени компиляции (Compile-Time API)
 
-[Документация](../index.md) · [Словарь](../glossary.md) · [Метафункции](metafunctions.md) · [Amber HIR](https://github.com/limelight-lang/amber/blob/main/design/hir/README.md)
+[Документация](../index.md) · [Словарь](../glossary.md) · [Метафункции](metafunctions.md) · [Amber HIR](https://github.com/efen-lang/amber/blob/main/design/hir/README.md)
 
 API времени компиляции предоставляет программисту полный доступ к структуре компилируемого кода во время компиляции.
 `API` может быть подключен как модуль `compiler`.

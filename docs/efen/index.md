@@ -1,6 +1,6 @@
 # Документация Efen
 
-[Корень репозитория](../../README.md) · [Словарь](glossary.md) · [Amber HIR](https://github.com/limelight-lang/amber/blob/main/design/README.md)
+[Корень репозитория](../../README.md) · [Словарь](glossary.md) · [Amber HIR](https://github.com/efen-lang/amber/blob/main/design/README.md)
 
 Efen — компилируемый язык с программируемыми compile-time
 абстракциями. Эти документы описывают проект языка; они не подтверждают наличие
@@ -16,7 +16,7 @@ Efen — компилируемый язык с программируемыми
 | Писать metaprogramming | [Compile-time API](compile-time/index.md) → [метафункции](compile-time/metafunctions.md) → [аспекты](aspects/aspect.md) → [metadata](aspects/metadata.md) |
 | Разобраться в памяти | [Владение](types/ownership.md) → [представления](representations.md) → [обзор памяти](memory/index.md) → [компоновка и дескрипторы](memory/addresses.md) → [примеры](memory/layout-examples/) |
 | Понять зависимости приложения | [Пакеты](packages.md) → [видимость](visibility.md) → [контексты и эффекты](context-and-effects.md) → [слои](layers.md) |
-| Сопоставить язык с компилятором | [Режимы компиляции](compilation-modes.md) → [диалекты](dialects.md) → [Amber architecture](https://github.com/limelight-lang/amber/blob/main/design/architecture/README.md) |
+| Сопоставить язык с компилятором | [Режимы компиляции](compilation-modes.md) → [диалекты](dialects.md) → [Amber architecture](https://github.com/efen-lang/amber/blob/main/design/architecture/README.md) |
 
 ## Карта понятий
 
@@ -124,7 +124,7 @@ generic-модели Efen и не требуют отдельной feature. Д�
 | Другие frontend-языки | [Диалекты](dialects.md) |
 | Runtime-facing API | [Runtime index](runtime/index.md), [runtime memory](runtime/memory.md) |
 | Тестовые конструкции | [Tests](tests/tests.md) |
-| Общий HIR и стадии | [Amber design](https://github.com/limelight-lang/amber/blob/main/design/README.md), [Amber glossary](https://github.com/limelight-lang/amber/blob/main/design/glossary.md) |
+| Общий HIR и стадии | [Amber design](https://github.com/efen-lang/amber/blob/main/design/README.md), [Amber glossary](https://github.com/efen-lang/amber/blob/main/design/glossary.md) |
 
 ## Где искать ответ
 
@@ -132,7 +132,7 @@ generic-модели Efen и не требуют отдельной feature. Д�
 |---|---|
 | Как конструкция Efen ведёт себя сейчас? | Тематический документ в `docs/efen/` |
 | Что означает термин? | [Словарь Efen](glossary.md) |
-| Почему решение принято или отменено? | [Amber decision log](https://github.com/limelight-lang/amber/blob/main/dev/DECISIONS.md) |
-| Что ещё предстоит спроектировать или реализовать? | [Очередь вопросов Efen](../../dev/language-design-questions.md#очередь-на-2026-09-17), [Amber plan](https://github.com/limelight-lang/amber/blob/main/dev/PLAN.md) и явно открытые разделы тематических документов |
-| Как семантика хранится в HIR? | [Amber HIR guide](https://github.com/limelight-lang/amber/blob/main/design/hir/README.md) |
+| Почему решение принято или отменено? | [Amber decision log](https://github.com/efen-lang/amber/blob/main/dev/DECISIONS.md) |
+| Что ещё предстоит спроектировать или реализовать? | [Очередь вопросов Efen](../../dev/language-design-questions.md#очередь-на-2026-09-17), [Amber plan](https://github.com/efen-lang/amber/blob/main/dev/PLAN.md) и явно открытые разделы тематических документов |
+| Как семантика хранится в HIR? | [Amber HIR guide](https://github.com/efen-lang/amber/blob/main/design/hir/README.md) |
 | Это уже работает в компиляторе? | Нужны код и runtime/compiler tests; одна документация этого не доказывает |

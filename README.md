@@ -34,17 +34,17 @@ backend profile
     └─ other compatible backends
 ```
 
-Efen определяет исходную семантику. [Amber](https://github.com/limelight-lang/amber)
+Efen определяет исходную семантику. [Amber](https://github.com/efen-lang/amber)
 задаёт общий HIR, стадии готовности, анализ и границы frontend/backend. Начальная
-точка для сопоставления языка с HIR — [путеводитель Amber](https://github.com/limelight-lang/amber/blob/main/design/README.md).
+точка для сопоставления языка с HIR — [путеводитель Amber](https://github.com/efen-lang/amber/blob/main/design/README.md).
 
 ## Источники истины
 
 - Текущая модель языка: [`docs/efen/`](docs/efen/index.md).
 - Термины языка: [`docs/efen/glossary.md`](docs/efen/glossary.md).
 - Принятые межрепозиторные решения и план реализации ведутся в Amber:
-  [decision log](https://github.com/limelight-lang/amber/blob/main/dev/DECISIONS.md) и
-  [plan](https://github.com/limelight-lang/amber/blob/main/dev/PLAN.md).
+  [decision log](https://github.com/efen-lang/amber/blob/main/dev/DECISIONS.md) и
+  [plan](https://github.com/efen-lang/amber/blob/main/dev/PLAN.md).
 - Актуальная очередь ещё не решённых вопросов поверхности Efen ведётся в
   [`dev/language-design-questions.md`](dev/language-design-questions.md); пометка
   «решено» у Q01–Q55 закрывает сформулированные решения; следующая очередь
