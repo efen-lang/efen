@@ -71,6 +71,57 @@ provide MyAllocator for MyObject
 `provide Strategy for Type` является явной инструкцией применить названную
 стратегию к целевому типу при компиляции текущего пакета.
 
+### Стратегия для opaque projection
+
+Стратегия может иметь целью именованную projection. Если projection объявлена
+`opaque(private)` или `opaque(internal)`, target стратегии остаётся projection,
+а её тело видит исходный тип только тогда, когда сама стратегия находится в
+области раскрытия. Это позволяет экспортировать безопасную операцию над узким
+view, не раскрывая его исходный тип клиенту:
+
+```efen
+public opaque(private) projection HirNodeForResolver for HirNode {
+    let kind: NodeKind
+    let range: SourceRange
+    let operands: [HirNodeId]
+}
+
+strategy ResolveCall for HirNodeForResolver {
+    public fn resolve(symbols: &read SymbolTable) -> Void
+        throws ResolveError
+    {
+        match self.kind {
+            .call: {
+                if self.operands.count == 0 {
+                    throw ResolveError.invalidCall(self.range)
+                }
+
+                let callee = self.operands[0]
+
+                if let symbol = symbols.symbolFor(callee) {
+                    let type = symbol.functionType
+
+                    // Здесь HirNodeForResolver раскрыт как HirNode.
+                    self.resolvedSymbol = symbol
+                    self.resolvedType = type
+                    return
+                }
+
+                throw ResolveError.unknownCallee(self.range)
+            }
+
+            _: throw ResolveError.notACall(self.range)
+        }
+    }
+}
+```
+
+Внешний caller может вызвать `node.resolve(symbols)` только при доступном
+`write`-пути к `HirNodeForResolver`. Он не может обратиться к
+`resolvedSymbol`, `resolvedType` или преобразовать node в `HirNode`.
+Раскрытие не выдаёт стратегии дополнительных ownership-прав: обычные
+проверки `own`/`read`/`write`, происхождения и живости остаются обязательными.
+
 ## Право применить стратегию
 
 Пакет-владелец типа может применять к нему свои стратегии без дополнительного

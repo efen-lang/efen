@@ -47,6 +47,41 @@ let view: UserWithEmail = user
 Эта строка ошибочна, пока код не обеспечил условия `UserWithEmail` либо
 compiler не доказал их.
 
+## Opaque projection
+
+Именованная projection может быть `opaque`. Она сохраняет обычную для
+projection бинарную совместимость с исходным типом и объявленную поверхность
+полей, но скрывает саму связь с исходным типом вне области раскрытия:
+
+```efen
+public opaque(private) projection HirNodeForResolver for HirNode {
+    let kind: NodeKind
+    let range: SourceRange
+    let operands: [HirNodeId]
+}
+```
+
+Снаружи `HirNodeForResolver` — отдельный тип: код может использовать только
+поля этой projection и её доступные методы стратегии, но не может превратить
+её значение в `HirNode`. Внутри области раскрытия она typecheck-ится как
+`HirNode`. Поэтому реализация, объявленная вместе с projection, может
+использовать полный исходный тип, не открывая его клиенту.
+
+`opaque(private)` раскрывает исходный тип только модулю, объявившему
+projection; `opaque(internal)` — всем модулям текущего пакета. Как и у
+`opaque type`, начальный `public` управляет доступностью имени
+`HirNodeForResolver`, а не областью раскрытия. Видимость членов самого
+`HirNode` остаётся обычной: раскрытие projection не отменяет `private` и
+другие правила доступа.
+
+Такой тип нужен для trusted operations. Например, внешнему модулю можно
+передать `HirNodeForResolver` и разрешить вызвать `resolve`, но не дать ему
+ни записать внутренний результат разрешения, ни снять projection. Стратегия
+`ResolveCall`, объявленная в defining module, получает receiver
+`HirNodeForResolver` для выбора метода, однако её тело видит `HirNode` и
+проверяет инварианты перед изменением. Пример находится в
+[стратегиях](../strategies.md#стратегия-для-opaque-projection).
+
 ## Анонимные проекции
 
 Оператор `.{...}` создаёт анонимную проекцию типа или типа коллекции без
