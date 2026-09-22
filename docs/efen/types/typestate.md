@@ -9,85 +9,148 @@
 Модель вдохновлена Plaid и Obsidian, но использует синтаксис и систему владения
 Efen.
 
-## Объявление состояний
+## Оси состояний
 
-Состояния объявляются внутри класса или структуры:
+Состояния объявляются внутри класса или структуры как именованные оси. Каждая
+ось имеет ровно одно начальное состояние:
 
 ```efen
-class File {
-    initial state Closed
-    state Open
-    state Failed
+class Connection {
+    state Lifecycle {
+        initial Disconnected
+        Connected
+        Closed
+    }
+
+    state Security {
+        initial Plain
+        Encrypted
+    }
 }
 ```
 
-`initial` отмечает состояние нового объекта. У типа должно быть ровно одно
-начальное состояние.
+Внутри `Connection` состояние пишется как `Lifecycle.Connected`; снаружи — как
+`Connection.Lifecycle.Connected`. Сокращение `Connection.Connected` допустимо,
+только если это имя уникально среди осей `Connection`; в публичных сигнатурах,
+контрактах и диагностических идентификаторах канонична полная форма.
 
-Состояния могут определять собственные данные:
+Текущее состояние объекта — по одному значению каждой оси. Начальная
+конфигурация — произведение всех `initial` состояний.
+
+Состояние оси может определять собственные данные:
 
 ```efen
 class File {
     let path: String
 
-    initial state Closed
+    state Lifecycle {
+        initial Closed
 
-    state Open {
-        let descriptor: Int
-    }
+        Open {
+            let descriptor: Int
+        }
 
-    state Failed {
-        let error: IOError
+        Failed {
+            let error: IOError
+        }
     }
 }
 ```
 
-`path` существует во всех состояниях. `descriptor` доступен только в `Open`, а
-`error` — только в `Failed`.
+`path` существует во всех конфигурациях. `descriptor` доступен только при
+`Lifecycle.Open`, а `error` — только при `Lifecycle.Failed`.
+
+## Инварианты конфигурации
+
+`state invariant` задаёт допустимые сочетания осей. Он проверяется для начальной
+конфигурации, на normal return каждого перехода и после восстановления на
+exceptional path:
+
+```efen
+class Connection {
+    state Lifecycle {
+        initial Disconnected
+        Connected
+        Closed
+    }
+
+    state Security {
+        initial Plain
+        Encrypted
+    }
+
+    state invariant validStates {
+        !(self is Security.Encrypted) || self is Lifecycle.Connected
+    }
+}
+```
+
+Это state-инвариант, а не общий инвариант представления класса: он ограничивает
+только конфигурации осей. Во время временно нарушенной конфигурации тело не
+может выполнять state-зависимый доступ, вызывать методы или выпускать зависящий
+от состояния alias; до normal либо exceptional выхода инвариант должен быть
+снова выполнен.
 
 ## Состояние в сигнатуре функции
 
-Typestate указывается словом `state`. Одно состояние означает, что метод требует
-это состояние и сохраняет его:
+Typestate указывается словом `state`. После него идёт непустой список правил
+осей, разделённых запятой:
 
 ```efen
-fn flush state Open
-fn read -> String state Open
+fn flush state Lifecycle.Open
+fn read -> String state Lifecycle.Open
 ```
 
-- `flush` ничего не возвращает, требует `Open` и оставляет объект в `Open`;
-- `read` возвращает `String`, требует `Open` и оставляет объект в `Open`.
+- `Lifecycle.Open` означает `Lifecycle.Open >> Lifecycle.Open`;
+- запятая соединяет правила разных осей, а не порядок выполнения;
+- одна ось не может встретиться в списке дважды;
+- неупомянутая ось сохраняет своё входное состояние.
 
-Отсутствие части `-> тип` означает, что метод не возвращает значения.
+Поэтому `flush` требует и сохраняет `Lifecycle.Open`, а `read` возвращает
+`String` при том же требовании. Отсутствие части `-> тип` означает, что метод
+не возвращает значения.
+
+Если доступ или результат перехода зависит от другой оси, она указывается
+отдельной clause, даже если не меняется:
+
+```efen
+fn enableTls
+    state Lifecycle.Connected,
+          Security.Plain >> Security.Encrypted
+```
 
 ## Переход состояния
 
-Оператор `>>` обозначает переход из исходного состояния в новое:
+Оператор `>>` обозначает переход одной оси из исходного состояния в новое:
 
 ```efen
-fn open state Closed >> Open
-fn close state Open >> Closed
+fn open state Lifecycle.Closed >> Lifecycle.Open
+fn close state Lifecycle.Open >> Lifecycle.Closed
 ```
 
 Метод с результатом записывается так:
 
 ```efen
-fn connect -> Connection state Disconnected >> Connected
+fn connect -> Connection state Lifecycle.Disconnected >> Lifecycle.Connected
 ```
 
 Общие формы сигнатуры:
 
 ```text
-fn name(parameters) -> ReturnType state Before >> After
-fn name(parameters) state Before >> After
-fn name(parameters) -> ReturnType state State
-fn name(parameters) state State
+AxisClause := Axis.State | Axis.State >> Axis.State
+
+fn name(parameters) -> ReturnType state AxisClause (, AxisClause)*
+fn name(parameters) state AxisClause (, AxisClause)*
 ```
 
 - `ReturnType` — возвращаемый тип;
-- `Before` — обязательное состояние до вызова;
-- `After` — состояние после успешного завершения;
-- одно `State` без `>>` эквивалентно `State >> State`.
+- `Before` — обязательное состояние оси до вызова;
+- `After` — состояние оси после успешного завершения;
+- одно `Axis.State` без `>>` эквивалентно identity-переходу этой оси.
+
+`|` не входит в публичную transition-сигнатуру первой версии. После ветвления
+компилятор может получить альтернативные состояния, но метод публикует точную
+нормальную post-конфигурацию.
 
 ## Пример
 
@@ -95,30 +158,32 @@ fn name(parameters) state State
 class File {
     let path: String
 
-    initial state Closed
+    state Lifecycle {
+        initial Closed
 
-    state Open {
-        let descriptor: Int
+        Open {
+            let descriptor: Int
+        }
     }
 
-    fn open state Closed >> Open throws IOError {
+    fn open state Lifecycle.Closed >> Lifecycle.Open throws IOError {
         descriptor = os.open(path)
     }
 
-    fn read(count: Int) -> [Byte] state Open {
+    fn read(count: Int) -> [Byte] state Lifecycle.Open {
         return os.read(descriptor, count)
     }
 
-    fn close state Open >> Closed {
+    fn close state Lifecycle.Open >> Lifecycle.Closed {
         os.close(descriptor)
     }
 }
 
-var file = File(path: "data.txt") // начальное состояние Closed
-file.open()                       // теперь Open
-let data = file.read(64)          // допустимо в Open
-file.close()                      // теперь Closed
-// file.read(64)                  // ошибка: требуется Open
+var file = File(path: "data.txt") // начальное состояние Lifecycle.Closed
+file.open()                       // теперь Lifecycle.Open
+let data = file.read(64)          // допустимо в Lifecycle.Open
+file.close()                      // теперь Lifecycle.Closed
+// file.read(64)                  // ошибка: требуется Lifecycle.Open
 ```
 
 ## Нормальное и аварийное завершение
@@ -127,23 +192,23 @@ file.close()                      // теперь Closed
 выбрасывает исключение, объект сохраняет валидное исходное состояние:
 
 ```efen
-fn open state Closed >> Open throws IOError
+fn open state Lifecycle.Closed >> Lifecycle.Open throws IOError
 ```
 
-- успешный возврат: `Closed` становится `Open`;
-- `throw IOError`: объект остаётся в валидном `Closed`.
+- успешный возврат: `Lifecycle.Closed` становится `Lifecycle.Open`;
+- `throw IOError`: объект остаётся в полной валидной исходной конфигурации.
 
 Это проверяемое обязательство тела, а не автоматический rollback. На каждом
-exceptional edge должны быть сохранены данные и invariants `Before`; после
-необратимого commit допустим только доказанно non-throwing путь. Отдельные
-exceptional poststates в первой версии не поддерживаются.
+exceptional edge должны быть сохранены данные, state-инварианты и все clauses
+`Before`; после необратимого commit допустим только доказанно non-throwing
+путь. Отдельные exceptional poststates в первой версии не поддерживаются.
 
 ## Эффекты и контексты
 
 Typestate отделён от контекстных эффектов `in` и исключений `throws`:
 
 ```efen
-fn open state Closed >> Open in FileSystem, Logger throws IOError
+fn open state Lifecycle.Closed >> Lifecycle.Open in FileSystem, Logger throws IOError
 ```
 
 Порядок частей сигнатуры:
@@ -170,23 +235,23 @@ if shouldClose {
     file.flush()
 }
 
-// Возможные состояния: Open | Closed
+// Возможные состояния Lifecycle: Open | Closed
 ```
 
 До уточнения состояния доступны только операции, допустимые одновременно для
-`Open` и `Closed`.
+`Lifecycle.Open` и `Lifecycle.Closed`.
 
 Состояние уточняется через `is` или `match`:
 
 ```efen
-if file is Open {
+if file is Lifecycle.Open {
     file.read(64)
 }
 
 match file {
-    Open: file.read(64)
-    Closed: file.open()
-    Failed: echo file.error
+    Lifecycle.Open: file.read(64)
+    Lifecycle.Closed: file.open()
+    Lifecycle.Failed: echo file.error
 }
 ```
 
@@ -212,16 +277,18 @@ use-after-free.
 
 ## Интерфейсы
 
-Интерфейс может описать протокол без определения данных состояний:
+Интерфейс с одной осью может описать протокол без определения данных состояний:
 
 ```efen
 interface Connection {
-    initial state Disconnected
-    state Connected
+    state Lifecycle {
+        initial Disconnected
+        Connected
+    }
 
-    fn connect state Disconnected >> Connected
-    fn send(data: [Byte]) -> Int state Connected
-    fn disconnect state Connected >> Disconnected
+    fn connect state Lifecycle.Disconnected >> Lifecycle.Connected
+    fn send(data: [Byte]) -> Int state Lifecycle.Connected
+    fn disconnect state Lifecycle.Connected >> Lifecycle.Disconnected
 }
 ```
 
@@ -235,12 +302,14 @@ Concrete type сопоставляет свои состояния публич�
 class TcpConnection {
     implements Connection
 
-    initial state Resolving
-    state Handshaking
-    state Ready
+    state Lifecycle {
+        initial Resolving
+        Handshaking
+        Ready
+    }
 
-    state Connection.Disconnected = Resolving | Handshaking
-    state Connection.Connected = Ready
+    state Connection.Lifecycle.Disconnected = Lifecycle.Resolving | Lifecycle.Handshaking
+    state Connection.Lifecycle.Connected = Lifecycle.Ready
 }
 ```
 
@@ -251,34 +320,46 @@ state из mapping `Q`. Exceptional path сохраняет concrete `Before` и
 остаётся в public `P`. Interface value создаётся только в состоянии из mapping;
 compiler не добавляет скрытый runtime dispatch для непокрытого состояния.
 
+Отображение нескольких осей interface на несколько concrete-осей пока не
+определено. Нельзя независимо отображать каждую ось: это способно создать
+декартово произведение недопустимых публичных конфигураций. До отдельного
+решения многомерные оси в интерфейсном протоколе не публикуются.
+
 ## Диагностика
 
 Ошибка должна показывать найденное и требуемое состояния:
 
 ```text
-error[typestate.invalid-call]: `read` requires state `Open`
-  found state: `Closed`
-  note: `file` changed to `Closed` after calling `close`
+error[typestate.invalid-call]: `read` requires state `Lifecycle.Open`
+  found state: `Lifecycle.Closed`
+  note: `file` changed to `Lifecycle.Closed` after calling `close`
 ```
 
 ## Изменения грамматики
 
 Для реализации потребуется:
 
-1. добавить объявления `state` и `initial state` в классы, структуры и интерфейсы;
-2. добавить необязательную часть `state` после возвращаемого типа;
-3. разрешить форму `state State` без части `-> тип`;
-4. разбирать `>>` как переход в сигнатуре, сохранив битовый сдвиг в выражениях;
-5. добавить typestate в сигнатуры методов интерфейсов и контрактов;
-6. реализовать flow-sensitive проверку совместно с ownership-анализом.
+1. добавить блоки осей `state Axis { initial State ... }` в классы и структуры;
+2. добавить `state invariant Name { Expr }` и проверку полной конфигурации;
+3. добавить список `AxisClause`, разделённый запятой, после результата метода;
+4. разбирать `>>` внутри clause, сохранив битовый сдвиг в выражениях;
+5. нормализовать clauses осей в сигнатурах методов, контрактов и HIR;
+6. реализовать flow-sensitive проверку конфигураций совместно с ownership-анализом;
+7. добавить точную диагностику дублированной оси, нарушения state-инварианта и
+   недопустимого перехода;
+8. отдельно определить mapping нескольких осей interface на concrete type;
+9. отдельно определить данные, принадлежащие комбинации нескольких осей, и их
+   инициализацию, очистку и доступ. В первой версии данные принадлежат только
+   одному конкретному состоянию одной оси.
 
 Слово `state` не конфликтует со structural union:
 
 ```efen
-fn parse -> Bool | String state Ready
+fn parse -> Bool | String state Lifecycle.Ready
 ```
 
-Здесь `Bool | String` — возвращаемый structural union, а `Ready` — состояние объекта.
+Здесь `Bool | String` — возвращаемый structural union, а `Lifecycle.Ready` —
+состояние объекта.
 
 ## Области с гарантией состояния
 
