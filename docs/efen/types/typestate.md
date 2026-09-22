@@ -37,7 +37,7 @@ class Connection {
 Текущее состояние объекта — по одному значению каждой оси. Начальная
 конфигурация — произведение всех `initial` состояний.
 
-Состояние оси может определять собственные данные:
+Поле может назвать конфигурацию, в которой оно существует и доступно:
 
 ```efen
 class File {
@@ -45,20 +45,34 @@ class File {
 
     state Lifecycle {
         initial Closed
+        Open
+        Failed
+    }
 
-        Open {
-            let descriptor: Int
-        }
+    let descriptor: Int {
+        state Lifecycle.Open
+    }
 
-        Failed {
-            let error: IOError
-        }
+    let error: IOError {
+        state Lifecycle.Failed
     }
 }
 ```
 
-`path` существует во всех конфигурациях. `descriptor` доступен только при
-`Lifecycle.Open`, а `error` — только при `Lifecycle.Failed`.
+`path` существует во всех конфигурациях. `descriptor` существует и доступен
+только при `Lifecycle.Open`, а `error` — только при `Lifecycle.Failed`.
+Переход в конфигурацию поля обязан его инициализировать; переход из неё —
+передать либо уничтожить. Условие поля может назвать несколько осей:
+
+```efen
+let tls: TlsContext {
+    state Lifecycle.Connected & Security.Encrypted
+}
+```
+
+Это условие присутствия и доступа к полю, а не обычный инвариант: оно задаёт
+его инициализацию, время жизни и недопустимость обращения вне указанной
+конфигурации.
 
 ## Инварианты конфигурации
 
@@ -93,7 +107,7 @@ class Connection {
 
 ## Состояние в сигнатуре функции
 
-Typestate указывается словом `state`. После него идёт непустой список правил
+Typestate указывается словом `state`. После него идёт одно или несколько правил
 осей, разделённых запятой:
 
 ```efen
@@ -111,7 +125,7 @@ fn read -> String state Lifecycle.Open
 не возвращает значения.
 
 Если доступ или результат перехода зависит от другой оси, она указывается
-отдельной clause, даже если не меняется:
+отдельным правилом, даже если не меняется:
 
 ```efen
 fn enableTls
@@ -128,9 +142,12 @@ fn open state Lifecycle.Closed >> Lifecycle.Open
 fn close state Lifecycle.Open >> Lifecycle.Closed
 ```
 
-Метод с результатом записывается так:
+`->` имеет обычный смысл Efen: он вводит возвращаемый результат. Если результата
+нет, `->` не пишется; `>>` при этом всё равно описывает переход состояния
+receiver-а:
 
 ```efen
+fn open state Lifecycle.Closed >> Lifecycle.Open
 fn connect -> Connection state Lifecycle.Disconnected >> Lifecycle.Connected
 ```
 
@@ -160,10 +177,11 @@ class File {
 
     state Lifecycle {
         initial Closed
+        Open
+    }
 
-        Open {
-            let descriptor: Int
-        }
+    let descriptor: Int {
+        state Lifecycle.Open
     }
 
     fn open state Lifecycle.Closed >> Lifecycle.Open throws IOError {
@@ -199,7 +217,7 @@ fn open state Lifecycle.Closed >> Lifecycle.Open throws IOError
 - `throw IOError`: объект остаётся в полной валидной исходной конфигурации.
 
 Это проверяемое обязательство тела, а не автоматический rollback. На каждом
-exceptional edge должны быть сохранены данные, state-инварианты и все clauses
+exceptional edge должны быть сохранены данные, state-инварианты и все правила
 `Before`; после необратимого commit допустим только доказанно non-throwing
 путь. Отдельные exceptional poststates в первой версии не поддерживаются.
 
@@ -341,16 +359,17 @@ error[typestate.invalid-call]: `read` requires state `Lifecycle.Open`
 
 1. добавить блоки осей `state Axis { initial State ... }` в классы и структуры;
 2. добавить `state invariant Name { Expr }` и проверку полной конфигурации;
-3. добавить список `AxisClause`, разделённый запятой, после результата метода;
-4. разбирать `>>` внутри clause, сохранив битовый сдвиг в выражениях;
-5. нормализовать clauses осей в сигнатурах методов, контрактов и HIR;
+3. добавить один или несколько правил осей, разделённых запятой, после
+   результата метода;
+4. разбирать `>>` внутри правила оси, сохранив битовый сдвиг в выражениях;
+5. нормализовать правила осей в сигнатурах методов, контрактов и HIR;
 6. реализовать flow-sensitive проверку конфигураций совместно с ownership-анализом;
 7. добавить точную диагностику дублированной оси, нарушения state-инварианта и
    недопустимого перехода;
 8. отдельно определить mapping нескольких осей interface на concrete type;
-9. отдельно определить данные, принадлежащие комбинации нескольких осей, и их
-   инициализацию, очистку и доступ. В первой версии данные принадлежат только
-   одному конкретному состоянию одной оси.
+9. реализовать проверку полей с условием `state`: их инициализацию при входе,
+   передачу или уничтожение при выходе и запрет доступа вне указанной
+   конфигурации.
 
 Слово `state` не конфликтует со structural union:
 
