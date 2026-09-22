@@ -134,19 +134,19 @@ fn close state Lifecycle.Open >> Lifecycle.Closed
 fn connect -> Connection state Lifecycle.Disconnected >> Lifecycle.Connected
 ```
 
-Общие формы сигнатуры:
+Сигнатура сохраняет обычный порядок Efen: после результата идёт `state`, а
+после него — одна или несколько осевых clauses через запятую. Каждая clause
+либо требует состояние, либо задаёт его переход:
 
-```text
-AxisClause := Axis.State | Axis.State >> Axis.State
+```efen
+fn send(data: [Byte]) -> Int state Lifecycle.Connected, Security.Encrypted
 
-fn name(parameters) -> ReturnType state AxisClause (, AxisClause)*
-fn name(parameters) state AxisClause (, AxisClause)*
+fn close
+    state Lifecycle.Connected >> Lifecycle.Closed,
+          Security.Encrypted >> Security.Plain
 ```
 
-- `ReturnType` — возвращаемый тип;
-- `Before` — обязательное состояние оси до вызова;
-- `After` — состояние оси после успешного завершения;
-- одно `Axis.State` без `>>` эквивалентно identity-переходу этой оси.
+Одно `Axis.State` без `>>` эквивалентно identity-переходу этой оси.
 
 `|` не входит в публичную transition-сигнатуру первой версии. После ветвления
 компилятор может получить альтернативные состояния, но метод публикует точную
