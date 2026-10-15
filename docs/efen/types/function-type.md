@@ -113,6 +113,26 @@ fn caller {
 compile-time HIR и статической проверке: runtime callable и его ABI не несут
 `throws`, contexts или states.
 
+Состояния входят в эту границу так же, как `throws`: граница — то, что написано
+в скобках типа. Callable, переданный в параметр функционального типа без
+`state`, не меняет состояние своих аргументов, даже если параметр объявлен
+`mut`. Функция, которая меняет состояние, передаётся только туда, где переход
+записан в самом типе: так изменение состояния видно в сигнатуре
+(Edmond, 2026-10-15).
+
+```efen
+fn apply(file: mut File, f: (mut File) -> Void) {
+    f(file)
+}
+
+fn closeIt(file: mut File) {
+    file.close()             // выведено: file Lifecycle.Open >> Lifecycle.Closed
+}
+
+apply(file, closeIt)         // ошибка: тип `f` не пишет `state`, а closeIt
+                             // меняет состояние file
+```
+
 ## Примеры с замыканиями
 
 ```efen
