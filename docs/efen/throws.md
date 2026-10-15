@@ -157,6 +157,19 @@ isolated fn load throws IOError {
 Каждое исключение должно быть перечислено в `throws` либо обработано внутри
 функции. Вызов, который потребовал бы расширить `throws`, является ошибкой.
 
+`isolated` закрывает только эффекты. Состояния параметров, изменение структуры
+памяти и источники ссылок компилятор выводит из тела `isolated` функции так же,
+как из любой другой, и вызывающий их видит:
+
+```efen
+isolated fn prepare(file: mut File) { file.open() }   // выведено: file Closed >> Open
+
+fn use(file: mut File) {
+    prepare(file)
+    file.read(4)   // допустимо: после prepare file в состоянии Open
+}
+```
+
 ### region nothrows
 
 Блок `without throws` из языка убран; его место занял регион `nothrows`
