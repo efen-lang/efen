@@ -139,8 +139,8 @@ storage без перемещения отдельных элементов и �
 ### Чтение и обход
 
 Индексация и обычный обход конкретного `values` предоставляют
-`&read[values] T`. Конкретный `RangeReadCursor<T, values>` соответствует
-`Iterator<Item: &read[values] T>` и сохраняет origin storage. Эти операции не
+`&read<values> T`. Конкретный `RangeReadCursor<T, values>` соответствует
+`Iterator<Item: &read<values> T>` и сохраняет origin storage. Эти операции не
 копируют `T` и не требуют `Copyable`:
 
 ```efen

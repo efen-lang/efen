@@ -280,7 +280,7 @@ replacement stores и публикует их no-throw заменой, либо 
 логический field path. Она не обязана быть машинным адресом.
 
 Обычные операции чтения и записи реализуются field lens. Логическое
-`&read[origin] T`, `&[origin] T` или `&out[origin] T` требует capability
+`&read<origin> T`, `&<origin> T` или `&out<origin> T` требует capability
 `Borrow` соответствующего режима, но не обязано быть машинным адресом. Живое
 заимствование блокирует конфликтующие `remove`, `replace` и `compact`.
 Временная AoS-копия скрыто не материализуется.
@@ -302,8 +302,8 @@ for base in Nodes.fields<BaseNode>() { ... }
 ```
 
 `Nodes.of<T>()` возвращает `KindView<T, Nodes>`; его читающий cursor выдаёт
-`&read[Nodes] T`. `Nodes.fields<BaseNode>()` возвращает
-`FieldView<BaseNode, Nodes>` с элементами `&read[Nodes] BaseNode` и использует
+`&read<Nodes> T`. `Nodes.fields<BaseNode>()` возвращает
+`FieldView<BaseNode, Nodes>` с элементами `&read<Nodes> BaseNode` и использует
 общие columns. Оба view сохраняют identity и origin исходного населения, не
 копируют значения и не создают нового населения.
 

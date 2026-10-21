@@ -191,20 +191,20 @@ fn initialize(value: &out Int) {
 указывается после режима доступа. Полная и короткая формы равнозначны:
 
 ```efen
-// Полная форма результата: ref read[values] Int
-// Короткая форма результата: &read[values] Int
-fn first(values: &read Array<Int>) -> &read[values] Int {
+// Полная форма результата: ref read<values> Int
+// Короткая форма результата: &read<values> Int
+fn first(values: &read Array<Int>) -> &read<values> Int {
     return &read values[0]
 }
 ```
 
-`[values]` означает, что результат происходит из места, доступного через
+`<values>` означает, что результат происходит из места, доступного через
 `values`, и не может оставаться годным после окончания или инвалидации этого
 origin. Несколько возможных источников перечисляются вместе:
 
 ```efen
 fn choose(left: &read Int, right: &read Int, condition: Bool)
-    -> &read[left, right] Int
+    -> &read<left, right> Int
 ```
 
 Origin можно опустить, когда компилятор однозначно выводит его из всех путей
@@ -214,7 +214,7 @@ Origin можно опустить, когда компилятор однозн
 fn first(values: &read Array<Int>) -> &read Int
 ```
 
-Если origin вывести нельзя, отсутствие `[origin]` является ошибкой, а не
+Если origin вывести нельзя, отсутствие `<origin>` является ошибкой, а не
 неограниченной ссылкой.
 
 ## Что делает ссылку недействительной
@@ -262,7 +262,7 @@ print(hp)           // ошибка: ссылка указывает в знач
 
 ```efen
 struct View<T, Source: Origin> {
-    let value: &read[Source] T
+    let value: &read<Source> T
 }
 ```
 
