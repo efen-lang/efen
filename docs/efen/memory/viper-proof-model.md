@@ -706,6 +706,33 @@ allocation и bytes наблюдаемо не изменены; после succe
 получает fresh `AllocationId` и освобождает старый ровно один раз. Фраза
 «potentially throwing moves в prepare» без выбора одной из стратегий запрещена.
 
+### 4.8a. `D.extendArea` (рост на месте, Edmond 2026-10-22)
+
+```text
+pre:
+    DescriptorState(D,Sd) ⊗ AreaState(D,a,Sa) ⊗ DescriptorWrite(D)
+    root place содержит единственный AllocationOwn(a)
+    oldCapacity == areaCapacity[a] <= newCapacity <= SIZE_MAX
+    bytes(newCapacity, Item) representable
+    живые LocationLease/loans и SlotStable(a,i,q) инициализированных slots допустимы
+
+normal:
+    resultArea == a; AllocationId и epoch сохранены
+    AllocationOwn(a,epoch,oldCapacity) --> AllocationOwn(a,epoch,newCapacity)
+    slots [oldCapacity, newCapacity) добавлены как Uninit
+    существующие slots, их values, leases и SlotStable не меняются
+    никакой area не freed, никакой occupant не перемещён
+
+exception (AllocationError) / try-вариант (false):
+    sameObservable(S!, S)
+```
+
+В отличие от `reallocateArea` (§4.8), рост на месте не требует полного `AreaStable(a,1)` и не
+выдаёт fresh epoch: старые `Items.Item` остаются годными. Это proof-сторона действия `allocate` в
+правилах ссылок (`../types/access-regions.md`, «Рост без перемещения») и операции `extend` аллокатора
+(`allocator.md`). `reallocateArea` — код поверх `extendArea` и relocation: сначала in-place, иначе
+перенос; его сводка по худшему пути — «может переместить».
+
 ### 4.9. `D.free(root, capacity, initializedCount)` для area
 
 ```text
