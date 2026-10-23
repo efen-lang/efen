@@ -197,14 +197,14 @@ fn toLargeBlock(spare: own FreeBlock, offset: Int) -> LargeBlock {
 поле типа `Blocks.Item?`. Записывается только адрес; вид при этом не поглощается.
 
 ```efen
-var pool: Blocks.Item? = null
+var firstFreeBlock: Blocks.Item? = null
 
-let block = toFreeBlock(region[index], next: self.pool)
-self.pool = block            // в поле — адрес блока; block жив
+let block = toFreeBlock(region[index], next: self.firstFreeBlock)
+self.firstFreeBlock = block  // в поле — адрес блока; block жив
 ```
 
-Обратный путь — сужение: `self.pool as FreeBlock` доказывается условием `layout`,
-которое связывает цепочку `pool` с `kind == .free`.
+Обратный путь — сужение: `self.firstFreeBlock as FreeBlock` доказывается условием `layout`,
+которое связывает цепочку `firstFreeBlock` с `kind == .free`.
 
 ## Возврат памяти
 
@@ -214,7 +214,7 @@ self.pool = block            // в поле — адрес блока; block ж�
 
 ```efen
 fn releaseBlock(block: own Block) {
-    self.pool = toFreeBlock(block, next: self.pool)
+    self.firstFreeBlock = toFreeBlock(block, next: self.firstFreeBlock)
 }
 ```
 
