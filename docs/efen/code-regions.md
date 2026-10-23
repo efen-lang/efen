@@ -200,12 +200,18 @@ region handles IOError {
 Без обработчика компилятор сообщает о нарушении на том выходе, через который
 `IOError` способно пройти.
 
-`nothrows` запрещает области выбрасывать что-либо:
+`nothrows` запрещает области выбрасывать исключения, кроме сбоев (`conforms
+Fault`, [throws.md](throws.md#nofail-системная-точка-ответственности)), а
+`nofail` — что-либо вообще:
 
 ```efen
 region nothrows {
     releaseHandles()
     resetCounters()
+}
+
+region nofail {
+    returnBlock(pool, block)
 }
 ```
 
@@ -261,7 +267,7 @@ region preserve file: Open {
 
 Для реализации потребуется:
 
-1. добавить `region`, `preserve`, `handles` и `nothrows` в грамматику операторов;
+1. добавить `region`, `preserve`, `handles`, `nothrows` и `nofail` в грамматику операторов;
 2. представить гарантии региона в AST;
 3. сохранить входное состояние каждого отслеживаемого слота;
 4. проверить состояние после применения `defer` на каждом ребре выхода;
