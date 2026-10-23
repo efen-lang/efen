@@ -223,8 +223,8 @@ fn example {
 contract RefCountContract {
     // Методы доступны только компилятору
     for compiler {
-        fn retain
-        fn release
+        mut fn retain
+        mut fn release
     }
 }
 

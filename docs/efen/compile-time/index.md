@@ -449,9 +449,9 @@ interface SourceLocation {
 ```efen
 interface Metadata {
     fn get(key: String) -> MetadataValue?;
-    fn set(key: String, value: MetadataValue);
+    mut fn set(key: String, value: MetadataValue);
     fn has(key: String) -> Bool;
-    fn remove(key: String);
+    mut fn remove(key: String);
     fn keys -> String[];
 
     // Маркировка метаданных для включения в runtime

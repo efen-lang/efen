@@ -846,7 +846,7 @@ interface Consumer<in T> {
 // Инвариантность (по умолчанию) - тип может быть и входным, и выходным
 interface Storage<T> {
     fn get -> T
-    fn set(item: T)
+    mut fn set(item: T)
 }
 ```
 

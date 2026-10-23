@@ -13,19 +13,19 @@ interface Allocator {
 }
 
 interface ArenaAllocator {
-    fn allocate(size: Size) -> Pointer
-    fn reallocate(ptr: Pointer, size: Int) -> Pointer
-    fn deallocate(ptr: Pointer)
-    fn reset
-    fn clear
+    mut fn allocate(size: Size) -> Pointer
+    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer
+    mut fn deallocate(ptr: Pointer)
+    mut fn reset
+    mut fn clear
 }
 
 interface PoolAllocator {
-    fn allocate(size: Size) -> Pointer
-    fn reallocate(ptr: Pointer, size: Int) -> Pointer
-    fn deallocate(ptr: Pointer)
-    fn acquire -> Pointer
-    fn release(ptr: Pointer)
+    mut fn allocate(size: Size) -> Pointer
+    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer
+    mut fn deallocate(ptr: Pointer)
+    mut fn acquire -> Pointer
+    mut fn release(ptr: Pointer)
 }
 ```
 

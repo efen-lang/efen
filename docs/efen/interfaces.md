@@ -101,6 +101,21 @@ processLogs(logger: consoleLogger, messages: ["Debug info"])
 - **ConsoleLogger VTBL** — указатели на реализацию ConsoleLogger
 - `processLogs` вызывает методы через VTBL (indirect call)
 
+### Доступ метода к self
+
+Метод interface пишет доступ к `self` так же, как метод контракта: `mut fn`
+может менять `self`, `read fn` и метод без пометки только читают его
+([«Контракты»](contracts.md#доступ-метода-к-self)). Реализацию interface можно
+заменить без перекомпиляции вызывающего, поэтому вызов через interface
+читается только по пометке.
+
+```efen
+interface Counter {
+    mut fn increment
+    fn value -> Int
+}
+```
+
 ### Сравнение: Interface vs Contract
 
 | Характеристика | Interface (VTBL) | Contract |

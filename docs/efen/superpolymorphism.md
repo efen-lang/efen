@@ -15,7 +15,7 @@
 ```efen
 interface Drawable {
     fn draw
-    fn resize(scale: Float)
+    mut fn resize(scale: Float)
 }
 
 class Shape {

@@ -418,7 +418,7 @@ let slice8 = arr[..<3]     // [10, 20, 30] - от начала до индекс
 
 ```efen
 contract Iterator<Item> {
-    fn next -> Item?
+    mut fn next -> Item?
 }
 
 contract Iterable<Item, Cursor: Iterator<Item>> {

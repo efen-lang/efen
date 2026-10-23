@@ -123,6 +123,34 @@ open class Middle: Animal {
 без `open`, — тоже ошибка: переопределение пишется явно, чтобы совпадение имён
 не переопределило метод случайно. Отдельного модификатора `abstract` в Efen нет.
 
+### Доступ метода к self
+
+Метод класса может написать `mut fn` или `read fn`, как метод контракта, но
+не обязан. Без пометки компилятор выводит доступ к `self` из тела. Вызов
+`open fn` при сборке всей программы делает всё, что делает любой достижимый
+override, поэтому выведенного доступа достаточно ([«Режимы
+компиляции»](compilation-modes.md#сборка-всей-программы)).
+
+Пометка у `open fn` — обещание для наследников. Override метода `read fn` не
+может менять `self`, и вызывающий читает такой метод по пометке, не
+перебирая override:
+
+```efen
+open class Shape {
+    open read fn area -> Float { return 0.0 }
+}
+
+class Square: Shape {
+    var side: Float
+    var calls: Int = 0
+
+    override read fn area -> Float {
+        calls += 1           // ошибка: area объявлен как read fn
+        return side * side
+    }
+}
+```
+
 ## Реализация интерфейсов
 
 Классы могут реализовывать один или несколько интерфейсов:
@@ -133,7 +161,7 @@ interface Drawable {
 }
 
 interface Resizable {
-    fn resize(scale: Float)
+    mut fn resize(scale: Float)
 }
 
 class Circle {
@@ -191,7 +219,7 @@ contract Validatable {
 
 interface Storable {
     fn save
-    fn load
+    mut fn load
 }
 
 open class Entity {
