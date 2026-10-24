@@ -184,7 +184,7 @@ let block = spare as SlotBlock(slots: Slot(size: s))
 компилятор доказывает к `return`.
 
 ```efen
-fn toLargeBlock(spare: own FreeBlock, offset: Int) -> own LargeBlock {
+fn toLargeBlock(spare: own PoolBlock, offset: Int) -> own LargeBlock {
     let block = spare as LargeBlock
     block.Header = Header(kind: .large, offset: offset)
     return block
@@ -192,8 +192,12 @@ fn toLargeBlock(spare: own FreeBlock, offset: Int) -> own LargeBlock {
 ```
 
 Старый вид пришёл как `own` и дальше не используется. Сменить вид нельзя, пока из
-областей вида взят элемент; у `own` такого не бывает (правило `own` ниже), и владеющие
-поля старого вида пусты.
+областей вида взят элемент; у `own` такого не бывает (правило `own` ниже). Владеющие
+ссылки старого вида, которых новый не держит, должны быть пусты в точке приведения:
+взяты `take` или проверены `== null`. Через вызов это не передаётся: `own FreeBlock`
+говорит, что ссылка пуста либо занята, поэтому смена вида берёт `own PoolBlock`, вид
+блока пула без ссылок (`struct PoolBlock { Block } { bytes.count == PAYLOAD }`), а
+функция, которая забрала ссылку, сама приводит блок к `PoolBlock`.
 
 ## Вид и имя элемента
 
@@ -215,7 +219,7 @@ let spare = take self.firstFreeBlock!  // приведения нет: тип п
 поле:
 
 ```efen
-fn releaseBlock(block: own Block) {
+fn releaseBlock(block: own PoolBlock) {
     self.firstFreeBlock = toFreeBlock(block, next: take self.firstFreeBlock)
 }
 ```
@@ -363,9 +367,13 @@ fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 },
 ### Владеющие ссылки вида
 
 `FreeBlock` уточняет `Header.next` до `own FreeBlock?`. Такое поле пишется только переносом
-(`spare.next = take next`) через уточняющий вид; через `Blocks.Item` и другие виды оно
-читается как имя. Смена вида требует, чтобы все владеющие поля старого вида были `null`;
-иначе `as` отказывает, и остаток пула не теряется молча.
+(`spare.next = take next`) через владельца вида: `own`-параметр или переменную, которая ещё
+владеет видом. Через `mut`-параметр ссылку можно только сравнить с `null`: вызывающий мог
+передать имя блока из середины цепочки, и `last.next = take first` замкнул бы её. Через
+`Blocks.Item` и другие виды поле читается как имя, записать его нельзя. Смена вида
+требует, чтобы владеющие ссылки старого вида были `null`; иначе `as` отказывает, и
+остаток пула не теряется молча. Ссылка, которую добавляет новый вид, после приведения не
+записана: байты держат старое имя, а не владельца.
 
 Владеющее поле пишется только через владельца: через `own`-значение или путь от него, который
 держит заём владельца. Через имя, полученное чтением владеющего места, — нельзя: имя переживает
