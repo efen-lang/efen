@@ -367,6 +367,13 @@ fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 },
 читается как имя. Смена вида требует, чтобы все владеющие поля старого вида были `null`;
 иначе `as` отказывает, и остаток пула не теряется молча.
 
+Владеющее поле пишется только через владельца: через `own`-значение или путь от него, который
+держит заём владельца. Через имя, полученное чтением владеющего места, — нельзя: имя переживает
+`take` владельца, и запись через него замкнула бы цепочку саму на себя (`second.next = take head`
+после `let head = take self.firstFreeBlock!`). Исключение — множество со структурным условием
+(`chained`, `tree`): там запись через имя разрешена, а компилятор доказывает сохранение условия,
+как `append` через `tail` в [примерах компоновки](layout-examples/singly-linked-array.md).
+
 ### Арена
 
 Блоки арены держит цепочка `arena.currentBlock: own ArenaBlock?` → `next: own ArenaBlock?`.
@@ -407,3 +414,4 @@ fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 },
 - цикл, который берёт несколько элементов: нужен инвариант по `taken`;
 - происхождение `Pointer` через границу контракта (`tryAllocate -> own Pointer?`);
 - как отображение покидает множество блоков при `unmap`.
+- структурное условие `tree from self.root by Item.left, Item.right` — пара к `chained` для дерева.
