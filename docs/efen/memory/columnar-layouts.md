@@ -224,7 +224,7 @@ Payload[K]: { id in Live | Kind(id) == K } <-> PayloadRows[K]
 координаты, не меняя логическую идентичность и origin. Для HIR `HirNodeId`
 выдаётся монотонно и не переиспользуется в пределах storage; исчерпание его
 пространства завершает создание ошибкой. Другой layout может выбрать recycling
-identity с поколением, но не вправе допустить wrap, оживляющий старую ссылку.
+identity с поколением, но не вправе допустить wrap, оживляющий старый указатель.
 
 ## Операции
 
@@ -332,7 +332,7 @@ HIR history и `HirViewId` разрешают значения по logical ID �
 - representation и codec parameters.
 
 Writer канонически упорядочивает descriptors и logical identities и remap-ит в
-выходном потоке kind/store codes, logical IDs, все ссылки на них, координаты,
+выходном потоке kind/store codes, logical IDs, все указатели на них, координаты,
 исторические версии и обратных владельцев. Порядок загрузки расширений и
 расположение строк рабочего storage не меняют байты одного логического snapshot.
 

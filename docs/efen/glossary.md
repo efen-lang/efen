@@ -63,7 +63,7 @@
 |---|---|
 | Contract и interface | Contract проверяет compile-time требования; interface является runtime-типом. |
 | Layout и representation | Layout связывает identities и stores; representation выбирает физическую форму типа. |
-| Origin и provenance | Origin ограничивает жизнь ссылки; provenance объясняет, какой metacode породил HIR. |
+| Origin и provenance | Origin называет место, к которому относится доступ или указатель; provenance объясняет, какой metacode породил HIR. |
 | Strategy и aspect | Strategy разрешает поведение; aspect участвует в построении абстракции и её HIR. |
 | `isolated` и `without Context` | `isolated` закрывает весь вывод внешних эффектов; `without Context` закрывает одно контекстное требование. |
 | Variant и structural union | Variant вводит номинальные cases; `T | U` только объединяет существующие типы. |

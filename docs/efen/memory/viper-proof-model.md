@@ -61,7 +61,7 @@ PropertyId     -- декларативное условие или взаимн�
 origin-правила `Items.Item` ([производные типы descriptor](addresses.md#производные-типы-дескриптора))
 и [несовместимости разных множеств](addresses.md#происхождение-и-разные-множества).
 
-### 2.2. Ссылки и места
+### 2.2. Указатели и места
 
 ```text
 StableRef(d, e)
@@ -90,7 +90,7 @@ Place =
 `occupant[AreaRef] = ElementId`. `Items.move` может сохранить `ElementId`,
 изменив его координату; старый `AreaRef` после этого указывает на пустой slot и
 не проходит проверку инициализации. `reallocateArea` меняет epoch, поэтому все
-ссылки со старым epoch непригодны независимо от совпадения машинного адреса.
+указатели со старым epoch непригодны независимо от совпадения машинного адреса.
 Такое разделение требуется
 потому, что текущая модель допускает invalidation старых `Items.Item` после
 reallocation ([перевыделение area](addresses.md#перевыделение-области-и-корневой-указатель)),
@@ -144,7 +144,7 @@ provisionalElem disjoint externallyEscaped
 
 `everElem` запрещает повторно признать старую identity свежей. Для политики с
 recycling вместо монотонной identity требуется generation без wrap, способного
-оживить старую ссылку ([формальная модель storage](columnar-layouts.md#формальная-модель)).
+оживить старый указатель ([формальная модель storage](columnar-layouts.md#формальная-модель)).
 
 ### 2.4. Ресурсная часть
 
@@ -393,7 +393,7 @@ Surface `D.allocate(value)` является композицией `allocatePro
 возвращает caller уже переданный через `take` value.
 
 Prepare может бросить. `Publish`, передача owner bundle результату и запись
-membership образуют no-throw/no-suspend/no-reenter commit. До `Publish` ссылка не
+membership образуют no-throw/no-suspend/no-reenter commit. До `Publish` указатель не
 может попасть в обычный Efen-код.
 
 Для descriptor с условиями у `set` контракт имеет две формы. `allocateClosed`
@@ -485,7 +485,7 @@ pre:
     DescriptorState(D,Sd) ⊗ DescriptorWrite(D)
     StableOwner(D,a,e) ⊗ ElementStorage(D,a,e,mask,values)
     нет живых loans на e или его поля
-    нет входящей strong-ссылки на e
+    нет входящего strong-указателя на e
     все оставшиеся initialized-компоненты перечислены
 
 normal, no-throw/no-suspend/no-reenter:
@@ -803,7 +803,7 @@ authority целиком на обоих выходах, а потерять lay
 или старого `inverse` нет.
 
 Закрытое состояние обязательно перед normal return, `throw`, suspension,
-cancellation, публикацией ссылки, входом в destructor и вызовом кода, способного
+cancellation, публикацией указателя, входом в destructor и вызовом кода, способного
 получить доступ к layout
 ([декларативные условия](addresses.md#декларативные-условия)). Проверенный helper может
 принимать и возвращать тот же `OpenAuthority`; внешний callback — нет.
@@ -816,7 +816,7 @@ cancellation, публикацией ссылки, входом в destructor и
 - initialized mask;
 - линейность принятых owners;
 - cleanup stack;
-- запрет утечки ссылки на `self` или provisional element.
+- запрет утечки указателя на `self` или provisional element.
 
 Callback допустим во время construction только если его контракт доказывает, что
 он не может получить origin строящегося layout. Поэтому `make(index)` в
@@ -1012,8 +1012,8 @@ predicate DStateWrite(d: Ref) {
 
 Создание использует Viper `new(value, init, ownToken)`, явно присваивает ghost
 `init` и обычные fields и сначала формирует provisional resource. Лишь template
-`Publish` раскрывает `DStateWrite`, добавляет ссылку в `d.members`, передаёт
-field permissions в `Cells`, не добавляет её в `d.escaped` и сворачивает
+`Publish` раскрывает `DStateWrite`, добавляет указатель в `d.members`, передаёт
+field permissions в `Cells`, не добавляет его в `d.escaped` и сворачивает
 отдельный `StableOwner`. Escape template доступен только после close. Сам `new`
 выдаёт permissions и свежий `Ref`, но не считается
 Efen-initialization полей. Окончательный source
@@ -1333,7 +1333,7 @@ item = Publish(provisional)                    // no-fail membership commit
 newId = inspect identity(item)
 if empty:  MoveOwn(item, self.head)
 else:      MoveOwn(item, oldTail.next)
-tail = reference at new owner-place; order = old(order) ++ [newId]
+tail = pointer to the new owner-place; order = old(order) ++ [newId]
 length = nextLength
 CloseProperty(group)
 ```
@@ -1459,7 +1459,7 @@ OpenProperty(fullScc)
 item = Publish(provisional)                                   // no-fail
 newId = inspect identity(item)
 oldTail.next = take item       // либо self.head для empty
-tail = reference at new owner-place
+tail = pointer to the new owner-place
 order = old(order) ++ [newId]; length = nextLength
 if old order empty:
     prove head == newId && prev(newId) == null
@@ -1785,7 +1785,7 @@ field permission проверяется postcondition leak-check; успешны
 
 | Mutation | Ожидаемый obligation |
 |---|---|
-| заменить descriptor/layout instance у ссылки того же `Box` | `memory.foreign-origin` во frontend |
+| заменить descriptor/layout instance у указателя того же `Box` | `memory.foreign-origin` во frontend |
 | скопировать `ElementOwn` вместо `MoveOwn` | `ownership.duplicate-own` в VIR validator |
 | не завершить read loan перед write | `borrow.conflicting-write` |
 | прочитать до `Initialize` | `memory.uninitialized-read` |
@@ -1864,4 +1864,4 @@ stable Box set
 Physical representation отдельно доказывает bijection, unique writable location,
 field-lens semantics, initialization и preservation transitions. Возможность
 `Borrow`, `Address` или `Stable` подтверждается ресурсным witness, а не boolean
-flag ([доступ и `managed`](columnar-layouts.md#доступ-ссылки-и-managed)).
+flag ([доступ и `managed`](columnar-layouts.md#доступ-указатели-и-managed)).

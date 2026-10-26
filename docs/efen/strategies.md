@@ -87,7 +87,7 @@ public opaque(private) projection HirNodeForResolver for HirNode {
 }
 
 strategy ResolveCall for HirNodeForResolver {
-    public fn resolve(symbols: &read SymbolTable) -> Void
+    public fn resolve(symbols: SymbolTable) -> Void
         throws ResolveError
     {
         match self.kind {

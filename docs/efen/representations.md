@@ -90,7 +90,7 @@ layout World {
 Программа продолжает использовать обычные `particle.position` и
 `function.body`. Accessors layout находят physical coordinate по logical
 identity и field path. Подробный контракт, split-by-kind HIR, транзакции,
-ссылки и сериализация описаны в [колоночных layout](memory/columnar-layouts.md).
+указатели и сериализация описаны в [колоночных layout](memory/columnar-layouts.md).
 
 ## Границы ответственности
 

@@ -141,7 +141,7 @@ strategy FastMath for Int {
 
 ```efen
 let values = Array<@myattr Int>()
-let readers: Array<@cached &read User>
+let readers: Array<@cached User>
 ```
 
 Он не прикрепляется ко всем употреблениям базового `Int` или `User`.

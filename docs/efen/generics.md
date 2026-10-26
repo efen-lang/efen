@@ -397,19 +397,18 @@ fn consume<T: Iterable>(items: T) {
 ключе так же, как явно написанные.
 
 Значением `generic T: Type` является полное типовое выражение. Оно сохраняет
-базовый тип, ссылочную форму, права и metadata употребления:
+базовый тип, права и metadata употребления:
 
 ```efen
 Array<User>
-Array<&read User>
-Array<ref read User>
 Array<shared read User>
 Array<@myattr Int>
-Array<@cached &read User>
+Array<@cached User>
 ```
 
-`ref` — полная словесная форма ссылки, а `&` — её сокращение, поэтому
-`Array<&read User>` и `Array<ref read User>` обозначают одну инстанциацию.
+Ссылочной формы среди них нет: ссылок в Efen нет
+([владение](types/ownership.md#в-efen-нет-ссылок)), и прежние `&read User` и `ref read User`
+из языка убраны.
 
 Эти аргументы образуют разные инстанциации generic. Код может получить базовый
 тип отдельно, но `T` по умолчанию не стирает его модификаторы и metadata.

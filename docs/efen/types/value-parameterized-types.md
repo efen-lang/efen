@@ -41,7 +41,7 @@ User<other>
 Функция может принять только определённую категорию:
 
 ```efen
-fn changeSystemConfiguration(user: &read User<root>) {
+fn changeSystemConfiguration(user: User<root>) {
     // Доступ разрешён только User<root>.
 }
 ```
@@ -49,7 +49,7 @@ fn changeSystemConfiguration(user: &read User<root>) {
 Несколько категорий выражаются обычным structural union:
 
 ```efen
-fn manageUsers(user: &read (User<root> | User<admin>)) {
+fn manageUsers(user: User<root> | User<admin>) {
     // ...
 }
 ```
@@ -59,7 +59,7 @@ fn manageUsers(user: &read (User<root> | User<admin>)) {
 ```efen
 fn displayProfile {
     generic Kind: UserKind
-    param user: &read User<Kind>
+    param user: User<Kind>
 
     // ...
 }

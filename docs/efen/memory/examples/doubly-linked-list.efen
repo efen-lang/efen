@@ -55,7 +55,7 @@ layout Deque<T> {
         let before = node.prev
         var cell = before == null ? head.slot : before.next.slot
 
-        var victim = cell.take()               // acquire the owning reference
+        var victim = cell.take()               // acquire the owning pointer
         cell.target = take victim.next         // prev of the new occupant follows
 
         if read cell.target == null {

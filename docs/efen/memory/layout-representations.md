@@ -45,7 +45,7 @@
 | Adaptive/hybrid | authoritative state, alternate stores и migration epoch | нельзя иметь две независимые writable копии |
 | Matrix layouts | affine strides, row/column-major или tiled coordinates | transpose-view меняет mapping, physical transpose является mutation |
 | Morton/vEB | shape-dependent rank mapping | locality покупается дорогой mutation и отсутствием stable address |
-| GPU storage | address-space source и execution visibility | host/device/workgroup ссылки имеют разные scopes и coherence |
+| GPU storage | address-space source и execution visibility | host/device/workgroup указатели имеют разные scopes и coherence |
 
 Практические модели подтверждают разложение на эти primitives:
 
@@ -95,8 +95,8 @@ RequiresRebuildOnWrite
 ```
 
 `Borrow` и `Address` — разные возможности. Bit-packed поле может быть
-`Readable + Writable`, но не поддерживать передаваемый `Borrow`; логическая
-ссылка при наличии `Borrow` всё равно не обязана быть машинным адресом.
+`Readable + Writable`, но не поддерживать передаваемый `Borrow`; логический
+доступ при наличии `Borrow` всё равно не обязан быть машинным адресом.
 Dictionary column может требовать rebuild при записи. `raw`, `offsetof` и C ABI
 требуют отдельно `Address + Stable`.
 
@@ -130,7 +130,7 @@ Dictionary column может требовать rebuild при записи. `ra
 - logical serializer и проверяемый physical snapshot.
 
 Это покрывает AoS, SoA, basic hot/cold, split-by-kind, nullable columns,
-offset references, chunked stores и базовый sparse set.
+offset pointers, chunked stores и базовый sparse set.
 
 ### После MVP
 
@@ -139,7 +139,7 @@ offset references, chunked stores и базовый sparse set.
 - ECS archetype migration;
 - bit-packed, dictionary, RLE и delta representations;
 - inline/boxed transitions;
-- GPU sources и address-space references.
+- GPU sources и address-space pointers.
 
 ### Позже
 

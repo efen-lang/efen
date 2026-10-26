@@ -64,7 +64,7 @@ aspect DynamicContiguous<Target> {
             let nextCapacity = max(minimum, max(8, doubled))
 
             Items.reallocateArea(
-                root: &self.root,
+                root: self.root,
                 oldCapacity: self.areaCapacity,
                 initializedCount: self.length,
                 newCapacity: nextCapacity

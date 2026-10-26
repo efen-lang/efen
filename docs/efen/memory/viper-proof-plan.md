@@ -112,7 +112,7 @@ Generated `.vir` и `.vpr` сохраняются для воспроизвед�
 - кто владеет allocation;
 - как задаются membership и liveness;
 - можно ли перемещать physical storage;
-- что именно инвалидирует reference, index и location lease;
+- что именно инвалидирует pointer, index и location lease;
 - какие initialized states допустимы;
 - как перечислить живые элементы для drop;
 - какие операции меняют membership.
@@ -148,7 +148,7 @@ source с линейным allocation token.
 - `throw`;
 - suspension/cancellation;
 - внешний или reentrant вызов;
-- публикация ссылки;
+- публикация указателя;
 - вход в destructor.
 
 Внутри открытого состояния разрешены только проверенные no-throw, no-suspend и

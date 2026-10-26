@@ -83,7 +83,7 @@ aspect Chunked<Target> {
             let nextCapacity = max(minimum, max(4, doubled))
 
             Chunks.reallocateArea(
-                root: &self.directory,
+                root: self.directory,
                 oldCapacity: self.directoryCapacity,
                 initializedCount: self.directoryLength,
                 newCapacity: nextCapacity

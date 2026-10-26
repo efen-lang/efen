@@ -177,7 +177,7 @@ enum class TypeKind : uint8_t {
     Refinement
 };
 
-// Predicate - ссылка на функцию-валидатор
+// Predicate — номер функции-валидатора
 struct Predicate {
     uint32_t validatorFunctionId;  // Index in Module::functions_
     SourceLocation location;
