@@ -51,7 +51,7 @@ fn unmapX86(@in(rdi) memory: own Pointer, @in(rsi) bytes: Int) -> Int {
 
 ```efen
 @asm(x86_64, result: rax, overwrites: [rcx, rdi, rdx, r8, r9, r10, r11, memory])
-fn mapX86(@in(rsi) bytes: Int) -> MapResult { mapped: memory.size == bytes && memory.alignment == 4096 && memory.zeroed } {
+fn mapX86(@in(rsi) bytes: Int) -> MapResult { mapped: memory.size == bytes && memory.alignment == 4096 && memory is Pointer.Zeroed } {
     mov eax, 9
     xor edi, edi
     mov edx, 3
@@ -115,7 +115,7 @@ implementation System {
 ```efen
 contract System {
     const PAGE: Int
-    fn map(bytes: Int { value % PAGE == 0 }, aligned: Int) -> own Pointer? { size == bytes && alignment == aligned && zeroed }
+    fn map(bytes: Int { value % PAGE == 0 }, aligned: Int) -> own Pointer.Zeroed? { size == bytes && alignment == aligned }
     fn unmap(memory: own Pointer, bytes: Int)
 }
 ```
