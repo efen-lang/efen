@@ -178,18 +178,18 @@ let block = spare as SlotBlock(slots: Slot(size: s))
 struct SlotBlock {
     Header
     var firstFreeSlot: Int = NONE
-    var bump: Int = 0
+    var frontier: Int = 0
     @align(LINE) area slots: Slot
 } {
-    forall k: k reachable from firstFreeSlot by Slot.next ==> k < bump
+    forall k: k reachable from firstFreeSlot by Slot.next ==> k < frontier
 }
 ```
 
-«Каждый слот, до которого можно дойти от первого свободного по `next`, лежит ниже границы `bump`»: выше границы
+«Каждый слот, до которого можно дойти от первого свободного по `next`, лежит ниже границы `frontier`»: выше границы
 слоты ещё не выдавались, им в цепочке не место. Для номеров `reachable` проходит только номера внутри области,
 `0 ..< slots.count`; номер вне её (`NONE`) заканчивает цепочку и в неё не входит.
 
-`firstFreeSlot` и `bump` — целые `var` вида, `Slot.next` — поле элемента. Вне смены вида граница только растёт на
+`firstFreeSlot` и `frontier` — целые `var` вида, `Slot.next` — поле элемента. Вне смены вида граница только растёт на
 единицу, а начало цепочки меняется только снятием (`firstFreeSlot = slots[k].next` при `k == firstFreeSlot`) и
 возвратом (`slots[k].next = firstFreeSlot`, затем `firstFreeSlot = k`).
 
@@ -302,7 +302,7 @@ struct SlotBlock {
 адрес. Место `k` входит в `slots.taken`. Условия:
 
 - место `k` ещё не взято; доказательство — условие вида (`k` снят с цепочки свободных или
-  `k == bump`), класс L; в отладочной сборке — проверка метки слота;
+  `k == frontier`), класс L; в отладочной сборке — проверка метки слота;
 - источник — `own` блока либо имя с условием `used > 0`.
 
 Первый `take` из `own` поглощает `own`: дальше имя — `mut SlotBlock`, так же как права любого
@@ -313,16 +313,16 @@ struct SlotBlock {
 ```efen
 fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 }) -> own Pointer {
     var k: Int
-    if block.free != NONE {
-        k = Int(block.free)
-        block.free = block.slots[k].next   // k снят с цепочки: не взят
+    if block.firstFreeSlot != NONE {
+        k = Int(block.firstFreeSlot)
+        block.firstFreeSlot = block.slots[k].next   // k снят с цепочки: не взят
     } else {
-        k = Int(block.bump)                // k >= bump: не взят
-        block.bump = block.bump + 1
+        k = Int(block.frontier)                // k >= frontier: не взят
+        block.frontier = block.frontier + 1
     }
     let slot = take block.slots[k]         // k входит в slots.taken
     block.used = block.used + 1            // Δused == +1 == число take
-    if block.free == NONE && Int(block.bump) == block.slots.count { unlinkBlock(entry, block) }
+    if block.firstFreeSlot == NONE && Int(block.frontier) == block.slots.count { unlinkBlock(entry, block) }
     return slot as Pointer                 // стирание; Pointer помнит происхождение
 }
 ```
@@ -338,8 +338,8 @@ fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 },
                slot: own block.slots.Item) {
     let k = block.slots.index(slot)
     block.slots[k] = take slot             // байтов не копирует: slot и есть место k
-    block.slots[k].next = block.free
-    block.free = UInt16(k)
+    block.slots[k].next = block.firstFreeSlot
+    block.firstFreeSlot = UInt16(k)
     block.used = block.used - 1            // Δused == −1 == число возвратов
     if block.used > 0 {
         if !block.linked { relinkBlock(entry, block) }
