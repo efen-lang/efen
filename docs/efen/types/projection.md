@@ -59,6 +59,27 @@ let view: UserWithEmail = user
 Эта строка ошибочна, пока код не обеспечил условия `UserWithEmail` либо
 compiler не доказал их.
 
+Условия, которые не следуют из типов полей, записывают отдельным блоком `{ }`
+после projection, как [условия вида](../memory/pointer.md#условия-вида) в layout,
+а применяют projection приведением `as` (Edmond, 2026-10-27). Так устроен доступ к
+[общей памяти](../shared.md#доступ-через-projection):
+
+```efen
+projection PoolEditor for Pool {
+    var idle, openCount
+    let maxConnections
+} {
+    mutex is Mutex.Held
+}
+
+with pool.mutex {
+    let editor = pool as PoolEditor      // доказано: мьютекс захвачен
+}
+```
+
+Полученный вид живёт, пока верно условие: после выхода из `with` обращение к
+`editor` — ошибка.
+
 ## Opaque projection
 
 Именованная projection может быть `opaque`. Она сохраняет обычную для

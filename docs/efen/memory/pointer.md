@@ -431,7 +431,11 @@ fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 },
 У `Pointer` одна ось состояний:
 
 ```efen
-state Content { initial Raw; Zeroed; Initialized }
+state Content {
+    initial Raw
+    Zeroed
+    Initialized
+}
 ```
 
 - `Raw` — о содержимом ничего не известно; голый `Pointer` означает `Pointer.Raw`;
