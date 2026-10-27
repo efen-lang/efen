@@ -77,9 +77,13 @@ print(ownershipInfo.isWeak)
 ```efen
 use runtime::intrinsics
 
-// Атомарные операции
-let value = Atomic<Int>(0)
-value.fetchAdd(1, ordering: .sequentiallyConsistent)
+// Атомарные операции: порядок памяти выводит компилятор (см. shared.md)
+var value = AtomicInt(0)
+value.fetchAdd(1)
+
+// Явный seq_cst — только для схемы Деккера
+var flag = AtomicInt(0)
+flag.store(1, ordering: .sequentiallyConsistent)
 
 // Prefetch для оптимизации кеша
 prefetch(address, locality: .high, intent: .read)

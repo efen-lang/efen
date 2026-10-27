@@ -245,17 +245,17 @@ aspect RefCount {
     conforms RefCountContract
 
     fn retain {
-        self.refCount += 1
+        self.refCount.fetchAdd(1)
     }
 
     fn release {
-        if unlikely self.refCount == 0 {
+        let before = self.refCount.fetchSub(1)
+
+        if unlikely before == 0 {
             error("Release called on object with refCount 0")
         }
-        
-        self.refCount -= 1
-        
-        if self.refCount == 0 {
+
+        if before == 1 {
             self.dispose()
         }
     }

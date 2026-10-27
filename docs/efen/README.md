@@ -29,7 +29,7 @@ Efen — компилируемый язык с программируемыми
 | [Расширение поведения](contracts.md) | Контракты, interfaces, superpolymorphism и стратегии |
 | [Метапрограммирование](aspects/README.md) | Аспекты, построение класса, member resolver, metadata, декораторы и Compile-time API |
 | [Модули и архитектура](packages.md) | Пакеты, модули, пространства имён, видимость и слои |
-| [Контексты, эффекты и ошибки](context-and-effects.md) | Ambient-зависимости, `throws`, `try/catch`, `guard` и code regions |
+| [Контексты, эффекты и ошибки](context-and-effects.md) | Ambient-зависимости, `throws`, `try/catch`, `guard`, code regions и [общая память](shared.md) |
 | [Память и представление](memory/README.md) | Владение, representation, layout, примеры и proof boundary |
 | [Toolchain и интеграция](compile-time/README.md) | Режимы компиляции, диалекты, runtime API и Amber |
 
