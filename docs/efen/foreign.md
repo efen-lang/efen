@@ -304,7 +304,7 @@ module Sqlite
 const SQLITE_OK = 0
 const SQLITE_ROW = 100
 
-@abi(c) fn sqlite3_libversion_number() -> Int32
+@abi(c) fn sqlite3_libversion_number -> Int32
 
 @c("int sqlite3_open(const char *filename, sqlite3 **ppDb)")
 @abi(c) fn sqlite3_open(filename: @fill const char*, db: @fill sqlite3**) -> Int32

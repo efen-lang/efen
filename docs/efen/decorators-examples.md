@@ -110,11 +110,7 @@ fn createUser(
 }
 
 @ValidateInput
-fn processPayment(
-    @Positive amount: Float,
-    @CreditCard cardNumber: String,
-    @Future expiryDate: Date
-) -> PaymentResult {
+fn processPayment(@Positive amount: Float, @CreditCard cardNumber: String, @Future expiryDate: Date) -> PaymentResult {
     return paymentGateway.charge(amount, cardNumber, expiryDate)
 }
 ```
@@ -277,11 +273,7 @@ fn experimentalFeature {
 @Transaction
 @Trace
 @HandleErrors(strategy: "rollback_and_log")
-fn createAdminUser(
-    @NotNull @Email email: String,
-    @NotNull @Strong password: String,
-    @Inject logger: Logger
-) -> User {
+fn createAdminUser(@NotNull @Email email: String, @NotNull @Strong password: String, @Inject logger: Logger) -> User {
     logger.info("Creating admin user: ${email}")
     return userService.createAdmin(email, password)
 }

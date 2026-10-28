@@ -334,8 +334,7 @@ fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 }) -> ow
 `block.slots[k] = take slot` место `k` выходит из `slots.taken`, и его поля снова доступны.
 
 ```efen
-fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 },
-               slot: own block.slots.Item) {
+fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 }, slot: own block.slots.Item) {
     let k = block.slots.index(slot)
     block.slots[k] = take slot             // байтов не копирует: slot и есть место k
     block.slots[k].next = block.firstFreeSlot

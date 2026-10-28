@@ -128,9 +128,7 @@ fn read -> String state Lifecycle.Open
 отдельным правилом, даже если не меняется:
 
 ```efen
-fn enableTls
-    state Lifecycle.Connected,
-          Security.Plain >> Security.Encrypted
+fn enableTls state Lifecycle.Connected, Security.Plain >> Security.Encrypted
 ```
 
 ## Вывод состояний
@@ -190,9 +188,7 @@ fn connect -> Connection state Lifecycle.Disconnected >> Lifecycle.Connected
 ```efen
 fn send(data: [Byte]) -> Int state Lifecycle.Connected, Security.Encrypted
 
-fn close
-    state Lifecycle.Connected >> Lifecycle.Closed,
-          Security.Encrypted >> Security.Plain
+fn close state Lifecycle.Connected >> Lifecycle.Closed, Security.Encrypted >> Security.Plain
 ```
 
 Одно `Axis.State` без `>>` эквивалентно identity-переходу этой оси.

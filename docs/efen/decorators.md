@@ -92,10 +92,7 @@ class Service {
 #### 4. Параметрам функций
 
 ```efen
-fn processUser(
-    @NotNull @Validated userId: Int,
-    @Inject service: UserService
-) -> User {
+fn processUser(@NotNull @Validated userId: Int, @Inject service: UserService) -> User {
     return service.getUser(userId)
 }
 ```
@@ -152,9 +149,9 @@ let readers: Array<@cached User>
 в runtime metadata:
 
 ```efen
-#if T has @myattr {
+#if T has @myattr
     // compile-time ветвь
-}
+#endif
 
 if value has @myattr {
     // runtime ветвь

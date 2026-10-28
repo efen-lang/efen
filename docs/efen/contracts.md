@@ -293,9 +293,9 @@ Generic-тип может объявить соответствие условн
 
 ```efen
 class Box<T> {
-    #if T conforms Copyable {
+    #if T conforms Copyable
         conforms Copyable
-    }
+    #endif
 }
 ```
 

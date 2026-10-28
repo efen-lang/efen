@@ -273,10 +273,7 @@ contract ClassBuilder {
     fn addMethod(method: MethodBuilder) -> ClassBuilder;
 
     // Добавить метод с кодом
-    fn addMethod(name: String,
-                 params: Parameter[],
-                 returnType: Type,
-                 body: CodeBlock) -> ClassBuilder;
+    fn addMethod(name: String, params: Parameter[], returnType: Type, body: CodeBlock) -> ClassBuilder;
 
     // ===== Добавление свойств =====
 
@@ -284,9 +281,7 @@ contract ClassBuilder {
     fn addProperty(property: PropertyBuilder) -> ClassBuilder;
 
     // Добавить простое свойство
-    fn addProperty(name: String,
-                   type: Type,
-                   defaultValue: Expression? = null) -> ClassBuilder;
+    fn addProperty(name: String, type: Type, defaultValue: Expression? = null) -> ClassBuilder;
 
     // ===== Добавление интерфейсов =====
 
@@ -304,12 +299,10 @@ contract ClassBuilder {
     // ===== Модификация существующих элементов =====
 
     // Модифицировать метод
-    fn modifyMethod(name: String,
-                    modifier: (MethodBuilder) -> MethodBuilder) -> ClassBuilder;
+    fn modifyMethod(name: String, modifier: (MethodBuilder) -> MethodBuilder) -> ClassBuilder;
 
     // Модифицировать свойство
-    fn modifyProperty(name: String,
-                      modifier: (PropertyBuilder) -> PropertyBuilder) -> ClassBuilder;
+    fn modifyProperty(name: String, modifier: (PropertyBuilder) -> PropertyBuilder) -> ClassBuilder;
 
     // ===== Изменение модификаторов =====
 

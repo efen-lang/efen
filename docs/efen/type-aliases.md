@@ -221,11 +221,7 @@ alias ErrorCallback = (Error) -> Void
 alias CompletionHandler = (ValueOrError<Any>) -> Void
 
 class HTTPClient {
-    fn get(
-        url: String,
-        onSuccess: SuccessCallback<String>,
-        onError: ErrorCallback
-    ) {
+    fn get(url: String, onSuccess: SuccessCallback<String>, onError: ErrorCallback) {
         // ...
     }
 }

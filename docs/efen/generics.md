@@ -233,9 +233,7 @@ fn compare<T: Comparable<T>>(left: T, right: T) -> Int {
 }
 
 // Множественные ограничения
-fn process
-    where T: Readable, T: Writable
-{
+fn process where T: Readable, T: Writable {
     generic T: Type
     param data: T
 
@@ -316,9 +314,9 @@ runtime-классификацию и HIR-ключ, описана в
 ```efen
 class Adapter<Requirement: Contract, RuntimeAPI: Interface> {
 
-    #if Self conforms Requirement {
+    #if Self conforms Requirement
         // compile-time формирование реализации RuntimeAPI
-    }
+    #endif
 }
 ```
 
@@ -429,9 +427,9 @@ Metadata проверяется оператором `has`. Оператор д�
 и в compile-time директиве. `#if` выбирает код при построении инстанциации:
 
 ```efen
-#if T has @myattr {
+#if T has @myattr
     // Код существует только для типового аргумента с @myattr.
-}
+#endif
 
 if value has @myattr {
     // Runtime-проверка metadata значения там, где она сохраняется в runtime.
@@ -578,9 +576,7 @@ class SquareMatrix {
     where Rows == Columns
 }
 
-fn processSameElements
-    where A.Item == B.Item, A.Item: Equatable
-{
+fn processSameElements where A.Item == B.Item, A.Item: Equatable {
     generic A: Iterable
     generic B: Iterable
     param left: A
@@ -754,13 +750,13 @@ Generic-тип может соответствовать contract только �
 class Box<T> {
     var value: T
 
-    #if T conforms Copyable {
+    #if T conforms Copyable
         conforms Copyable
 
         fn copy -> Box<T> {
             return Box(value.copy())
         }
-    }
+    #endif
 }
 ```
 
@@ -773,17 +769,17 @@ class Box<T> {
 metadata:
 
 ```efen
-#if A conforms Copyable && B conforms Copyable {
+#if A conforms Copyable && B conforms Copyable
     conforms Copyable
-}
+#endif
 
-#if Size > 0 {
+#if Size > 0
     conforms NonEmpty
-}
+#endif
 
-#if T has @serializable {
+#if T has @serializable
     conforms Serializable
-}
+#endif
 ```
 
 Результат условия, выбранные реализации и прочитанные compile-time факты входят

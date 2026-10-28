@@ -415,11 +415,7 @@ measure("User creation", body {
 
 3. **Несколько блоков с именованными параметрами:**
 ```efen
-meta fn benchmark(
-    setup: Statement,
-    measure: Statement,
-    teardown: Statement
-) -> InlineClosure {
+meta fn benchmark(setup: Statement, measure: Statement, teardown: Statement) -> InlineClosure {
     return inline {
         ${setup}
         let start = Timer.now()
@@ -1494,10 +1490,7 @@ fn fibonacci(n: Int) -> Int {
 ### 8. Try-with-resources
 
 ```efen
-meta fn using<T: Disposable, R>(
-    resource: inline -> T,
-    body: inline (T) -> R
-) -> InlineClosure {
+meta fn using<T: Disposable, R>(resource: inline -> T, body: inline (T) -> R) -> InlineClosure {
     return inline {
         let res = resource()
         defer { res.dispose() }
@@ -1543,10 +1536,7 @@ repeat(3, () -> Void {
 ### Inline closure с параметрами
 
 ```efen
-meta fn forEach<T>(
-    collection: [T],
-    body: inline (T, Int) -> Void
-) -> InlineClosure {
+meta fn forEach<T>(collection: [T], body: inline (T, Int) -> Void) -> InlineClosure {
     return inline {
         for (index, item) in collection.enumerated() {
             body(item, index)
@@ -1563,10 +1553,7 @@ forEach([1, 2, 3], (value, index) -> Void {
 ### Inline closure с возвращаемым значением
 
 ```efen
-meta fn transform<T, R>(
-    value: T,
-    transformer: inline (T) -> R
-) -> InlineClosure {
+meta fn transform<T, R>(value: T, transformer: inline (T) -> R) -> InlineClosure {
     return inline {
         transformer(value)
     }
@@ -1596,10 +1583,7 @@ let value = powerOfTwo(10)  // Встроенная константа 1024
 ### Генерация на основе compile-time условий
 
 ```efen
-meta fn optimizedSort<T>(
-    array: [T],
-    algorithm: comptime String
-) -> InlineClosure {
+meta fn optimizedSort<T>(array: [T], algorithm: comptime String) -> InlineClosure {
     if algorithm == "quick" {
         return inline { quickSort(array) }
     } else if algorithm == "merge" {
@@ -2212,10 +2196,7 @@ meta fn smartAssert(condition: Bool, level: comptime String) -> InlineClosure {
 ### 3. Генерация типизированных функций
 
 ```efen
-meta fn createValidator<T>(
-    validationFn: inline (T) -> Bool,
-    errorMsg: comptime String
-) -> InlineClosure {
+meta fn createValidator<T>(validationFn: inline (T) -> Bool, errorMsg: comptime String) -> InlineClosure {
     return inline (value: T) -> T {
         if !validationFn(value) {
             throw ValidationError(errorMsg)
@@ -2236,10 +2217,7 @@ let age = validateAge(userInput)
 ### 4. Автоматическое управление ресурсами
 
 ```efen
-meta fn withResource<R: Disposable, T>(
-    acquire: inline -> R,
-    use: inline (R) -> T
-) -> InlineClosure {
+meta fn withResource<R: Disposable, T>(acquire: inline -> R, use: inline (R) -> T) -> InlineClosure {
     return inline {
         var resource: R? = null
         var result: T? = null
@@ -2266,10 +2244,7 @@ meta fn withResource<R: Disposable, T>(
 ### 5. Генерация state machine
 
 ```efen
-meta fn stateMachine(
-    states: comptime [String],
-    initialState: comptime String
-) -> InlineClosure {
+meta fn stateMachine(states: comptime [String], initialState: comptime String) -> InlineClosure {
     if !states.contains(initialState) {
         compileError("Initial state must be in states list")
     }
@@ -2368,10 +2343,7 @@ meta fn repeatMessage(count: Int, msg: String) -> InlineClosure
 
 ```efen
 // ✅ Хорошо - типы понятны
-meta fn transform<T, R>(
-    value: T,
-    fn: inline (T) -> R
-) -> InlineClosure
+meta fn transform<T, R>(value: T, fn: inline (T) -> R) -> InlineClosure
 
 // ❌ Плохо - типы неясны
 meta fn transform(value: Any, fn: inline) -> InlineClosure
