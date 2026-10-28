@@ -340,13 +340,23 @@ type ParticleColumns: Array<Particle, soa>
 struct Array {
     generic Element: Type
     generic Form: Representation = default
+    generic indirection: Indirection = default
 
     enum Representation {
         aos
         soa
     }
+
+    enum Indirection {
+        direct
+        indirect
+    }
 }
 ```
+
+`indirection` говорит, лежит ли в ячейке само значение (`direct`) или указатель на отдельно лежащее значение
+(`indirect`). Умолчания: `aos`; `direct` у структуры, `indirect` у класса (Edmond 2026-10-28). Третий параметр
+называют по имени: `Array<Row, indirection: indirect>`. Подробно — [библиотеки на C](foreign.md#массивы).
 
 Атрибут можно передать отдельным параметром:
 

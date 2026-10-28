@@ -32,6 +32,7 @@ Efen — компилируемый язык с программируемыми
 | [Контексты, эффекты и ошибки](context-and-effects.md) | Ambient-зависимости, `throws`, `try/catch`, `guard`, code regions и [общая память](shared.md) |
 | [Память и представление](memory/README.md) | Владение, representation, layout, примеры и proof boundary |
 | [Toolchain и интеграция](compile-time/README.md) | Режимы компиляции, диалекты, runtime API и Amber |
+| [Библиотеки на C](foreign.md) | Модуль по заголовку C, пометка `@fill`, сверка с заголовком, проверочная сборка |
 
 ## Ориентиры и границы
 

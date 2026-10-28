@@ -69,6 +69,10 @@ struct Array<Element: Type, R<Target>: Representation<Target>> {
 }
 ```
 
+Параметр косвенности `indirection` ([generics](../generics.md)) идёт после представления и называется по имени. В
+функцию C массив уходит, только если его элементы лежат одной непрерывной областью; блоки `Chunked` туда не уходят
+([библиотеки на C](../foreign.md#массивы)).
+
 Для `Array<User, List>`:
 
 ```text
