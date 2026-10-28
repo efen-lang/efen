@@ -270,7 +270,7 @@ let report = () -> Void {
 `capture in` делает значение активным контекстом своего тела:
 
 ```efen
-fn makeReport in Environment -> () -> Void {
+fn makeReport -> (() -> Void) in Environment {
     return () -> Void {
         capture connection = take connection
         capture in Environment = Environment.copy()
