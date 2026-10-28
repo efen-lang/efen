@@ -261,13 +261,3 @@ aspect RefCount {
     }
 }
 ```
-
-### Reference Capabilities
-
-| Capability | Read | Write | Share (Parallel) | Transfer Ownership |
-|------------|------|-------|------------------|--------------------|
-| local      | ✅    | ✅     | ❌                | ❌                  |
-| shared     | ✅    | ❌     | ✅                | ❌ *(копия)*        |
-| mutable    | ✅    | ✅     | ✅                | ✅ *(move)*         |
-| box        | ✅    | ❌     | ✅                | ❌                  |
-| tag        | ❌    | ❌     | ✅                | ✅ *(как handle)*   |

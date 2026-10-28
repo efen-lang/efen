@@ -401,13 +401,13 @@ fn consume<T: Iterable>(items: T) {
 
 ```efen
 Array<User>
-Array<shared read User>
+Array<read Items.Item>
 Array<@myattr Int>
 Array<@cached User>
 ```
 
 Ссылочной формы среди них нет: ссылка бывает только внутри тела функции и generic-аргументом не
-бывает ([владение](types/ownership.md#ссылки-только-внутри-функции)); прежние `&read User` и `ref read User` из языка убраны.
+бывает ([владение](types/ownership.md#ссылки-только-внутри-функции)); прежние `&read User`, `ref read User` и `shared read User` из языка убраны.
 
 Эти аргументы образуют разные инстанциации generic. Код может получить базовый
 тип отдельно, но `T` по умолчанию не стирает его модификаторы и metadata.
