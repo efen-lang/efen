@@ -354,20 +354,14 @@ user.profile.settings.update data
 ### Когда использовать вызов без скобок
 
 **Рекомендуется использовать** для:
-- DSL-подобного кода (тесты, описания)
 - Функций логирования и отладки
 - Простых команд с одним аргументом
 
-```efen
-// DSL для тестов
-test "calculator" {
-    describe "addition" {
-        it "should add numbers" {
-            assert add(2, 3) == 5
-        }
-    }
-}
+Блок сразу после вызова (`test "calculator" { … }`) не передаётся как замыкание:
+запись `method { body }` запрещена ([closure.md](closure.md)). Синтаксис тестов в
+языке — открытый вопрос.
 
+```efen
 // Логирование
 log "Starting process"
 println "Done!"
