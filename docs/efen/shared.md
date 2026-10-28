@@ -575,7 +575,7 @@ contract Blocking: Waiting {}             // ждёт поток целиком
 как `in` (Edmond):
 
 ```efen
-fn onFrame() without Waiting {            // кадр игры не имеет права ждать
+fn onFrame without Waiting {              // кадр игры не имеет права ждать
     draw()
 }
 

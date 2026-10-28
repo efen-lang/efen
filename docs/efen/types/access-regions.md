@@ -398,7 +398,7 @@ while let item = cursor.next() {
 
 ```efen
 class Vector<T> {
-    fn reading() -> ReadCursor<T, self>        // для чтения, self только читается
+    fn reading -> ReadCursor<T, self>          // для чтения, self только читается
     fn editing(self: edit) -> EditCursor<T, self>
     fn removing(self: mut) -> RemoveCursor<T, self>
 }
@@ -641,7 +641,7 @@ class Bus<Mem: Origin> {
     var handlers: Vector<@escaping () -> Void mut<Mem>>       // колбэки могут менять память Mem
 }
 
-fn main() {
+fn main {
     var items: Vector<Item> = [Item(hp: 1), Item(hp: 2)]
     var orders: Vector<Order> = []
     var log = Log()

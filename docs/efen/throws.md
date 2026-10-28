@@ -625,7 +625,7 @@ fn lookup(key: String) -> Int {
     throw NotFound()        // возвращается вызывающему вторым значением
 }
 
-fn load() -> Pointer<Byte> {
+fn load -> Pointer<Byte> {
     return allocate(4096)   // AllocationError раскручивает стек
 }
 ```

@@ -6,8 +6,8 @@
 ## Запись
 
 Пользовательский destructor объявляется атрибутом, как конструктор:
-`@destructor fn deinit()`, без параметров и результата, не больше одного в
-классе. Низкоуровневый этап — контракт `Disposable` с методом `fn dispose()`
+`@destructor fn deinit`, без параметров и результата, не больше одного в
+классе. Низкоуровневый этап — контракт `Disposable` с методом `fn dispose`
 (Edmond, 2026-10-23).
 
 ```efen
@@ -22,11 +22,11 @@ class File {
     }
 
     @destructor
-    fn deinit() {
+    fn deinit {
         flush()
     }
 
-    fn dispose() {
+    fn dispose {
         closeHandle(handle)
     }
 }

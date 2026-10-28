@@ -385,7 +385,7 @@ if let shape = find(list: shapes, id: 7) {
 - Источник один. Место из двух параметров вернуть нельзя: вместо него возвращают номер элемента или флаг.
 - `T?` — место или `null`: `-> edit<list> Shape?`. Место optional-слота (`&self.pending` типа `Job?`)
   результатом не возвращается (предложение агента).
-- В методе источник — `self`, и он не пишется: `fn first() -> read Shape?`. Угловые скобки в методе называют
+- В методе источник — `self`, и он не пишется: `fn first -> read Shape?`. Угловые скобки в методе называют
   другой параметр или путь внутрь `self`: `-> edit<self.items> Item?` (предложение агента).
 - Право и источник стоят перед типом, как право параметра (`list: mut Vector<Shape>`). Запись после типа,
   `-> Shape? edit<list>`, — ошибка: после типа пишут отношения параметров (`node: Item read<list>`) и права
@@ -549,7 +549,7 @@ fn grow(list: Vector<Shape>) -> edit<list> Shape?
 fn consume(list: own Vector<Shape>) -> read<list> Shape?
 // ошибка: own-параметр умирает с вызовом, место в нём не переживёт вызов
 
-fn first() -> read<self> Shape?             // в методе
+fn first -> read<self> Shape?               // в методе
 // ошибка: источник места в методе — self, он не пишется
 
 fn last(list: edit Vector<Shape>) -> &edit<list> Shape?
