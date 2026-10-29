@@ -1377,7 +1377,7 @@ fn release(pool: mut Pool { mutex is Mutex.Free }, connection: own Connection) {
 строка `gives`, пометка эффекта `ordered`, параметр-тело блока
 `() -> T? under self` (тело замыкания проверяется как тело `with`, эффекты
 ожидания и захваты `ordered` к месту вызова не уходят, захваты дают рёбра графа), `invariant name { }`, состояние в
-параметре уточнением типа, `slots[a ..< b]` в projection; `Mutex` —
+параметре уточнением типа (2026-10-29 заменено на `requires x is State`, [условия функций](../docs/efen/conditions.md)), `slots[a ..< b]` в projection; `Mutex` —
 `shared`-структура без ARC с постоянным адресом; в задаче мьютекс не захвачен
 ею (`Free` для `enter`), переход оси блокировки не рвёт фактов другой задачи,
 `enter`/`exit`/`waitFor`/`notifyOne`/`notifyAll` совместимы между задачами; `without` убирает
@@ -1414,7 +1414,7 @@ fn release(pool: mut Pool { mutex is Mutex.Free }, connection: own Connection) {
 ожидания в заголовке зоны (`sync when …`) — скрытое ожидание.
 
 Открыто: `select` и виды отмены; общая форма запрета и разрешения эффектов
-сверх `without`; форма условия вызова в типе параметра; ручной захват и
+сверх `without`; форма условия вызова в типе параметра (решено 2026-10-29: `requires`/`ensures`, [условия функций](../docs/efen/conditions.md)); ручной захват и
 передача по цепочке (отложено); доказательство в Viper для многопоточности.
 
 ## Очередь на 2026-09-17

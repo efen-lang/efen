@@ -585,7 +585,7 @@ Viper требует инварианты циклов. Прототип пол�
 
 ```efen
 while condition
-    invariant bounds { i >= 0 && i <= limit }
+    invariant i >= 0 && i <= limit
     decreases limit - i
 {
     // тело

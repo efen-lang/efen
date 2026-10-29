@@ -202,9 +202,10 @@ variant epoll_data_t {
    @abi(c) fn epoll_ctl(epfd: Int32, op: Int32, fd: Int32, event: read epoll_event?) -> Int32
        requires event == null || event.data is .u64
 
-   @abi(c) fn epoll_wait(epfd: Int32, events: out [epoll_event { data is .u64 }], max: Int32, timeout: Int32) -> Int32
-       requires events.count >= max
+   @abi(c) fn epoll_wait(epfd: Int32, events: out [epoll_event], max: Int32, timeout: Int32) -> Int32
+       requires max > 0 && events.count >= Int(max)
        ensures result <= max
+       ensures forall i in 0 ..< Int(result): events[i].data is .u64
    ```
 
    `epoll_wait` пишет только первые `result` элементов, остальные не инициализированы.
@@ -376,15 +377,15 @@ echo text                       // ошибка: text погашен вызов�
 |---|---|
 | `T*` непрозрачного `T` | `own T`, `own T? { ... ==> take }`, `read T`, `mut T` |
 | `T*` на одну структуру или число | `read T`, `edit T`, `mut T`; в результате — `read<x> T`, `edit<x> T` |
-| `T*` на массив | `read [T] { count == n }`, `edit [T] { count == n }` |
-| `T**` на массив структур | `read Array<T, indirection: indirect> { count == n }` |
+| `T*` на массив | `read [T]`, `edit [T]` и `requires x.count == n` ([условия функций](conditions.md)) |
+| `T**` на массив структур | `read Array<T, indirection: indirect>` и `requires x.count == n` |
 | `const char*`, строка с нулём в конце | `read CString`; в результате — `read<x> CString?` |
 | `T**` для результата | `mut T?`, пустая перед вызовом |
 
 Поле-указатель структуры остаётся с `@fill`: место в поле держать нельзя
 ([где места в результате нет](types/ownership.md#где-места-в-результате-нет)), а у `struct tm` поле `tm_zone` —
 `const char*`. Такую структуру можно передавать, но не читать её указательные поля. Генератор подсказывает частые пары в комментарии, не снимая
-пометку: `void* buf, size_t n` → `read [Byte] { count == n }`.
+пометку: `void* buf, size_t n` → `buf: read [Byte]` и `requires buf.count == n`.
 
 Обновление библиотеки — `amber import-c --update`. Заполненное, у которого прототип `@c` совпадает с заголовком,
 остаётся. Изменённое в заголовке снова получает `@fill`, прежняя запись остаётся рядом комментарием. Функция, которой больше нет, — ошибка
@@ -458,7 +459,7 @@ Amber запускает clang отдельной программой, как �
 доказывает вызывающий код от него. В обычной сборке это ничего не стоит (Edmond 01:14). Память C читается и пишется
 на месте, без копий.
 
-Ошибка в объявлении может испортить память: функция отдаёт 16 байт, а человек написал `{ count == 64 }`. FLOW
+Ошибка в объявлении может испортить память: функция отдаёт 16 байт, а человек написал `ensures result.count == 64`. FLOW
 доказывает, что `buffer[40]` в границах, и проверки не ставит.
 
 Сырой `Pointer` с условиями размера, выравнивания и состояния остаётся стандартной библиотеке
@@ -467,7 +468,8 @@ Amber запускает clang отдельной программой, как �
 Проверочная сборка ([checking-build](memory/checking-build.md)) проверяет на каждом возврате из C:
 
 - `null` там, где объявление его не допускает (`-> read<s> CString` без `?`);
-- каждое условие результата (`{ count == n }`, `{ value <= 4096 }`);
+- каждое `ensures` (`result.count == n`, `result <= 4096`); условие с `previous(x)` — по снимку `x`, сделанному
+  перед вызовом (агент);
 - кусок `[p, p + count * size)` по таблице мест.
 
 Запись таблицы хранит, кто держит место (Efen или C) и сколько байт запросили. По ней:
@@ -506,7 +508,7 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 
 - Место без источника: `strerror`, `getenv`, `localtime` отдают память, которая живёт до следующего вызова той же
   функции, а ручки у них нет. Записать источник нечем.
-- Кусок-диапазон в результате (`-> read<s> [Byte] { count == n }`): у мест-диапазонов форма и проверка пересечения не
+- Кусок-диапазон в результате (`-> read<s> [Byte]` с `ensures result.count == n`): у мест-диапазонов форма и проверка пересечения не
   решены ([где места в результате нет](types/ownership.md#где-места-в-результате-нет)).
 - C хранит адрес памяти Efen после вызова: `sqlite3_bind_text` с `SQLITE_STATIC`, `setvbuf`, аргумент
   `pthread_create`, `next_in` у `z_stream`. Пока такая функция или поле остаётся с `@fill`.
@@ -541,7 +543,8 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 - `@release(f)` у непрозрачного типа и сам непрозрачный тип без размера;
 - `CString`, `CChar`, `CLong`, `CULong`;
 - `@abi(c)` на `variant` и `struct` как раскладка C; `{ data is .ptr(read T) }` — условие на случай поля;
-  `{ kind == 1 ==> as is .number }` на внешней структуре; `{ data is .u64 }` у параметра и элементов массива;
+  `{ kind == 1 ==> as is .number }` на внешней структуре; `requires event.data is .u64` у параметра и `ensures forall i in 0 ..< …: events[i].data is .u64` у
+  элементов, которые функция записала ([условия функций](conditions.md));
 - в примере `epoll`: `Pollable`, `Descriptor` как тип только для чтения, `Epoll<T>`, `Key`, `event.item`,
   `event.remove()`, `epoll.item(key)`;
 - `@packed`, `@packed(n)`, `@bits(n, at: k)` у поля; тип `Float80` и `CLongDouble` как отдельный тип;
