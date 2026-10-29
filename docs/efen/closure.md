@@ -238,7 +238,7 @@ fn makeCounter -> () -> Int {
 ```efen
 let report = () -> Void {
     capture connection = take connection   // перенос
-    capture factor = factor.copy()         // копия
+    capture factor = copy factor           // копия
     capture total = a + b                  // новое значение
     connection.send(factor * total)
 }
@@ -254,7 +254,7 @@ let report = () -> Void {
   имени `capture` с именем `param` — ошибка;
 - результат обязан быть владением: `capture items = items` для типа без
   `ImplicitlyCopyable` даёт заимствование и является ошибкой с подсказкой
-  `take items` или `items.copy()`;
+  `take items` или `copy items`;
 - захваты инициализируются в порядке объявления. Если выражение бросает
   исключение, уже созданные поля освобождаются в обратном порядке, а
   перенесённые значения остаются перенесёнными. Исключение принадлежит функции,
@@ -273,7 +273,7 @@ let report = () -> Void {
 fn makeReport -> (() -> Void) in Environment {
     return () -> Void {
         capture connection = take connection
-        capture in Environment = Environment.copy()
+        capture in Environment = copy Environment
         %logger.log("sent")                // поле захваченной копии
         connection.send(message)
     }
@@ -419,7 +419,7 @@ with env {                                     // обычный контекс�
                 background { %value }          // ошибка: local умрёт раньше блока задач
 
                 background {
-                    capture in Local = local.copy()
+                    capture in Local = copy local
                     print(%value)              // можно: копия принадлежит задаче
                 }
             }

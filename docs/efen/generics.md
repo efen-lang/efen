@@ -754,7 +754,7 @@ class Box<T> {
         conforms Copyable
 
         fn copy -> Box<T> {
-            return Box(value.copy())
+            return Box(copy value)
         }
     #endif
 }
