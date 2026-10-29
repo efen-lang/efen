@@ -35,6 +35,9 @@ error: package 'MyPackage' is already declared in namespace 'App' [#Package] [#D
 
 ## Управление через флаги
 
+Те же уровни задаёт секция `diagnostics` конфигурации сборки; флаги действуют поверх неё. Коды плагинов
+компилятора управляются так же ([плагины компилятора](compile-time/compiler-plugins.md#диагностики)).
+
 ```bash
 # Сделать все ошибки Package критическими
 efenc -Werror Package main.efen
