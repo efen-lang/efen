@@ -531,9 +531,8 @@ fn fib(n: Int) -> Int {
 
 Синтаксис:
 ```efen
-fn saveUser(name: String) in LoggerEffect {
-
-    LoggerEffect.log("Saving user: ${name}")
+fn saveUser(name: String) in Logger {
+    %Logger.log("Saving user: ${name}")
 }
 ```
 
