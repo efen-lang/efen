@@ -186,27 +186,20 @@ class ApiResponse {
 
 ## Тестирование
 
+Тест — объявление языка, а не функция с декоратором ([тесты](tests/tests.md)). Декоратор на `test` — атрибут теста,
+его определение даёт фреймворк тестов; ожидаемое исключение проверяет `assert throws`.
+
 ```efen
-@TestFixture
-class UserServiceTests {
-    @Mock
-    var database: Database
+@group("users")
+test UserService.create "выдаёт пользователю номер" {
+    let user = userService.create("test@example.com")
 
-    @BeforeEach
-    fn setup {
-        database.clear()
-    }
+    assert user.id > 0
+}
 
-    @Test
-    @Timeout(milliseconds: 1000)
-    fn testCreateUser {
-        let user = userService.create("test@example.com")
-        assert(user.id > 0)
-    }
-
-    @Test
-    @ExpectedException("ValidationError")
-    fn testInvalidEmail {
+@group("users")
+test UserService.create "отклоняет неверный адрес" {
+    assert throws ValidationError {
         userService.create("invalid-email")
     }
 }

@@ -367,6 +367,9 @@ with makeTaskGroup() {
   передаёт отмену вниз: отменённая задача отменяет все контексты, которые она
   открыла.
 
+Каждое ожидание задачи — слот завершения, `cancel()`, ожидание при выходе из блока и в
+конце `with` — доставляет провал `assert` задачи ([тесты](tests/tests.md#assert)).
+
 Если ждущего отменили, пока он стоит в слоте завершения, ожидаемая задача
 связана с ним и тоже отменяется (Edmond, 2026-10-26); слот дожидается её
 остановки и только потом бросает отмену (агент).
@@ -651,27 +654,27 @@ fn register(callback: @escaping () -> Void)
 Текущий язык выражает ленивый аргумент явным замыканием:
 
 ```efen
-fn assert(condition: () -> Bool, message: String) {
+fn check(condition: () -> Bool, message: String) {
     if !condition() {
-        print("Assertion failed: ${message}")
+        print("Check failed: ${message}")
     }
 }
 
 let x = 5
-assert(() => x > 0, message: "x must be positive")
+check(() => x > 0, message: "x must be positive")
 ```
 
 `@autoclosure` в функциональном типе `() -> R` позволяет caller передать
 выражение `R`; compiler создаёт обычное closure в месте вызова:
 
 ```efen
-fn assert(condition: @autoclosure () -> Bool, message: String) {
+fn check(condition: @autoclosure () -> Bool, message: String) {
     if !condition() {
         print(message)
     }
 }
 
-assert(x > 0, message: "x must be positive")
+check(x > 0, message: "x must be positive")
 ```
 
 Callee всё равно получает обычное closure, поэтому modifier сохраняется и при

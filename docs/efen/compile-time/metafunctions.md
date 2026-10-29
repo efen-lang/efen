@@ -409,7 +409,7 @@ meta fn measure(name: String, body: InlineClosure) -> InlineClosure {
 // DSL для измерения - два параметра
 measure("User creation", inline {
     let user = createUser("John")
-    assert(user.name == "John")
+    assert user.name == "John"
 })
 ```
 
@@ -1013,16 +1013,16 @@ meta fn functionName(params...) -> InlineClosure {
 Определяет функцию, выполняющуюся во время компиляции:
 
 ```efen
-meta fn assert(condition: Bool, message: String) -> InlineClosure {
+meta fn check(condition: Bool, message: String) -> InlineClosure {
     return inline {
         if !condition {
-            throw AssertionError(message)
+            throw CheckError(message)
         }
     }
 }
 
 // Вызов во время runtime (но генерируется во время компиляции)
-assert(x > 0, "x must be positive")
+check(x > 0, "x must be positive")
 ```
 
 ### Возвращаемый тип `InlineClosure`
@@ -1352,25 +1352,25 @@ log("INFO", "User logged in: " + username)
 // }
 ```
 
-### 2. Assert с автоматическим сообщением
+### 2. Проверка с автоматическим сообщением
 
 ```efen
-meta fn assert(condition: Bool, message: String? = null) -> InlineClosure {
+meta fn check(condition: Bool, message: String? = null) -> InlineClosure {
     let conditionStr = condition.toString()  // Compile-time
     let file = location.file
     let line = location.line
-    let msg = message ?? "Assertion failed: ${conditionStr}"
+    let msg = message ?? "Check failed: ${conditionStr}"
 
     return inline {
         if !condition {
-            throw AssertionError("${file}:${line} - ${msg}")
+            throw CheckError("${file}:${line} - ${msg}")
         }
     }
 }
 
 // Использование
-assert(x > 0)
-assert(y < 100, "y out of range")
+check(x > 0)
+check(y < 100, "y out of range")
 ```
 
 ### 3. Benchmark
@@ -1658,13 +1658,13 @@ fn processData {
 ```efen
 use efen::*
 
-meta fn assert(condition: Expression, message: String) -> InlineClosure {
-    // location указывает на место ВЫЗОВА assert(), не на его определение
+meta fn check(condition: Expression, message: String) -> InlineClosure {
+    // location указывает на место ВЫЗОВА check(), не на его определение
     let callSite = location.toString()
 
     return inline {
         if !${condition} {
-            throw AssertionError(
+            throw CheckError(
                 "${message}\n" +
                 "  at ${callSite}\n" +
                 "  in ${location.function ?? "global scope"}"
@@ -1675,7 +1675,7 @@ meta fn assert(condition: Expression, message: String) -> InlineClosure {
 
 // Вызов
 fn validateUser(user: User) {
-    assert(user.age >= 18, "User must be adult")
+    check(user.age >= 18, "User must be adult")
     // При ошибке: "User must be adult
     //              at validators.efen:42:5
     //              in validateUser"
@@ -2507,12 +2507,12 @@ let result = if a > b { a } else { b }
 
 ```efen
 // Код с метафункцией
-let x = assert(value > 0, "positive value required")
+let x = check(value > 0, "positive value required")
 let y = square(x)
 
 // Компилируется в код без накладных расходов:
 if !(value > 0) {
-    throw AssertionError("positive value required")
+    throw CheckError("positive value required")
 }
 let x = value
 let y = x * x

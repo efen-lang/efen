@@ -207,9 +207,8 @@ debugBreak()
 // Вывод stack trace
 printStackTrace()
 
-// Проверка ассертов
-assert(condition, "Assertion failed")
-debugAssert(condition)  // Только в debug
+// Проверка ассертов: `assert` — инструкция языка (tests/tests.md), а не функция runtime::debug
+assert condition, "Assertion failed"
 
 // Memory sanitizer
 if isAddressSanitizerEnabled() {
@@ -225,10 +224,10 @@ Runtime API может вести себя по-разному в зависим
 - Все проверки включены
 - Доступна полная рефлексия
 - Stack traces детализированы
-- Дополнительные assertion'ы
+- `assert` проверяется ([поле режима](../tests/tests.md#assert))
 
 ### Release режим
-- Минимальные проверки
+- Минимальные проверки; `assert` не попадает в код, пока поле режима его не включит
 - Рефлексия может быть ограничена
 - Оптимизации включены
 - Debug символы удалены

@@ -322,10 +322,11 @@ debug true
 // Сложные выражения
 println "Result: " + result
 log x + y * 2
-assert count > 0 && count < 100
+show count > 0 && count < 100
 
 // Замыкание среди нескольких аргументов пишется внутри списка
-test("my test", () -> Void {
+// (это пример вызова, а не тесты языка: тесты — tests/tests.md)
+scenario("my test", () -> Void {
     assert x == 5
 })
 
@@ -387,7 +388,7 @@ let result = calculate(x) + calculate(y)
 ```efen
 log x + 5        // Эквивалентно: log(x + 5)
 println a * b    // Эквивалентно: println(a * b)
-assert x > 0     // Эквивалентно: assert(x > 0)
+show x > 0       // Эквивалентно: show(x > 0)
 ```
 
 Если нужно вызвать функцию и затем использовать результат в выражении, используйте скобки:
