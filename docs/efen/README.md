@@ -30,6 +30,7 @@ Efen — компилируемый язык с программируемыми
 | [Метапрограммирование](aspects/README.md) | Аспекты, построение класса, member resolver, metadata, декораторы и Compile-time API |
 | [Модули и архитектура](packages.md) | Пакеты, модули, пространства имён, видимость и слои |
 | [Конфигурация сборки](build-config.md) | `config`: зависимости, рантайм и аллокатор, платформа, режимы, уровни |
+| [Сертификация](certification.md) | Кто ручается за плагины, которые компилятор не может проверить: сертификаты, уровни, несколько центров |
 | [Контексты, эффекты и ошибки](context-and-effects.md) | Ambient-зависимости, `throws`, `try/catch`, `guard`, code regions и [общая память](shared.md) |
 | [Память и представление](memory/README.md) | Владение, representation, layout, примеры и proof boundary |
 | [Toolchain и интеграция](compile-time/README.md) | Режимы компиляции, диалекты, runtime API и Amber |
