@@ -23,7 +23,7 @@ Efen — компилируемый язык с программируемыми
 
 | Раздел | Что внутри |
 |---|---|
-| [Выражения и поток](blocks/README.md) | [функции](functions.md), [вызовы](function-call-syntax.md), [замыкания](closure.md), [генераторы](generators.md), [flow](flow.md), [`is`](is.md), [деструктуризация](destructuring.md), [операторы](operators.md), [комментарии](comments.md), [условная компиляция](сonditional_compilation.md) |
+| [Выражения и поток](blocks/README.md) | [функции](functions.md), [вызовы](function-call-syntax.md), [замыкания](closure.md), [генераторы](generators.md), [flow](flow.md), [`is`](is.md), [деструктуризация](destructuring.md), [условия функций](conditions.md), [операторы](operators.md), [комментарии](comments.md), [условная компиляция](сonditional_compilation.md) |
 | [Типы и данные](types/README.md) | Формы данных, коллекции, generics, ownership и typestate |
 | [Абстракции](abstractions.md) | [классы](classes.md), [структуры](structs.md), [контракты](contracts.md), [interfaces](interfaces.md), [superpolymorphism](superpolymorphism.md) |
 | [Расширение поведения](contracts.md) | Контракты, interfaces, superpolymorphism и стратегии |

@@ -115,13 +115,16 @@ implementation System {
 ```efen
 contract System {
     const PAGE: Int
-    fn map(bytes: Int { value % PAGE == 0 }, aligned: Int) -> own Pointer.Zeroed? { size == bytes && alignment == aligned }
+    fn map(bytes: Int, aligned: Int) -> own Pointer.Zeroed?
+        requires bytes % PAGE == 0
+        ensures result == null || (result.size == bytes && result.alignment == aligned)
+
     fn unmap(memory: own Pointer, bytes: Int)
 }
 ```
 
-Условие параметра `bytes: Int { value % PAGE == 0 }` — уточнение типа ([refinement](../types/refinement-types.md)):
-вызывающий доказывает его на каждом вызове, для всех реализаций сразу.
+Условие `requires bytes % PAGE == 0` ([условия функций](../conditions.md)) вызывающий доказывает на каждом вызове,
+для всех реализаций сразу.
 
 ## Внешние функции `@abi(c)`
 

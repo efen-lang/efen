@@ -29,7 +29,9 @@ projection PoolEditor for Pool {
     mutex is Mutex.Held
 }
 
-fn release(pool: mut Pool { mutex is Mutex.Free }, connection: own Connection) {
+fn release(pool: mut Pool, connection: own Connection)
+    requires pool.mutex is Mutex.Free
+{
     with pool.mutex {                              // enter; exit на каждом выходе
         (pool as PoolEditor).idle.append(take connection)
     }
@@ -264,7 +266,9 @@ shared struct Mutex {
 
 ```efen
 // openCount уже увеличен под блокировкой: место под соединение занято
-fn openReserved(pool: mut Pool { mutex is Mutex.Free }) -> own Connection {
+fn openReserved(pool: mut Pool) -> own Connection
+    requires pool.mutex is Mutex.Free
+{
     var opened = false
 
     defer {
@@ -374,7 +378,9 @@ variant Grant {
     reserved
 }
 
-fn acquire(pool: mut Pool { mutex is Mutex.Free }) -> own Connection {
+fn acquire(pool: mut Pool) -> own Connection
+    requires pool.mutex is Mutex.Free
+{
     let grant = pool.mutex.waitFor => {
         let editor = pool as PoolEditor
 
@@ -588,7 +594,9 @@ without Waiting {
 `exit`: так объявлено в `Mutex` строкой `body without Waiting`.
 
 ```efen
-fn handle(pool: mut Pool { mutex is Mutex.Free }) {   // in Suspending выведено
+fn handle(pool: mut Pool)
+    requires pool.mutex is Mutex.Free   // in Suspending выведено
+{
     let data = download()
 
     with pool.mutex {
@@ -712,7 +720,9 @@ projection CacheEditor for Cache {
     mutex is Mutex.Held
 }
 
-fn replace(cache: mut Cache { mutex is Mutex.Free }, key: String, fresh: own Connection) {
+fn replace(cache: mut Cache, key: String, fresh: own Connection)
+    requires cache.mutex is Mutex.Free
+{
     with cache.mutex {
         let editor = cache as CacheEditor
         editor.connections[key] = take fresh   // ошибка: старое соединение уничтожается здесь
@@ -726,7 +736,9 @@ TLS закрытие отправляет `close_notify` и может ждат�
 предлагает вынуть значение и уничтожить его после блока или в отдельной задаче:
 
 ```efen
-fn replace(cache: mut Cache { mutex is Mutex.Free }, key: String, fresh: own Connection) {
+fn replace(cache: mut Cache, key: String, fresh: own Connection)
+    requires cache.mutex is Mutex.Free
+{
     var old: Connection?
 
     with cache.mutex {
@@ -799,7 +811,9 @@ shared struct Pool {
 ролей и поля `let` (агент).
 
 ```efen
-fn release(pool: mut Pool { mutex is Mutex.Free }, connection: own Connection) {
+fn release(pool: mut Pool, connection: own Connection)
+    requires pool.mutex is Mutex.Free
+{
     with pool.mutex {
         let editor = pool as PoolEditor
         editor.busy -= 1
@@ -1077,7 +1091,7 @@ FLOW; потом кольцо снова целиком у владельца.
 | эффекты `Waiting`, `Suspending`, `Blocking`, примитив `offload` | [эффекты](#эффекты-ожидания) | агент по поручению Edmond |
 | пометка `ordered` у эффекта | [исключение](#исключение-ordered) | агент |
 | пометка функции C как неждущей, пометка доверенного состояния | [эффекты](#эффекты-ожидания), [доступ](#доступ-через-projection) | агент, форма открыта |
-| `pool: mut Pool { mutex is Mutex.Free }` в параметре | [мьютекс](#мьютекс-и-with) | агент |
+| `requires pool.mutex is Mutex.Free` ([условия функций](conditions.md)) | [мьютекс](#мьютекс-и-with) | агент |
 | `invariant name { }` у структуры | [инвариант](#инвариант) | агент |
 | `slots[a ..< b]` в поле projection | [роли](#роли) | агент |
 | ожидание `waitFor` с замыканием «результат или `null`», `notifyOne` после `}`, очередь `Condition` с мьютексом аргументом | [ожидание](#ожидание-условия) | Edmond; имена `notifyAll`, `Condition`, `Ticket`, `startWaiting` — агент |

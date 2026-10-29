@@ -437,6 +437,26 @@ fn add: Adder {
 Сигнатуры функций позволяют определить прототип функции и дать ему имя, 
 а после повторно использовать этот прототип для определения функций.
 
+## Условия функции
+
+Что функция требует от вызывающего и что гарантирует, записывается строками
+`requires` и `ensures` после сигнатуры; тело тогда начинается с `{` на своей
+строке. Подробно — в [Условиях функций и циклов](conditions.md).
+
+```efen
+fn span(front: Int, tail: Int) -> Int
+    requires front >= 0 && front < CAPACITY
+    requires tail >= 0 && tail < CAPACITY
+    ensures result == (tail - front + CAPACITY) % CAPACITY
+{
+    if tail >= front {
+        return tail - front
+    }
+
+    return tail + CAPACITY - front
+}
+```
+
 ## Скрытые параметры
 
 У функции два вида параметров: явные и скрытые. Явные пишет человек, они

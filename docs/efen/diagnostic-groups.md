@@ -101,6 +101,26 @@ error[S.function-parameter-layout]: functions with more than three parameters us
 документацию ([комментарии](comments.md#проверка-компилятора)). Поэтому это не
 диагностика стиля `S`, чьё исправление смысла не меняет.
 
+### Заметки и группа `Proof`
+
+Заметка (notice) — уровень ниже предупреждения: компиляция не останавливается, а
+сообщение говорит о том, что компилятор не смог установить. Группа `Proof` —
+условия, которые сборка не доказала ([условия функций](conditions.md#обычная-сборка-и-диагностики)):
+
+```text
+notice: `ensures` of `span` is not proved [#Proof]
+```
+
+Заметку поднимают до предупреждения или ошибки флагом группы, как и любую
+диагностику (Edmond, 2026-10-29):
+
+```bash
+efenc -Wwarn Proof main.efen     # заметки Proof становятся предупреждениями (флаг -Wwarn — агент)
+efenc -Werror Proof main.efen    # и ошибками
+```
+
+Возможное переполнение арифметики условия — ошибка, а не заметка.
+
 ### Module Groups (кто генерирует ошибку)
 - `Package` - ошибки системы package
 - `Module` - ошибки модульной системы
@@ -121,6 +141,7 @@ error[S.function-parameter-layout]: functions with more than three parameters us
 - `StyleIssue` - диагностики стиля семейства `S`, по умолчанию ошибки
 - `Performance` - производительность
 - `Layer` - нарушения границ слоёв: `uses`, `exposes`, `provides`
+- `Proof` - недоказанные условия `requires`/`ensures`/`invariant`, по умолчанию заметки
 
 ## Примеры
 

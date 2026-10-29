@@ -199,11 +199,12 @@ variant epoll_data_t {
    ([ниже](#пример-epoll)):
 
    ```efen
-   @abi(c) fn epoll_ctl(epfd: Int32, op: Int32, fd: Int32,
-                        event: read epoll_event? { event == null || event.data is .u64 }) -> Int32
+   @abi(c) fn epoll_ctl(epfd: Int32, op: Int32, fd: Int32, event: read epoll_event?) -> Int32
+       requires event == null || event.data is .u64
 
-   @abi(c) fn epoll_wait(epfd: Int32, events: out [epoll_event { data is .u64 }] { count >= max },
-                         max: Int32, timeout: Int32) -> Int32 { result <= max }
+   @abi(c) fn epoll_wait(epfd: Int32, events: out [epoll_event { data is .u64 }], max: Int32, timeout: Int32) -> Int32
+       requires events.count >= max
+       ensures result <= max
    ```
 
    `epoll_wait` пишет только первые `result` элементов, остальные не инициализированы.

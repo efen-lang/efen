@@ -311,7 +311,9 @@ struct SlotBlock {
 нельзя.
 
 ```efen
-fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 }) -> own Pointer {
+fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock) -> own Pointer
+    requires block.used > 0
+{
     var k: Int
     if block.firstFreeSlot != NONE {
         k = Int(block.firstFreeSlot)
@@ -334,7 +336,9 @@ fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 }) -> ow
 `block.slots[k] = take slot` место `k` выходит из `slots.taken`, и его поля снова доступны.
 
 ```efen
-fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 }, slot: own block.slots.Item) {
+fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock, slot: own block.slots.Item)
+    requires block.used > 0
+{
     let k = block.slots.index(slot)
     block.slots[k] = take slot             // байтов не копирует: slot и есть место k
     block.slots[k].next = block.firstFreeSlot
@@ -446,15 +450,20 @@ state Content {
 полной `Pointer.Content.Zeroed`:
 
 ```efen
-fn map(bytes: Int { value % PAGE == 0 }, aligned: Int) -> own Pointer.Zeroed? { size == bytes && alignment == aligned }
-fn fill(memory: own Pointer.Zeroed { size == bytes && alignment == 4096 }, bytes: Int)
+fn map(bytes: Int, aligned: Int) -> own Pointer.Zeroed?
+    requires bytes % PAGE == 0
+    ensures result == null || (result.size == bytes && result.alignment == aligned)
+
+fn fill(memory: own Pointer.Zeroed, bytes: Int)
+    requires memory.size == bytes && memory.alignment == 4096
+
 fn keep(some: own Pointer.Zeroed?)
 ```
 
 Компилятор доказывает и выдаёт только `Zeroed`:
 
 1. Результат `Pointer.Zeroed` доказывается на каждом `return`; вызывающий получает нулевую память. У такого результата
-   обязательны условия `size` и `alignment`.
+   обязательны условия `size` и `alignment` в `ensures` ([условия функций](../conditions.md)).
 2. Параметр `Pointer.Zeroed` считается нулевым при входе и доказывается на каждом вызове. Аргумент `null`
    необязательного параметра подходит; привязка `guard let m = take some` получает состояние `some`.
 3. Параметр `Pointer`, `Pointer.Raw` или `Pointer.Initialized` принимает любую память, нулевую тоже. Результат
@@ -672,11 +681,9 @@ fn smallFree(memory: own Pointer?) {
 
 - как отображение ОС, взятое не регионом, входит в множество блоков и выходит из него;
 - условная компиляция отладочных проверок (`#if debug()` в спецификации нет);
-- условие на параметре `{ used > 0 }` (форма условия поля, перенесённая на параметр);
 - `own<block>` — origin-форма, у ссылок она есть, для `own` не записана;
 - `x.taken` и `x.index(element)` как имена, известные компилятору;
 - уточнение типа поля заголовка условием вида (`next: own FreeBlock?`);
-- импликация `==>` в условии вида;
 - цикл, который берёт несколько элементов: нужен инвариант по `taken`;
 - происхождение `Pointer` через границу контракта (`tryAllocate -> own Pointer?`);
 - нет в спецификации, сделано в компиляторе: `@abi(c)` на функции с телом, `static own var`, приведение
