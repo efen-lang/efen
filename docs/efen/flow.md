@@ -97,11 +97,13 @@ flow {
 ```efen
 flow {
     x <- someOperation()
-    catch Err handleError(x)    
-    |- catch Err log("Ошибка при выполнении someOperation: ${$error}")
+    catch e: Err handleError(e)
+    |- catch e: Err log("Ошибка при выполнении someOperation: ${e}")
     return x
 }
 ```
+
+Ошибка называется так же, как в [try-catch](blocks/try-catch.md): `catch e: Err`.
 
 ## Условные фильтры и ветвления
 
@@ -115,7 +117,7 @@ flow {
 ```efen
 flow {
     x <- getUser()
-    if x > 5 continue
+    if x > 5 { continue }
     y <- fetchScore(x)
     return y
 }
@@ -131,7 +133,7 @@ flow {
 ```efen
 flow {
     x <- getUser()
-    if x == null break
+    if x == null { break }
     y <- fetchScore(x)
     return y
 }
@@ -147,15 +149,14 @@ flow {
 ```efen
 flow {
     x <- getUser()
-    if x > 5
-        y <- fetchScore(x)
-    else
-        y <- fetchDefault()
+    y <- if x > 5 { fetchScore(x) } else { fetchDefault() }
     return y
 }
 ```
 
-Обе ветки остаются в том же вычислительном контексте.  
+`if` здесь — выражение: каждая ветвь даёт значение в контексте, и `<-` связывает
+`y` с выбранным, так что имя видно и после `if` (агент). Обе ветки остаются в том же
+вычислительном контексте.  
 `return` возвращает результат выбранной ветви.
 
 ---
@@ -165,12 +166,13 @@ flow {
 ```efen
 flow {
     x <- getUser()
-    if x > 10
-        y <- fetchPremium(x)
-    else if x > 5
-        y <- fetchRegular(x)
-    else
-        y <- fetchDefault()
+    y <- if x > 10 {
+        fetchPremium(x)
+    } else if x > 5 {
+        fetchRegular(x)
+    } else {
+        fetchDefault()
+    }
     return y
 }
 ```
@@ -186,13 +188,11 @@ flow {
 flow {
     x <- getUser()
 
-    if x != null
-        if x.isAdmin()
-            y <- fetchAdminData(x)
-        else
-            y <- fetchUserData(x)
-    else
-        y <- fetchGuestData()
+    y <- if x != null {
+        if x.isAdmin() { fetchAdminData(x) } else { fetchUserData(x) }
+    } else {
+        fetchGuestData()
+    }
 
     return y
 }
@@ -227,43 +227,43 @@ flow {
 
 ---
 
-### Цикл `repeat`
+### Цикл `for`
 
 ```efen
 flow {
-    repeat 5 {
+    for _ in 0..<5 {
         log("tick")
     }
     return done()
 }
 ```
 
-`repeat N` выполняет тело указанное количество раз, не покидая контекста.  
+`for` по диапазону выполняет тело указанное количество раз, не покидая контекста.  
 Все вызовы внутри тела (`await(...)`, `<-`, `if`, `match`) остаются частью общей монадической цепочки.
 
 ---
 
-### Цикл `loop`
+### Бесконечный цикл
 
 ```efen
 flow {
-    loop {
+    while true {
         x <- fetchNext()
-        if x == null break
+        if x == null { break }
         process(x)
     }
     return done()
 }
 ```
 
-`loop` — бесконечный цикл, завершающийся при `break`.  
+`while true` повторяет тело, пока его не завершит `break`.  
 `break` и `continue` не разрывают контекст, а лишь управляют внутренним потоком итераций.
 
 ---
 
 ### Семантика
 
-- Все формы (`while`, `repeat`, `loop`) компилируются в монадические операции связывания.
+- Все циклы (`while`, `for`, `repeat … while`) компилируются в монадические операции связывания.
 - Циклы не создают новых областей выполнения и не нарушают контекст.
 - Операторы `break` и `continue` действуют только внутри текущего `flow`, сохраняя чистую модель вычислений.
 
@@ -285,14 +285,14 @@ flow {
 ```
 
 Каждая ветка выполняется в том же контексте (`Future`, `IO`, `Option` и т.д.)  
-и может содержать собственные `if`, `loop`, `break` и `continue`.
+и может содержать собственные `if`, циклы, `break` и `continue`.
 
 ## Flow-функции
 
 Функции могут быть объявлены с использованием `flow`, что позволяет создавать монадические функции-генераторы.
 
 ```efen
-flow fetchAndProcess() -> Result<Data, Error> {
+flow fetchAndProcess -> Result<Data, Error> {
     user <- getUser()
     data <- fetchData(user)
     processed <- processData(data)
@@ -311,7 +311,7 @@ flow generator ticketsPrinter(ticket: Ticket) in Logger, Queue, Account {
     
     user <- Account.getUser(ticket.userId)
     |- Logger.log("Печать билета для пользователя ${user.name}")
-    |- Err Logger.log("Ошибка получения пользователя: ${$error}")
+    |- catch e: Err Logger.log("Ошибка получения пользователя: ${e}")
     
     // Сформировать письмо с описанием билета
     email <- Storage.Email(to: user.email, subject: "Ваш билет", body: "Билет на событие ${ticket.eventName}")
@@ -331,7 +331,7 @@ flow generator ticketsPrinter(ticket: Ticket) in Logger, Queue, Account {
 ```efen
 flow generator numberStream -> Int {
     var n = 0
-    loop {
+    while true {
         n = n + 1
         // передаём текущее значение n в поток
         yield n
@@ -339,7 +339,7 @@ flow generator numberStream -> Int {
 }
 
 fn main {
-    gen = numberStream()
+    let gen = numberStream()
     print(gen.next()) // 1
     print(gen.next()) // 2
     print(gen.next()) // 3

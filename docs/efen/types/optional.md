@@ -421,17 +421,20 @@ let required: T = dictionary["key"]
 
 ```efen
 class OrderService {
-    initial state Unconfigured
-
-    state Configured {
-        let repository: Repository
+    state Setup {
+        initial Unconfigured
+        Configured
     }
 
-    fn setup(repo: Repository) state Unconfigured >> Configured {
+    let repository: Repository {
+        state Setup.Configured
+    }
+
+    fn setup(repo: Repository) state Setup.Unconfigured >> Setup.Configured {
         repository = repo
     }
 
-    fn load(id: Int) -> Order state Configured {
+    fn load(id: Int) -> Order state Setup.Configured {
         return repository.find(id)
     }
 }
@@ -617,7 +620,7 @@ print(optional == 42)  // true (автоматическое преобразо�
 Optional часто используется с generic функциями:
 
 ```efen
-fn findFirst<T>(array: [T], where predicate: (T) -> Bool) -> T? {
+fn findFirst<T>(array: [T], predicate: (T) -> Bool) -> T? {
     for item in array {
         if predicate(item) {
             return item
@@ -626,7 +629,7 @@ fn findFirst<T>(array: [T], where predicate: (T) -> Bool) -> T? {
     return null
 }
 
-fn findLast<T>(array: [T], where predicate: (T) -> Bool) -> T? {
+fn findLast<T>(array: [T], predicate: (T) -> Bool) -> T? {
     for item in array.reversed() {
         if predicate(item) {
             return item
@@ -653,7 +656,7 @@ fn loadUser(id: Int) -> Result<User, DatabaseError> {
 }
 
 // ✅ Throws - для исключительных ситуаций
-fn loadUser(id: Int) -> User throws {
+fn loadUser(id: Int) -> User throws DatabaseError {
     // ...
 }
 ```

@@ -52,13 +52,25 @@ let info = "Пользователь ${user.name}, возраст ${user.age} л
 let numbers = [1, 2, 3, 4, 5]
 let total = "Сумма: ${numbers.sum()}"
 
-// Многострочные выражения
-let description = "Результат: ${
-    let x = calculateValue()
-    let y = processValue(x)
-    formatResult(y)
+// Выражение может занимать несколько строк
+let summary = "Итог: ${
+    orders
+        .filter => order.isPaid
+        .map => order.total
+        .sum()
 }"
 ```
+
+В `${ }` стоит одно выражение, без `let`, `var` и нескольких операторов
+(Edmond, 2026-10-29). Промежуточные значения объявляются до строки:
+
+```efen
+let result = formatResult(processValue(calculateValue()))
+let description = "Результат: ${result}"
+```
+
+Так строка остаётся текстом с подстановками, а вычисление стоит отдельно.
+JavaScript, Kotlin, Python, C# и Swift тоже пускают в подстановку только выражение.
 
 ## Многострочные строки
 
@@ -119,7 +131,7 @@ let carriageReturn = "Текст\rНовый текст"
 let bell = "\a"          // Звуковой сигнал
 let backspace = "\b"     // Возврат на символ
 let formfeed = "\f"      // Перевод страницы
-let null = "\0"          // Нулевой символ
+let nul = "\0"           // Нулевой символ
 ```
 
 ### Unicode-последовательности
@@ -289,10 +301,10 @@ let csv = numbers.join(", ")            // "1, 2, 3"
 
 ```efen
 let dash = "-"
-let line = dash.repeat(10)              // "----------"
+let line = dash.repeating(10)              // "----------"
 
 let pattern = "ab"
-let result = pattern.repeat(3)          // "ababab"
+let result = pattern.repeating(3)          // "ababab"
 ```
 
 ### Padding (дополнение)
@@ -319,7 +331,7 @@ let age = 30
 let msg1 = String.format("Name: {}, Age: {}", name, age)
 
 // Именованные аргументы
-let msg2 = String.format("Name: {name}, Age: {age}", name=name, age=age)
+let msg2 = String.format("Name: {name}, Age: {age}", name: name, age: age)
 
 // Форматирование чисел
 let pi = 3.14159
@@ -487,7 +499,7 @@ println(upper)                            // "HELLO"
 Для изменяемых операций используйте StringBuilder:
 
 ```efen
-let mut builder = StringBuilder.from("Hello")
+var builder = StringBuilder.from("Hello")
 builder.append(" World")
 builder.insert(5, ",")
 let result = builder.toString()           // "Hello, World"

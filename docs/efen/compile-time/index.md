@@ -73,19 +73,19 @@ struct SqlQuery {
 ```efen
 interface CompileContext {
     // Получение модуля
-    fn getModule -> Module;
+    fn getModule -> Module
 
     // Поиск типа по имени
-    fn findType(name: String) -> Type?;
+    fn findType(name: String) -> Type?
 
     // Поиск класса по имени
-    fn findClass(name: String) -> Class?;
+    fn findClass(name: String) -> Class?
 
     // Поиск интерфейса по имени
-    fn findInterface(name: String) -> Interface?;
+    fn findInterface(name: String) -> Interface?
 
     // Поиск аспекта по имени
-    fn findAspect(name: String) -> Aspect?;
+    fn findAspect(name: String) -> Aspect?
 }
 ```
 
@@ -96,22 +96,22 @@ interface CompileContext {
 ```efen
 interface Module {
     // Имя модуля
-    fn getName -> String;
+    fn getName -> String
 
     // Получение всех классов модуля
-    fn getClasses -> [String: Class];
+    fn getClasses -> [String: Class]
 
     // Получение всех интерфейсов модуля
-    fn getInterfaces -> [String: Interface];
+    fn getInterfaces -> [String: Interface]
 
     // Получение всех структур модуля
-    fn getStructs -> [String: Struct];
+    fn getStructs -> [String: Struct]
 
     // Получение всех аспектов модуля
-    fn getAspects -> [String: Aspect];
+    fn getAspects -> [String: Aspect]
 
     // Получение всех стратегий модуля
-    fn getStrategies -> [String: Strategy];
+    fn getStrategies -> [String: Strategy]
 }
 ```
 
@@ -126,112 +126,112 @@ contract Class {
     // ===== Базовая информация =====
 
     // Получение имени класса
-    fn getName -> String;
+    fn getName -> String
 
     // Получение полного имени класса (с namespace)
-    fn getFullName -> String;
+    fn getFullName -> String
 
     // Получение модуля, в котором определён класс
-    fn getModule -> Module;
+    fn getModule -> Module
 
     // Получение исходного расположения определения класса
-    fn getSourceLocation -> SourceLocation;
+    fn getSourceLocation -> SourceLocation
 
     // ===== Иерархия наследования =====
 
     // Получение базового класса (если есть)
-    fn getBaseClass -> Class?;
+    fn getBaseClass -> Class?
 
     // Проверка наследования от другого класса
-    fn inheritsFrom(other: Class) -> Bool;
+    fn inheritsFrom(other: Class) -> Bool
 
     // Получение всех базовых классов в иерархии
-    fn getAllBaseClasses -> Class[];
+    fn getAllBaseClasses -> [Class]
 
     // ===== Интерфейсы и контракты =====
 
     // Получение списка реализуемых интерфейсов
-    fn getInterfaces -> Interface[];
+    fn getInterfaces -> [Interface]
 
     // Получение списка контрактов
-    fn getContracts -> Contract[];
+    fn getContracts -> [Contract]
 
     // Проверка реализации интерфейса
-    fn implements(interface: Interface) -> Bool;
+    fn implements(interface: Interface) -> Bool
 
     // Проверка соблюдения контракта
-    fn satisfies(contract: Contract) -> Bool;
+    fn satisfies(required: Contract) -> Bool
 
     // ===== Аспекты =====
 
     // Получение списка применённых аспектов
-    fn getAspects -> Aspect[];
+    fn getAspects -> [Aspect]
 
     // Проверка применения аспекта
-    fn hasAspect(aspect: Aspect) -> Bool;
+    fn hasAspect(aspect: Aspect) -> Bool
 
     // Получение аспекта по имени
-    fn getAspect(name: String) -> Aspect?;
+    fn getAspect(name: String) -> Aspect?
 
     // ===== Методы =====
 
     // Получение всех методов класса (включая унаследованные)
-    fn getMethods(inherited: Bool = true) -> Method[];
+    fn getMethods(inherited: Bool = true) -> [Method]
 
     // Получение собственных методов класса
-    fn getOwnMethods -> Method[];
+    fn getOwnMethods -> [Method]
 
     // Поиск метода по имени
-    fn findMethod(name: String) -> Method?;
+    fn findMethod(name: String) -> Method?
 
     // Поиск метода по сигнатуре
-    fn findMethod(name: String, params: Type[]) -> Method?;
+    fn findMethod(name: String, params: [Type]) -> Method?
 
     // Проверка наличия метода
-    fn hasMethod(name: String) -> Bool;
+    fn hasMethod(name: String) -> Bool
 
     // ===== Свойства =====
 
     // Получение всех свойств класса (включая унаследованные)
-    fn getProperties(inherited: Bool = true) -> Property[];
+    fn getProperties(inherited: Bool = true) -> [Property]
 
     // Получение собственных свойств класса
-    fn getOwnProperties -> Property[];
+    fn getOwnProperties -> [Property]
 
     // Поиск свойства по имени
-    fn findProperty(name: String) -> Property?;
+    fn findProperty(name: String) -> Property?
 
     // Проверка наличия свойства
-    fn hasProperty(name: String) -> Bool;
+    fn hasProperty(name: String) -> Bool
 
     // ===== Модификаторы =====
 
     // Проверка модификаторов
-    fn isFinal -> Bool;
-    fn isOpen -> Bool;
-    fn isPublic -> Bool;
-    fn isPrivate -> Bool;
-    fn isProtected -> Bool;
-    fn isFamily -> Bool;
+    fn isFinal -> Bool
+    fn isOpen -> Bool
+    fn isPublic -> Bool
+    fn isPrivate -> Bool
+    fn isProtected -> Bool
+    fn isFamily -> Bool
 
     // ===== Метаданные и атрибуты =====
 
     // Получение метаданных класса
-    fn getMetadata -> Metadata;
+    fn getMetadata -> Metadata
 
     // Получение атрибутов класса
-    fn getAttributes -> Attribute[];
+    fn getAttributes -> [Attribute]
 
     // Поиск атрибута по типу
-    fn findAttribute<T>(type: Type<T>) -> T?;
+    fn findAttribute<T>(type: Type<T>) -> T?
 
     // Проверка наличия атрибута
-    fn hasAttribute(type: Type) -> Bool;
+    fn hasAttribute(type: Type) -> Bool
 
     // ===== Модификация (Builder Pattern) =====
 
     // Получение builder'а для модификации класса
-    fn toBuilder -> ClassBuilder;
+    fn toBuilder -> ClassBuilder
 }
 ```
 
@@ -270,61 +270,61 @@ contract ClassBuilder {
     // ===== Добавление методов =====
 
     // Добавить метод к классу
-    fn addMethod(method: MethodBuilder) -> ClassBuilder;
+    fn addMethod(method: MethodBuilder) -> ClassBuilder
 
     // Добавить метод с кодом
-    fn addMethod(name: String, params: Parameter[], returnType: Type, body: CodeBlock) -> ClassBuilder;
+    fn addMethod(name: String, params: [Parameter], returnType: Type, body: CodeBlock) -> ClassBuilder
 
     // ===== Добавление свойств =====
 
     // Добавить свойство к классу
-    fn addProperty(property: PropertyBuilder) -> ClassBuilder;
+    fn addProperty(property: PropertyBuilder) -> ClassBuilder
 
     // Добавить простое свойство
-    fn addProperty(name: String, type: Type, defaultValue: Expression? = null) -> ClassBuilder;
+    fn addProperty(name: String, type: Type, defaultValue: Expression? = null) -> ClassBuilder
 
     // ===== Добавление интерфейсов =====
 
     // Добавить реализацию интерфейса
-    fn addInterface(interface: Interface) -> ClassBuilder;
+    fn addInterface(interface: Interface) -> ClassBuilder
 
     // ===== Добавление аспектов =====
 
     // Применить аспект к классу
-    fn addAspect(aspect: Aspect) -> ClassBuilder;
+    fn addAspect(aspect: Aspect) -> ClassBuilder
 
     // Применить аспект с параметрами
-    fn addAspect(aspect: Aspect, params: Map<String, Value>) -> ClassBuilder;
+    fn addAspect(aspect: Aspect, params: Map<String, Value>) -> ClassBuilder
 
     // ===== Модификация существующих элементов =====
 
     // Модифицировать метод
-    fn modifyMethod(name: String, modifier: (MethodBuilder) -> MethodBuilder) -> ClassBuilder;
+    fn modifyMethod(name: String, modifier: (MethodBuilder) -> MethodBuilder) -> ClassBuilder
 
     // Модифицировать свойство
-    fn modifyProperty(name: String, modifier: (PropertyBuilder) -> PropertyBuilder) -> ClassBuilder;
+    fn modifyProperty(name: String, modifier: (PropertyBuilder) -> PropertyBuilder) -> ClassBuilder
 
     // ===== Изменение модификаторов =====
 
-    fn setFinal(value: Bool) -> ClassBuilder;
-    fn setOpen(value: Bool) -> ClassBuilder;
-    fn setVisibility(visibility: Visibility) -> ClassBuilder;
+    fn setFinal(value: Bool) -> ClassBuilder
+    fn setOpen(value: Bool) -> ClassBuilder
+    fn setVisibility(visibility: Visibility) -> ClassBuilder
 
     // ===== Метаданные и атрибуты =====
 
     // Добавить атрибут к классу
-    fn addAttribute(attribute: Attribute) -> ClassBuilder;
+    fn addAttribute(attribute: Attribute) -> ClassBuilder
 
     // Добавить метаданные
-    fn addMetadata(key: String, value: MetadataValue) -> ClassBuilder;
+    fn addMetadata(key: String, value: MetadataValue) -> ClassBuilder
 
     // ===== Применение изменений =====
 
     // Применить все изменения
-    fn build -> Class;
+    fn build -> Class
 
     // Проверить корректность перед применением
-    fn validate -> ValidationResult;
+    fn validate -> ValidationResult
 }
 ```
 
@@ -343,20 +343,20 @@ contract ClassBuilder {
 
 ```efen
 interface Method {
-    fn getName -> String;
-    fn getParameters -> Parameter[];
-    fn getReturnType -> Type;
-    fn isPublic -> Bool;
-    fn isPrivate -> Bool;
-    fn isProtected -> Bool;
-    fn isStatic -> Bool;
-    fn isFinal -> Bool;
-    fn isOpen -> Bool;
-    fn isFamily -> Bool;
-    fn getAttributes -> Attribute[];
-    fn getMetadata -> Metadata;
-    fn getSourceLocation -> SourceLocation;
-    fn toBuilder -> MethodBuilder;
+    fn getName -> String
+    fn getParameters -> [Parameter]
+    fn getReturnType -> Type
+    fn isPublic -> Bool
+    fn isPrivate -> Bool
+    fn isProtected -> Bool
+    fn isStatic -> Bool
+    fn isFinal -> Bool
+    fn isOpen -> Bool
+    fn isFamily -> Bool
+    fn getAttributes -> [Attribute]
+    fn getMetadata -> Metadata
+    fn getSourceLocation -> SourceLocation
+    fn toBuilder -> MethodBuilder
 }
 ```
 
@@ -364,23 +364,23 @@ interface Method {
 
 ```efen
 interface Property {
-    fn getName -> String;
-    fn getType -> Type;
-    fn hasDefaultValue -> Bool;
-    fn getDefaultValue -> Expression?;
-    fn isPublic -> Bool;
-    fn isPrivate -> Bool;
-    fn isProtected -> Bool;
-    fn isStatic -> Bool;
-    fn isReadonly -> Bool;
-    fn hasGetter -> Bool;
-    fn hasSetter -> Bool;
-    fn getGetter -> Method?;
-    fn getSetter -> Method?;
-    fn getAttributes -> Attribute[];
-    fn getMetadata -> Metadata;
-    fn getSourceLocation -> SourceLocation;
-    fn toBuilder -> PropertyBuilder;
+    fn getName -> String
+    fn getType -> Type
+    fn hasDefaultValue -> Bool
+    fn getDefaultValue -> Expression?
+    fn isPublic -> Bool
+    fn isPrivate -> Bool
+    fn isProtected -> Bool
+    fn isStatic -> Bool
+    fn isReadonly -> Bool
+    fn hasGetter -> Bool
+    fn hasSetter -> Bool
+    fn getGetter -> Method?
+    fn getSetter -> Method?
+    fn getAttributes -> [Attribute]
+    fn getMetadata -> Metadata
+    fn getSourceLocation -> SourceLocation
+    fn toBuilder -> PropertyBuilder
 }
 ```
 
@@ -388,25 +388,25 @@ interface Property {
 
 ```efen
 interface Type {
-    fn getName -> String;
-    fn getFullName -> String;
-    fn isClass -> Bool;
-    fn isInterface -> Bool;
-    fn isStruct -> Bool;
-    fn isPrimitive -> Bool;
-    fn isArray -> Bool;
-    fn isGeneric -> Bool;
-    fn getGenericParameters -> Type[];
-    fn isAssignableFrom(other: Type) -> Bool;
-    fn isAssignableTo(other: Type) -> Bool;
+    fn getName -> String
+    fn getFullName -> String
+    fn isClass -> Bool
+    fn isInterface -> Bool
+    fn isStruct -> Bool
+    fn isPrimitive -> Bool
+    fn isArray -> Bool
+    fn isGeneric -> Bool
+    fn getGenericParameters -> [Type]
+    fn isAssignableFrom(other: Type) -> Bool
+    fn isAssignableTo(other: Type) -> Bool
 
     // Статические методы для создания базовых типов
-    static fn void -> Type;
-    static fn bool -> Type;
-    static fn int -> Type;
-    static fn float -> Type;
-    static fn string -> Type;
-    static fn array(elementType: Type) -> Type;
+    static fn void -> Type
+    static fn bool -> Type
+    static fn int -> Type
+    static fn float -> Type
+    static fn string -> Type
+    static fn array(elementType: Type) -> Type
 }
 ```
 
@@ -414,10 +414,10 @@ interface Type {
 
 ```efen
 struct Parameter {
-    name: String;
-    type: Type;
-    defaultValue: Expression?;
-    isVariadic: Bool;
+    name: String
+    type: Type
+    defaultValue: Expression?
+    isVariadic: Bool
 }
 ```
 
@@ -425,10 +425,10 @@ struct Parameter {
 
 ```efen
 interface SourceLocation {
-    fn getFile -> String;
-    fn getLine -> Int;
-    fn getColumn -> Int;
-    fn toString -> String;
+    fn getFile -> String
+    fn getLine -> Int
+    fn getColumn -> Int
+    fn toString -> String
 }
 ```
 
@@ -441,15 +441,15 @@ interface SourceLocation {
 
 ```efen
 interface Metadata {
-    fn get(key: String) -> MetadataValue?;
-    mut fn set(key: String, value: MetadataValue);
-    fn has(key: String) -> Bool;
-    mut fn remove(key: String);
-    fn keys -> String[];
+    fn get(key: String) -> MetadataValue?
+    mut fn set(key: String, value: MetadataValue)
+    fn has(key: String) -> Bool
+    mut fn remove(key: String)
+    fn keys -> [String]
 
     // Маркировка метаданных для включения в runtime
-    fn markForRuntime(key: String);
-    fn isMarkedForRuntime(key: String) -> Bool;
+    fn markForRuntime(key: String)
+    fn isMarkedForRuntime(key: String) -> Bool
 }
 ```
 
@@ -457,9 +457,9 @@ interface Metadata {
 
 ```efen
 interface Attribute {
-    fn getType -> Type;
-    fn getArguments -> Map<String, Value>;
-    fn getArgument(name: String) -> Value?;
+    fn getType -> Type
+    fn getArguments -> Map<String, Value>
+    fn getArgument(name: String) -> Value?
 }
 ```
 
@@ -479,13 +479,13 @@ enum Visibility {
 ```efen
 interface CodeBlock {
     // Создание пустого блока кода
-    static fn empty -> CodeBlock;
+    static fn empty -> CodeBlock
 
     // Добавление выражений
-    fn addExpression(expr: Expression) -> CodeBlock;
+    fn addExpression(expr: Expression) -> CodeBlock
 
     // Преобразование в строку
-    fn toString -> String;
+    fn toString -> String
 }
 ```
 
@@ -493,12 +493,12 @@ interface CodeBlock {
 
 ```efen
 interface Expression {
-    fn getType -> Type;
-    fn toString -> String;
+    fn getType -> Type
+    fn toString -> String
 
     // Статические методы для создания выражений
-    static fn literal(value: Value) -> Expression;
-    static fn variable(name: String) -> Expression;
-    static fn call(target: Expression, method: String, args: Expression[]) -> Expression;
+    static fn literal(value: Value) -> Expression
+    static fn variable(name: String) -> Expression
+    static fn call(target: Expression, method: String, args: [Expression]) -> Expression
 }
 ```

@@ -12,8 +12,8 @@
 
 Форма `code { ... }` разбирается по видимому имени и контексту. Если остаётся
 одно допустимое прочтение, она законна; при нескольких — compiler выдаёт ошибку
-неоднозначности. `efen::code { ... }` остаётся явной квалифицированной формой.
-Обычное trailing closure по-прежнему требует `=>`.
+неоднозначности. `efen::code { ... }` остаётся явной квалифицированной формой, а
+`inline { ... }` создаёт `InlineClosure`. Обычное trailing closure по-прежнему требует `=>`.
 
 Способ передачи — значение или адрес места — выбирает компилятор, и машинную форму ссылки внутри
 функции тоже ([владение](../types/ownership.md#машинную-ссылку-выбирает-компилятор)). Метафункция, которая генерирует код, —
@@ -194,8 +194,8 @@ meta fn tryCatch(tryBody: Statement, catchBody: Statement) -> InlineClosure {
 
 // Использование
 tryCatch(
-    tryBody: { riskyOperation() },
-    catchBody: { rollback() }
+    tryBody: efen::code { riskyOperation() },
+    catchBody: efen::code { rollback() }
 )
 ```
 
@@ -206,7 +206,7 @@ tryCatch(
 **Statement** - это **блок кода для модификации**:
 - ✅ Можно анализировать структуру кода
 - ✅ Можно модифицировать и трансформировать
-- ✅ Создаётся через `efen::code {}` или передаётся как `code: { }`
+- ✅ Создаётся через `efen::code {}`, в том числе прямо в аргументе: `code: efen::code { }`
 - ✅ Передаётся через **именованные параметры**
 
 ```efen
@@ -224,7 +224,7 @@ meta fn transform(code: Statement) -> InlineClosure {
 }
 
 // Передача через именованный параметр
-transform(code: {
+transform(code: efen::code {
     processData()
     saveResults()
 })
@@ -276,13 +276,13 @@ forEach([1, 2, 3], (value, index) -> Void {
 
 | Задача | Тип | Синтаксис передачи |
 |--------|-----|-------------------|
-| Нужно модифицировать код | `Statement` | `fun(code: { })` |
+| Нужно модифицировать код | `Statement` | `fun(code: efen::code { })` |
 | Нужно только вставить код | `InlineClosure` | `fun => { }` |
 | Closure с параметрами | `InlineClosure` | `fun((a, b) -> Void { })` |
 
 #### Передача Statement в метафункцию
 
-**Statement передаётся ТОЛЬКО через именованные параметры** `code: { }`:
+**Statement передаётся через именованные параметры** `code: efen::code { }`:
 
 ```efen
 meta fn tryCatch(tryBody: Statement, catchBody: Statement) -> InlineClosure {
@@ -298,11 +298,11 @@ meta fn tryCatch(tryBody: Statement, catchBody: Statement) -> InlineClosure {
 
 // Передача через именованные параметры
 tryCatch(
-    tryBody: {
+    tryBody: efen::code {
         connectToDatabase()
         executeQuery()
     },
-    catchBody: {
+    catchBody: efen::code {
         logError()
         reconnect()
     }
@@ -324,8 +324,8 @@ meta fn ifElse(condition: Bool, thenBody: Statement, elseBody: Statement) -> Inl
 
 // Все параметры именованные
 ifElse(x > 0,
-    thenBody: { println("Positive") },
-    elseBody: { println("Non-positive") }
+    thenBody: efen::code { println("Positive") },
+    elseBody: efen::code { println("Non-positive") }
 )
 ```
 
@@ -364,7 +364,7 @@ meta fn retry(times: Int, code: InlineClosure) -> InlineClosure {
 retry(3) => { connectToAPI() }
 
 // ✅ ПРАВИЛЬНО - обычный вызов
-retry(3, code {
+retry(3, inline {
     connectToAPI()
 })
 
@@ -407,7 +407,7 @@ meta fn measure(name: String, body: InlineClosure) -> InlineClosure {
 }
 
 // DSL для измерения - два параметра
-measure("User creation", body {
+measure("User creation", inline {
     let user = createUser("John")
     assert(user.name == "John")
 })
@@ -428,13 +428,13 @@ meta fn benchmark(setup: Statement, measure: Statement, teardown: Statement) -> 
 
 // Использование с несколькими блоками
 benchmark(
-    setup: {
+    setup: efen::code {
         let data = generateTestData()
     },
-    measure: {
+    measure: efen::code {
         sortAlgorithm(data)
     },
-    teardown: {
+    teardown: efen::code {
         cleanup(data)
     }
 )
@@ -457,7 +457,7 @@ meta fn retry(times: Int, code: InlineClosure) -> InlineClosure {
 }
 
 // Два параметра - обычный вызов
-retry(3, code {
+retry(3, inline {
     connectToServer()
     sendRequest()
 })
@@ -470,7 +470,7 @@ retry(3, code {
 withLogging => { doSomething() }
 
 // ✅ Несколько параметров - обычный вызов
-retry(3, code { doSomething() })
+retry(3, inline { doSomething() })
 
 // ❌ НЕПРАВИЛЬНО - нельзя использовать => с несколькими параметрами
 retry(3) => { doSomething() }
@@ -533,7 +533,7 @@ conditionalCheck(true, Identifier.create("value"))
 ```efen
 use efen::*
 
-meta fn generateGetters(fields: comptime Identifier[]) -> InlineClosure {
+meta fn generateGetters(fields: comptime [Identifier]) -> InlineClosure {
     let statements = []
 
     for field in fields {
@@ -542,7 +542,7 @@ meta fn generateGetters(fields: comptime Identifier[]) -> InlineClosure {
         let typeName = Identifier.create(fieldName + "Type")
 
         let getter = efen::code {
-            fn ${getterName}() -> ${typeName} {
+            fn ${getterName} -> ${typeName} {
                 return this.${field}
             }
         }
@@ -606,7 +606,7 @@ meta fn wrapWithCheck(varName: Expression, code: Statement) -> InlineClosure {
 }
 
 // Использование
-wrapWithCheck(user, code {
+wrapWithCheck(user, efen::code {
     println("User: ${user.name}")
 })
 ```
@@ -628,7 +628,7 @@ meta fn createGetter(fieldName: Identifier) -> InlineClosure {
     let getterName = Identifier.create("get" + fieldName.toString().capitalize())
 
     return inline {
-        fn ${getterName}() -> Auto {
+        fn ${getterName} -> Auto {
             return this.${fieldName}
         }
     }
@@ -680,16 +680,16 @@ meta fn createValidator(type: Type) -> InlineClosure {
 
 ```efen
 // Создание идентификатора
-Identifier.create(name: comptime String) -> Identifier
+static fn create(name: comptime String) -> Identifier
 
 // Получение имени
-identifier.toString() -> String
+fn toString -> String
 
 // Проверка валидности
-identifier.isValid() -> Bool
+fn isValid -> Bool
 
 // Конкатенация
-identifier.concat(suffix: String) -> Identifier
+fn concat(suffix: String) -> Identifier
 ```
 
 #### Безопасность типов
@@ -810,12 +810,12 @@ meta fn withTransaction(setup: Statement, body: Statement, cleanup: Statement) -
 
 // Использование
 withTransaction(
-    setup: { validateConnection() },
-    body: {
+    setup: efen::code { validateConnection() },
+    body: efen::code {
         insertData()
         updateRecords()
     },
-    cleanup: { closeConnection() }
+    cleanup: efen::code { closeConnection() }
 )
 ```
 
@@ -873,7 +873,7 @@ meta fn retry(maxAttempts: Int, body: InlineClosure) -> InlineClosure {
 }
 
 // Использование - два параметра
-retry(3, body {
+retry(3, inline {
     connectToAPI()
     fetchData()
 })
@@ -892,7 +892,7 @@ meta fn measureMemory(name: String, body: InlineClosure) -> InlineClosure {
 }
 
 // Использование - два параметра
-measureMemory("Data processing", body {
+measureMemory("Data processing", inline {
     let data = loadLargeFile()
     processData(data)
 })
@@ -914,7 +914,7 @@ meta fn onlyIf(condition: comptime Bool, body: InlineClosure) -> InlineClosure {
 }
 
 // Использование - два параметра
-onlyIf(project.isDebug(), body {
+onlyIf(project.isDebug(), inline {
     validateInvariants()
     printDebugInfo()
 })
@@ -937,11 +937,11 @@ meta fn scopeGuard(onEnter: Statement, body: Statement, onExit: Statement) -> In
 
 // Использование
 scopeGuard(
-    onEnter: { acquireLock() },
-    body: {
+    onEnter: efen::code { acquireLock() },
+    body: efen::code {
         criticalSection()
     },
-    onExit: { releaseLock() }
+    onExit: efen::code { releaseLock() }
 )
 ```
 
@@ -987,7 +987,7 @@ meta fn smartRetry(body: Statement) -> InlineClosure {
 meta fn logAndMeasure(name: String, body: InlineClosure) -> InlineClosure {
     return inline {
         log("INFO", "Starting ${name}")
-        measureMemory(name, body {
+        measureMemory(name, inline {
             ${body}
         })
         log("INFO", "Finished ${name}")
@@ -1049,7 +1049,7 @@ meta fn log(level: String, msg: String) -> InlineClosure {
 
 ```efen
 meta fn repeatString(text: comptime String, count: comptime Int) -> InlineClosure {
-    let repeated = text.repeat(count)  // Вычисляется во время компиляции
+    let repeated = text.repeating(count)  // Вычисляется во время компиляции
     return inline {
         repeated  // Константа встроена в замыкание
     }
@@ -1083,7 +1083,7 @@ let maximum = max(x * 2, y + 3)  // Выражения вычисляются в
 Inline closure имеет **собственную область видимости**:
 
 ```efen
-meta fn swap(a: var Int, b: var Int) -> InlineClosure {
+meta fn swap(a: mut Int, b: mut Int) -> InlineClosure {
     return inline {
         let temp = a  // temp - локальная переменная inline closure
         a = b
@@ -1226,7 +1226,7 @@ let y: Int = intIdentity("text")  // ❌ ОШИБКА - String не совмес
 
 #### Важное правило
 
-```efen
+```text
 // Если вызов выглядит так:
 someFunction(param1, param2) -> Result
 
@@ -1481,8 +1481,8 @@ fn fibonacci(n: Int) -> Int {
     if n <= 1 { return n }
 
     return memoize(
-        keyFn: => n,
-        valueFn: => fibonacci(n-1) + fibonacci(n-2)
+        keyFn: () => n,
+        valueFn: () => fibonacci(n - 1) + fibonacci(n - 2)
     )
 }
 ```
@@ -1500,7 +1500,7 @@ meta fn using<T: Disposable, R>(resource: inline -> T, body: inline (T) -> R) ->
 
 // Использование
 using(
-    resource: => File.open("data.txt"),
+    resource: () => File.open("data.txt"),
     body: (file: File) -> String {
         file.readAll()
     }
@@ -1514,7 +1514,7 @@ using(
 Метафункции могут принимать inline closure:
 
 ```efen
-meta fn repeat(count: comptime Int, code: InlineClosure) -> InlineClosure {
+meta fn repeatTimes(count: comptime Int, code: InlineClosure) -> InlineClosure {
     return inline {
         for i in 0..<count {
             code()
@@ -1523,7 +1523,7 @@ meta fn repeat(count: comptime Int, code: InlineClosure) -> InlineClosure {
 }
 
 // Замыкание среди нескольких аргументов пишется в скобках
-repeat(3, () -> Void {
+repeatTimes(3, () -> Void {
     println("Hello!")
 })
 
@@ -1608,7 +1608,7 @@ meta fn generateAccessors(propertyName: comptime Identifier, type: Type) -> Inli
     let setterName = Identifier.create("set" + propStr.capitalize())
 
     return inline {
-        fn ${getterName}() -> type {
+        fn ${getterName} -> type {
             return this.${propertyName}
         }
 
@@ -1667,7 +1667,7 @@ meta fn assert(condition: Expression, message: String) -> InlineClosure {
             throw AssertionError(
                 "${message}\n" +
                 "  at ${callSite}\n" +
-                "  in ${location.function ?? 'global scope'}"
+                "  in ${location.function ?? "global scope"}"
             )
         }
     }
@@ -1760,30 +1760,30 @@ debugOnly => {
 use project::*
 
 // Проверка режима сборки
-project.isDebug() -> Bool       // true если debug сборка
-project.isRelease() -> Bool     // true если release сборка
-project.buildMode() -> String   // "debug" или "release"
+fn isDebug -> Bool       // true если debug сборка
+fn isRelease -> Bool     // true если release сборка
+fn buildMode -> String   // "debug" или "release"
 
 // Профиль оптимизации
-project.optimizationLevel() -> Int  // 0-3
+fn optimizationLevel -> Int  // 0-3
 ```
 
 **Информация о проекте:**
 ```efen
 use project::*
 
-project.name() -> String        // Имя проекта
-project.version() -> String     // Версия проекта
-project.target() -> String      // Целевая платформа (linux, windows, macos)
-project.architecture() -> String // Архитектура (x86_64, arm64)
+fn name -> String        // Имя проекта
+fn version -> String     // Версия проекта
+fn target -> String      // Целевая платформа (linux, windows, macos)
+fn architecture -> String // Архитектура (x86_64, arm64)
 ```
 
 **Флаги компиляции:**
 ```efen
 use project::*
 
-project.hasFeature(name: String) -> Bool    // Включена ли feature
-project.getConfig(key: String) -> String?   // Значение config параметра
+fn hasFeature(name: String) -> Bool    // Включена ли feature
+fn getConfig(key: String) -> String?   // Значение config параметра
 ```
 
 #### Примеры использования
@@ -1840,7 +1840,7 @@ meta fn profile(name: String, code: InlineClosure) -> InlineClosure {
 }
 
 // Использование - два параметра
-profile("data processing", code {
+profile("data processing", inline {
     processLargeDataset()
 })
 ```
@@ -1861,7 +1861,7 @@ meta fn withFeature(featureName: comptime String, code: InlineClosure) -> Inline
 }
 
 // Использование - два параметра
-withFeature("experimental_api", code {
+withFeature("experimental_api", inline {
     useExperimentalFeature()
 })
 ```
@@ -2014,7 +2014,7 @@ meta fn calculate(x: Int, y: Int) -> InlineClosure {
 
 ✅ **Захватывать переменные явно** через параметры
 ```efen
-meta fn increment(value: var Int) -> InlineClosure {
+meta fn increment(value: mut Int) -> InlineClosure {
     return inline {
         value += 1  // OK - явный параметр
     }
@@ -2055,7 +2055,7 @@ SomeMetafunction()
 
 **Явные контракты**
 ```efen
-meta fn modify(x: var Int) -> InlineClosure {  // Явно: модифицирует x
+meta fn modify(x: mut Int) -> InlineClosure {  // Явно: модифицирует x
     return inline { x += 1 }
 }
 
@@ -2092,7 +2092,7 @@ SWAP(x, y);  // ОШИБКА! Конфликт temp
 ### Подход Efen
 
 ```efen
-meta fn swap(a: var Int, b: var Int) -> InlineClosure {
+meta fn swap(a: mut Int, b: mut Int) -> InlineClosure {
     return inline {
         let temp = a  // Изолированная область видимости
         a = b
@@ -2343,10 +2343,10 @@ meta fn repeatMessage(count: Int, msg: String) -> InlineClosure
 
 ```efen
 // ✅ Хорошо - типы понятны
-meta fn transform<T, R>(value: T, fn: inline (T) -> R) -> InlineClosure
+meta fn transform<T, R>(value: T, mapper: inline (T) -> R) -> InlineClosure
 
 // ❌ Плохо - типы неясны
-meta fn transform(value: Any, fn: inline) -> InlineClosure
+meta fn transform(value: Any, mapper: inline) -> InlineClosure
 ```
 
 ### 3. Следите за соответствием сигнатур inline closure

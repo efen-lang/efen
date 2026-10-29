@@ -211,6 +211,10 @@ fn example {
 
 ## Подсчет ссылок
 
+> Черновик. Классы со счётчиком — пакет std ([роли lang, рантайма и std](runtime/lang-roles.md));
+> раздел перепишется, когда пакет будет написан. Форма `for compiler { … }` в контракте
+> пока не входит в язык.
+
 `Efen` поддерживает подсчёт ссылок (reference counting) для управления временем жизни объектов.
 Название принято по традиции: считаются владельцы объекта; ссылка в Efen бывает только внутри функции
 ([владение](types/ownership.md#ссылки-только-внутри-функции)).
@@ -251,7 +255,7 @@ aspect RefCount {
     fn release {
         let before = self.refCount.fetchSub(1)
 
-        if unlikely before == 0 {
+        if unlikely(before == 0) {
             error("Release called on object with refCount 0")
         }
 

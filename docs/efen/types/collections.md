@@ -74,7 +74,7 @@ class Range<T> {
     @constructor
     fn init(source: own Array<T>) -> Self
 
-    #if T conforms Copyable {
+    #if T conforms Copyable
         @constructor
         fn init(source: read Array<T>) -> Self
 
@@ -82,7 +82,7 @@ class Range<T> {
         fn init<Source: Origin>(source: read Slice<T, Source>) -> Self {
             // Копирует выбранные элементы в собственное storage.
         }
-    }
+    #endif
 }
 ```
 

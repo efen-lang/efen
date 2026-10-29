@@ -7,20 +7,20 @@
 
 ### Основная идея
 
-Обычный тип описывает множество значений (например, `int` = все целые числа), 
+Обычный тип описывает множество значений (например, `Int` = все целые числа), 
 а `refinement type` сужает это множество через предикат:
 
 ```efen
 // Обычный тип
-var age: int  // Любое целое число
+var age: Int  // Любое целое число
 
 // Direct predicate refinement
-var age: int { value >= 0 && value <= 150 }  // Только валидные возраста
-var email: string { is_valid_email(value) }  // Только валидные email адреса
+var age: Int { value >= 0 && value <= 150 }  // Только валидные возраста
+var email: String { isValidEmail(value) }  // Только валидные email адреса
 
 // Type definition style
-type Nat: int { value >= 0 }
-type Email: string { is_valid_email(value) }
+type Nat: Int { value >= 0 }
+type Email: String { isValidEmail(value) }
 
 let age: Nat = 25  // age гарантированно >= 0
 let email: Email = "email@dot.com" // email гарантированно валиден
@@ -30,8 +30,8 @@ let email: Email = "email@dot.com" // email гарантированно вал�
 
 1. **Статическая верификация** - проверка ограничений на этапе компиляции
 2. **Отсутствие null checks** - `type NonNull<T>: T { value != null }`
-3. **Безопасность индексации** - `type ValidIndex: int { value >= 0 && value < len(array) }`
-4. **Бизнес-логика в типах** - `type Email: string { is_valid_email(value) }`
+3. **Безопасность индексации** - `type ValidIndex: Int { value >= 0 && value < len(array) }`
+4. **Бизнес-логика в типах** - `type Email: String { isValidEmail(value) }`
 5. **Контракты без runtime overhead** - проверки на compile-time когда возможно
 
 ## Синтаксис
@@ -56,9 +56,9 @@ type Name: BaseType { predicate }
 Compile-time метод с контекстной типизацией:
 
 ```efen
-fn processAge(age: int) {
-    // Компилятор видит из контекста: source=int, target=Nat
-    let validated: Nat = age.refine();
+fn processAge(age: Int) {
+    // Компилятор видит из контекста: source=Int, target=Nat
+    let validated: Nat = age.refine()
 
     // Если статически не доказуемо - вставляется runtime проверка
     // При неудаче: RefinementException
@@ -77,29 +77,29 @@ fn processAge(age: int) {
 #### Натуральные числа
 
 ```efen
-type Nat: int { value >= 0 }
+type Nat: Int { value >= 0 }
 
-fn factorial(n: Nat): Nat {
+fn factorial(n: Nat) -> Nat {
     // n гарантированно >= 0, не нужны проверки
-    if (n == 0) return 1;
-    return n * factorial((n - 1).refine());
+    if n == 0 { return 1 }
+    return n * factorial((n - 1).refine())
 }
 
-let x: int = getUserInput();
-let nat: Nat = x.refine();  // Runtime проверка
+let x: Int = getUserInput()
+let nat: Nat = x.refine()  // Runtime проверка
 ```
 
 #### Email валидация
 
 ```efen
-type Email: string { is_valid_email(value) }
+type Email: String { isValidEmail(value) }
 
 class User {
-    email: Email;  // Всегда валидный email
+    var email: Email  // Всегда валидный email
 
     @constructor
-    fn init(email: string) -> Self {
-        self.email = email.refine();  // Проверка при создании
+    fn init(email: String) -> Self {
+        self.email = email.refine()  // Проверка при создании
     }
 }
 ```
@@ -118,10 +118,10 @@ generic identity. См. [типы с параметрами-значениями
 type NonNull<T>: T { value != null }
 
 fn processUser(user: User?) {
-    if (user != null) {
+    if user != null {
         // В этом scope компилятор знает что user != null
-        let validated: NonNull<User> = user.refine();  // Статически доказуемо
-        validated.getName();  // Без null checks
+        let validated: NonNull<User> = user.refine()  // Статически доказуемо
+        validated.getName()  // Без null checks
     }
 }
 ```
@@ -134,10 +134,10 @@ fn processUser(user: User?) {
 требуют точного совпадения; отношение основы само по себе не создаёт widening:
 
 ```efen
-fn printInt(x: int) { ... }
+fn printInt(x: Int) { ... }
 
-let n: Nat = ...;
-printInt(n);  // Ошибка: ожидается int, передан Nat
+let n: Nat = ...
+printInt(n)  // Ошибка: ожидается Int, передан Nat
 ```
 
 Переход выполняется явной операцией или одной прямой видимой стратегией
@@ -230,47 +230,47 @@ void setTypePredicateFunctionId(TypeHandle* handle, uint32_t funcId);
 ### 1. Финансовые расчёты
 
 ```efen
-type PositiveAmount: float { value > 0.0 }
-type Percentage: float { value >= 0.0 && value <= 100.0 }
+type PositiveAmount: Float { value > 0.0 }
+type Percentage: Float { value >= 0.0 && value <= 100.0 }
 
-fn calculateDiscount(price: PositiveAmount, discount: Percentage): PositiveAmount {
-    let result = price * (1.0 - discount / 100.0);
-    return result.refine();
+fn calculateDiscount(price: PositiveAmount, discount: Percentage) -> PositiveAmount {
+    let result = price * (1.0 - discount / 100.0)
+    return result.refine()
 }
 ```
 
 ### 2. Безопасность веб-приложений
 
 ```efen
-type SafeHtml: string { is_safe_html(value) }
-type ValidUrl: string { is_valid_url(value) }
+type SafeHtml: String { isSafeHtml(value) }
+type ValidUrl: String { isValidUrl(value) }
 
-fn renderLink(url: string, text: string): SafeHtml {
-    let safeUrl: ValidUrl = url.refine();
-    let safeText: SafeHtml = htmlspecialchars(text).refine();
-    return "<a href=\"${safeUrl}\">${safeText}</a>".refine();
+fn renderLink(url: String, text: String) -> SafeHtml {
+    let safeUrl: ValidUrl = url.refine()
+    let safeText: SafeHtml = htmlspecialchars(text).refine()
+    return "<a href=\"${safeUrl}\">${safeText}</a>".refine()
 }
 ```
 
 ### 3. Конфигурация
 
 ```efen
-type Port: int { value >= 1 && value <= 65535 }
-type NonEmptyString: string { strlen(value) > 0 }
+type Port: Int { value >= 1 && value <= 65535 }
+type NonEmptyString: String { strlen(value) > 0 }
 
 class ServerConfig {
-    host: NonEmptyString;
-    port: Port;
+    var host: NonEmptyString
+    var port: Port
 }
 ```
 
 ### 4. Коллекции
 
 ```efen
-type NonEmptyArray<T>: array<T> { count(value) > 0 }
+type NonEmptyArray<T>: [T] { count(value) > 0 }
 
-fn first<T>(arr: NonEmptyArray<T>): T {
-    return arr[0];  // Безопасно, массив не пустой
+fn first<T>(arr: NonEmptyArray<T>) -> T {
+    return arr[0]  // Безопасно, массив не пустой
 }
 ```
 
@@ -289,11 +289,11 @@ identity конкретной инстанциации типа; runtime-зна�
 Статическая верификация через SMT solver (Z3, CVC5):
 
 ```efen
-fn abs(x: int): Nat {
-    if (x >= 0) {
-        return x.refine();  // SMT доказывает: x >= 0 => value >= 0
+fn abs(x: Int) -> Nat {
+    if x >= 0 {
+        return x.refine()  // SMT доказывает: x >= 0 => value >= 0
     } else {
-        return (-x).refine();  // SMT доказывает: x < 0 => -x >= 0
+        return (-x).refine()  // SMT доказывает: x < 0 => -x >= 0
     }
 }
 ```
@@ -301,10 +301,8 @@ fn abs(x: int): Nat {
 ### 2. Сложные предикаты
 
 ```efen
-type SortedArray<T>: array<T> {
-    for (i = 0; i < count(value) - 1; i++) {
-        value[i] <= value[i + 1]
-    }
+type SortedArray<T>: [T] {
+    forall i: 0 <= i && i < count(value) - 1 ==> value[i] <= value[i + 1]
 }
 ```
 
@@ -313,10 +311,10 @@ type SortedArray<T>: array<T> {
 Автоматический вывод refinement types:
 
 ```efen
-fn process(x: int) {
-    if (x >= 0) {
-        // Компилятор выводит: x : int{value >= 0}
-        let y = x + 1;  // y : int{value >= 1}
+fn process(x: Int) {
+    if x >= 0 {
+        // Компилятор выводит: x : Int{value >= 0}
+        let y = x + 1  // y : Int{value >= 1}
     }
 }
 ```
@@ -347,8 +345,8 @@ subtype Positive is Integer range 1 .. Integer'Last;
 ### Efen (наш синтаксис)
 
 ```efen
-type Nat: int { value >= 0 }
-type Pos: int { value > 0 }
+type Nat: Int { value >= 0 }
+type Pos: Int { value > 0 }
 ```
 
 ## Заключение

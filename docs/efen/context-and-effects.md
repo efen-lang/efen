@@ -24,7 +24,7 @@ fn saveUser(name: String) {
 описания зависимости:
 
 ```efen
-effect LoggerEffect {
+contract LoggerEffect {
     fn log(message: String) -> Void
 }
 

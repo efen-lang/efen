@@ -30,15 +30,15 @@ aspect RefCountClassCompiler {
         var refCount: UInt
     }
 
-    meta fn primaryClassDefinition(class: lang::Class) in compiler {
+    meta fn primaryClassDefinition(target: lang::Class) in compiler {
         // Добавить выбранное представление и реализации операций.
     }
 
-    fn retain(self: Self) {
+    mut fn retain {
         self.refCount += 1
     }
 
-    fn release(self: Self) {
+    mut fn release {
         self.refCount -= 1
         if self.refCount == 0 {
             self.deinit()

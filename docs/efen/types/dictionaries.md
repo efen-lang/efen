@@ -321,7 +321,10 @@ config += ["port": 9000, "debug": true]
 
 ## Collection If/For (Условия и циклы в литералах)
 
-Efen поддерживает уникальную возможность использовать условия и циклы прямо в литералах словарей. Это делает код более декларативным и читаемым.
+Внутри литерала словаря или массива `if` и `for` добавляют элементы. Форма та же,
+что у обычных `if` и `for`: условие без скобок, тело в фигурных скобках
+(Edmond, 2026-10-29). Тело содержит элементы литерала через запятую или по одному
+на строке.
 
 ### Collection If (Условные ключи)
 
@@ -332,9 +335,9 @@ let hasAuth = true
 let config = [
     "host": "localhost",
     "port": 8080,
-    if (isDev) "debug": true,           // ← добавляется только если isDev == true
-    if (hasAuth) "token": authToken,    // ← добавляется только если hasAuth == true
-    if (isProd) "optimize": true,       // ← не добавится, если isProd == false
+    if isDev { "debug": true },           // добавляется, только если isDev == true
+    if hasAuth { "token": authToken },    // добавляется, только если hasAuth == true
+    if isProd { "optimize": true } else { "optimize": false },
 ]
 ```
 
@@ -344,7 +347,7 @@ let config = [
 // Создание словаря из массива
 let items = [1, 2, 3, 4, 5]
 let squares = [
-    for (i in items) i: i * i
+    for i in items { i: i * i }
 ]
 // Результат: [1: 1, 2: 4, 3: 9, 4: 16, 5: 25]
 
@@ -354,15 +357,17 @@ let users = [
     ["id": 2, "name": "Bob"],
 ]
 let userMap = [
-    for (user in users) user["id"]: user["name"]
+    for user in users { user["id"]: user["name"] }
 ]
 // Результат: [1: "Alice", 2: "Bob"]
 ```
 
-### Комбинация If и For
+### Фильтр в цикле
+
+Отбор элементов записывается `where` в заголовке цикла, как у обычного
+[`for`](../blocks/loops.md):
 
 ```efen
-// Фильтрация и преобразование за один проход
 let data = [
     ["key": "a", "value": 10, "valid": true],
     ["key": "b", "value": 20, "valid": false],
@@ -370,14 +375,14 @@ let data = [
 ]
 
 let filtered = [
-    for (entry in data)
-        if (entry["valid"])
-            entry["key"]: entry["value"]
+    for entry in data where entry["valid"] { entry["key"]: entry["value"] }
 ]
 // Результат: ["a": 10, "c": 30]
 ```
 
-**Примечание:** Вложенные collection if/for не поддерживаются для упрощения синтаксиса. Для сложных преобразований используйте обычные циклы и условия.
+**Примечание:** Вложенные collection if/for — `if` или `for` внутри тела другого —
+не поддерживаются для упрощения синтаксиса: условие `for` пишется через `where`. Для
+сложных преобразований используйте обычные циклы и условия.
 
 ## Destructuring (Распаковка словарей)
 
@@ -433,8 +438,9 @@ echo "Email: ${email}"
 ### В параметрах функций
 
 ```efen
-// Destructuring в параметрах
-function greet(["name": name, "age": age]) {
+// Destructuring параметра в теле функции
+fn greet(person: [String: Any]) {
+    ["name": name, "age": age] = person
     echo "Hello ${name}, you are ${age} years old"
 }
 

@@ -189,7 +189,7 @@ rethrow(exception)
 
 // Установить обработчик необработанных исключений
 setUnhandledExceptionHandler => {
-    logError($exception)
+    logError(item)
     terminate()
 }
 ```
@@ -243,15 +243,19 @@ Runtime API может вести себя по-разному в зависим
 Некоторые runtime API доступны только на определенных платформах:
 
 ```efen
-#if os(Linux)
+#if os() == "linux"
     use runtime::linux
     let tid = gettid()
-#elseif os(Windows)
-    use runtime::windows
-    let tid = GetCurrentThreadId()
-#elseif os(macOS)
-    use runtime::darwin
-    let tid = pthread_self()
+#else
+    #if os() == "windows"
+        use runtime::windows
+        let tid = GetCurrentThreadId()
+    #else
+        #if os() == "macos"
+            use runtime::darwin
+            let tid = pthread_self()
+        #endif
+    #endif
 #endif
 ```
 

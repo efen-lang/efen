@@ -375,9 +375,9 @@ fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock { used > 0 }, slot:
 
 ### Один элемент: большой блок и отображение
 
-У `LargeBlock` и `RunBlock` элемент — хвост области: `take block.bytes[offset - LINE...]`.
+У `LargeBlock` и `RunBlock` элемент — хвост области: `take block.bytes[offset - LINE..]`.
 Учёт — то же поле: `used <= 1; (used == 0) == bytes.taken.isEmpty`. Выдача поглощает `own`;
-возврат — `block.bytes[from...] = take payload` с `from = block.bytes.index(payload)`, затем
+возврат — `block.bytes[from..] = take payload` с `from = block.bytes.index(payload)`, затем
 `take block`.
 
 ### Тип элемента

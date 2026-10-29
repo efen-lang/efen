@@ -55,8 +55,8 @@
 
 ```efen
 contract ClassDefinition {
-    meta fn primaryClassDefinition(class: lang::Class) in compiler
-    meta fn finallyClassDefinition(class: lang::Class) in compiler
+    meta fn primaryClassDefinition(target: lang::Class) in compiler
+    meta fn finallyClassDefinition(target: lang::Class) in compiler
 }
 ```
 

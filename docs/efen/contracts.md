@@ -429,23 +429,29 @@ interface MyInterface : ParentInterface, AnotherParentInterface {
 }
 ```
 
-## Шаблоны структур в контрактах
+## Поля, которые требует контракт
 
-Контракты во многом похожи на generic в том смысле, что некоторые структуры данных в них могут быть 
-определены как шаблоны. При этом полезна возможность задать некие правила или ограничения на эти шаблоны.
-Например, ARC-объект может быть представлен как структура данных, которая содержит счетчик ссылок и данные объекта.
+Контракт описывает функции, полей он не объявляет. Поле, которое нужно его
+функциям, в тип добавляет аспект: интерфейс storage не владеет
+([интерфейсы](interfaces.md)). Например, объект со счётчиком ссылок получает
+устройство с полем `refCount` от аспекта, а контракт перечисляет функции над ним
+(как в [аспектах компиляции](aspects/compile-time/index.md#управление-памятью)):
 
 ```efen
-contract RefCountedContract {
+contract RefCounted {
+    mut fn retain
+    mut fn release
+}
 
-    requires struct: struct<T>
+aspect RefCountClassCompiler {
+    conforms ClassDefinition
+    conforms RefCounted
 
-    @base struct <T> {
-        var refCount: Int
-        T
+    struct Header {
+        var refCount: UInt
     }
-
-    fn retain(self: Self)
-    fn release(self: Self)
 }
 ```
+
+Ранняя форма шаблона структуры внутри контракта (`requires struct: struct<T>`,
+`@base struct <T> { … }`) в язык не входит (агент, 2026-10-29): поля даёт аспект.
