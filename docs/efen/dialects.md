@@ -3,11 +3,10 @@
 `Efen` является мультидиалектным языком программирования, что позволяет использовать различные синтаксисы
 и семантики в рамках одного проекта для решения специфических задач.
 
-Встроенный блок `sql { ... }`/`query { ... }` законен, когда такую форму
-предоставляет активный dialect. Сигнатура `$имя` внутри блока принадлежит самому
-диалекту: она связывает его параметр с лексически видимым Efen-именем `имя`.
-Неявные параметры хвостового Efen-замыкания записываются без `$`, поэтому
-сигнатуры не сталкиваются.
+Встроенный диалект — тег, который регистрирует библиотека: `sql { … }`, а также строковые формы
+`sql"…"` и `sql"""…"""`. `use dialect` вводит тег в файл и резервирует его имя. Значения Efen попадают в
+текст диалекта только через `${…}`; своих параметров вида `$имя` у диалекта нет. Полный диалект —
+плагин компилятора. Общая модель расширений — [плагины и метакод](compile-time/plugins.md).
 
 ## Типы диалектов
 
@@ -37,14 +36,14 @@
 // Файл с расширением .efql (Efen + SQL dialect)
 dialect efql
 
-use efen::database::Connection
+use database::Connection
 
 fn getUserByEmail(conn: Connection, email: String) -> User? {
     // SQL диалект с полной интеграцией типов
     let result = query {
         SELECT id, name, email
         FROM users
-        WHERE email = $email
+        WHERE email = ${email}
         LIMIT 1
     }
 
@@ -54,33 +53,10 @@ fn getUserByEmail(conn: Connection, email: String) -> User? {
 
 ### Регистрация полноценного диалекта
 
-```efen
-// Плагин компилятора для нового диалекта
-@dialectPlugin
-class MyDialect {
-    implements DialectCompiler
-
-    fn name -> String {
-        return "mydialect"
-    }
-
-    fn fileExtensions -> [String] {
-        return [".emd", ".mydialect"]
-    }
-
-    fn parse(source: String) -> AST {
-        // Парсинг исходного кода диалекта
-    }
-
-    fn typeCheck(ast: AST, context: TypeContext) -> TypedAST {
-        // Проверка типов
-    }
-
-    fn compile(ast: TypedAST) -> IR {
-        // Компиляция в промежуточное представление
-    }
-}
-```
+Полный диалект — плагин из секции `plugins` конфигурации. Он заявляет расширение файла, получает текст
+файла и возвращает модуль HIR с позициями в этом файле. Типы и проверки остаются за компилятором: диалект
+не может типизировать свой код иначе, чем Efen. Интерфейс плагина описан в
+[плагинах и метакоде](compile-time/plugins.md#полный-диалект).
 
 ## Inline диалекты (Inline Dialects)
 
@@ -92,6 +68,12 @@ Inline диалекты — это встроенный синтаксис, ко
 `Efen` поддерживает inline-диалекты с помощью специального синтаксиса:
 
 ```efen
+use dialect toml
+use dialect json
+use dialect sql
+use dialect yaml
+use dialect xml
+
 // TOML inline
 let config = toml {
     [server]
@@ -202,6 +184,10 @@ let badQuery = sql {
 
 ## Extension диалекты (Extension Dialects)
 
+> Не спроектировано. Расширяющие диалекты с новыми ключевыми словами сделали бы текст нечитаемым без их
+> библиотеки, и в модель [плагинов](compile-time/plugins.md) они не входят. Примеры раздела — черновик;
+> их задачи решают метафункции и атрибуты.
+
 Extension диалекты позволяют расширять существующий синтаксис `Efen` в пределах указанного контекста,
 добавляя новые ключевые слова, операторы или синтаксические конструкции.
 
@@ -281,14 +267,14 @@ with dialect ReactiveExtension {
 ### HTML/JSX диалект
 
 ```efen
-use dialect JSX
+use dialect jsx
 
 fn renderUserCard(user: User) -> Element {
     return jsx {
         <div class="user-card">
-            <h2>{user.name}</h2>
-            <p>{user.email}</p>
-            <button onClick={handleClick}>
+            <h2>${user.name}</h2>
+            <p>${user.email}</p>
+            <button onClick=${handleClick}>
                 Contact
             </button>
         </div>
@@ -299,7 +285,7 @@ fn renderUserCard(user: User) -> Element {
 ### CSS диалект
 
 ```efen
-use dialect CSS
+use dialect css
 
 let styles = css {
     .container {
@@ -320,7 +306,7 @@ let styles = css {
 ### GraphQL диалект
 
 ```efen
-use dialect GraphQL
+use dialect graphql
 
 let userQuery = graphql {
     query GetUser($id: ID!) {
@@ -340,7 +326,7 @@ let userQuery = graphql {
 ### Regex диалект
 
 ```efen
-use dialect Regex
+use dialect regex
 
 let emailPattern = regex {
     ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$
@@ -357,7 +343,12 @@ if emailPattern.matches(input) {
 
 ## Создание пользовательских inline диалектов
 
+> Форма регистрации тега — предложение: диалект описывает данными свои кавычки, экранирование и
+> комментарии, а метакод строит код ([тег диалекта](compile-time/plugins.md#тег-диалекта)).
+
 ### Простой пользовательский диалект
+
+> Старый черновик: `@inlineDialect` и разбор при выполнении заменяет регистрация тега.
 
 ```efen
 @inlineDialect("matrix")
@@ -407,8 +398,8 @@ let schedule = cron {
 Диалекты могут комбинироваться:
 
 ```efen
-use dialect JSX
-use dialect CSS
+use dialect jsx
+use dialect css
 
 fn renderApp -> Element {
     let styles = css {
@@ -416,36 +407,29 @@ fn renderApp -> Element {
     }
 
     return jsx {
-        <div class="app" style={styles}>
+        <div class="app" style=${styles}>
             <h1>My App</h1>
         </div>
     }
 }
 ```
 
-## Система плагинов для диалектов
+## Подключение диалектов
 
-### Установка диалекта из пакета
+Встроенный диалект — обычная зависимость пакета, полный диалект — запись в `plugins`
+[конфигурации сборки](build-config.md#секции-плагинов); его настройки — секция под именем плагина:
 
-```bash
-efen install dialect @efen/sql-dialect
-efen install dialect @community/react-jsx
-```
+```efen
+config server {
+    plugins {
+        efql: "^0.4"
+    }
 
-### Конфигурация диалектов
-
-```toml
-# efen.toml
-[dialects]
-enabled = ["json", "sql", "jsx"]
-
-[dialects.sql]
-validate_at_compile_time = true
-database_schema = "schema.sql"
-
-[dialects.jsx]
-jsx_factory = "createElement"
-jsx_fragment = "Fragment"
+    efql.sql {
+        dialect: "sqlite"
+        migrations: path("db/migrations")
+    }
+}
 ```
 
 ## Производительность диалектов
@@ -504,7 +488,7 @@ let userInput = "<script>alert('xss')</script>"
 
 // Безопасно - автоматическое экранирование
 let html = jsx {
-    <div>{userInput}</div>
+    <div>${userInput}</div>
 }
 
 // Результат: <div>&lt;script&gt;alert('xss')&lt;/script&gt;</div>
@@ -520,7 +504,7 @@ let html = jsx {
 // Исходный код с JSX
 let element = jsx {
     <div>
-        <h1>{title}</h1>
+        <h1>${title}</h1>
     </div>
 }
 
