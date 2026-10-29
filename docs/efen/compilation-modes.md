@@ -151,7 +151,8 @@ efenc --mode=release-debug main.efen
 
 ## Режимы определённые программистом
 
-Программисты могут определять собственные режимы компиляции:
+Программисты могут определять собственные режимы компиляции. Основная форма — секция `mode` конфигурации сборки
+([конфигурация сборки](build-config.md)); как с ней соотносится объявление `@compilationMode` ниже, пока открыто.
 
 ```efen
 // Определение пользовательского режима
@@ -341,31 +342,33 @@ efenc \
 
 ## Конфигурация через файл
 
-Создание конфигурационного файла `.efenrc`:
+Режимы и их настройки пишутся в конфигурации сборки, секциями `mode`
+([конфигурация сборки](build-config.md)). Глобальная конфигурация Amber даёт `debug`, `release`, `testing` и
+`checking`; проект меняет их или добавляет свои, начиная с готового через `from`:
 
-```toml
-[mode.production]
-optimization = "aggressive"
-debug-info = false
-target = "native"
-lto = true
+```efen
+// project.efen
+config server {
+    mode production from release {
+        optimization: aggressive
 
-[mode.development]
-optimization = "none"
-debug-info = true
-fast-compile = true
+        target {
+            arch: "x86_64"
+        }
+    }
 
-[mode.testing]
-optimization = "basic"
-debug-info = true
-assertions = true
-mock-external = true
+    mode testing {
+        dependencies {
+            mock: "^2.0"
+        }
+    }
+}
 ```
 
 Использование:
 
 ```bash
-efenc --config=.efenrc --mode=production main.efen
+efenc --mode=production main.efen
 ```
 
 ## Лучшие практики

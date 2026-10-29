@@ -52,34 +52,36 @@ package utils;  // ✅ OK: другой namespace
 
 ```
 myproject/
-├── mylib/          # Namespace "mylib"
+├── workspace.efen   # config myproject { members: ["mylib", "utils"] }
+├── mylib/           # Namespace "mylib"
+│   ├── project.efen # config mylib { … }
 │   ├── package.efen # package mylib;
 │   └── module1.efen
-└── utils/          # Namespace "utils"
+└── utils/           # Namespace "utils"
+    ├── project.efen # config utils { … }
     ├── package.efen # package utils;
     └── module1.efen
 ```
 
-Пакет определяется любым `efen` файлом, который содержит определение пакета и список его зависимостей.
-Рекомендуется называть такой файл `package.efen`, `library.efen` или `main.efen`.
+Пакет объявляется в любом исходном файле (`package mylib`), обычно в `package.efen`, `library.efen` или
+`main.efen`. Его версия, зависимости и вид сборки пишутся рядом, в `project.efen`, объявлением `config`
+([конфигурация сборки](build-config.md)); компилятор читает его во время сборки и не компилирует:
 
-Определение пакета:
 ```efen
+// MyPackage/project.efen
+config MyPackage {
+    version: "1.0.0"
+    kind: library
 
-package MyPackage 
-MyPackage.info = toml {
-    name = "MyPackage"
-    version = "1.0.0"
-    description = "Описание пакета"
-    authors = ["Автор <email@example.com>"]
-    license = "MIT"
+    dependencies {
+        AnotherPackage: ">=1.0.0 <2.0.0"
+        SomeLibrary: "^3.2.1"
+    }
 }
-
-MyPackage.dependencies = [
-    "AnotherPackage": ">=1.0.0 <2.0.0",
-    "SomeLibrary": "^3.2.1"
-]
 ```
+
+Пространство сборки с несколькими пакетами описывается файлом `workspace.efen` в своём корне: список проектов
+`members` и общие версии зависимостей.
 
 Модуль определяется файлом с расширением `.efen` внутри каталога пакета, 
 и не требует явного объявления, кроме случая, если модуль должен быть публичным.
