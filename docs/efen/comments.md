@@ -1,60 +1,135 @@
-# Система комментариев в Efen
+# Комментарии
 
-## Типы комментариев
+Efen пишет комментарии строчными маркерами: `//` — пояснение для читателя
+кода, `///` — документация объявления под ним, `//!` — документация файла или
+модуля. Блочные `/* */` в языке есть, но стиль ими не пользуется: каждая
+строчная строка видна как комментарий сама по себе, в поиске и в diff, без
+колонки звёздочек и без ловушки `*/` внутри текста.
 
-### 1. Обычные комментарии
+Решения приняты с Edmond 2026-10-29.
+
+## Виды комментариев
+
+| Маркер | Что это | Куда относится |
+|---|---|---|
+| `//` | пояснение | ни к чему; в документацию не попадает |
+| `////` и больше | пояснение | ни к чему; так пишут пояснение над объявлением, которое не документирует его |
+| `///` | документация | к объявлению под ним |
+| `//!` | документация | к файлу или модулю, в начале которого стоит |
+| `/* */` | пояснение | ни к чему; стилем не используется |
+| `/** */` | документация | к объявлению под ним; стилем не используется |
+
+`///` и `//!` — документация, только когда начинают строку. После кода на той
+же строке они — обычное пояснение: документация к полю пишется над ним, а не
+справа. Блочный комментарий не вкладывается: первый `*/` закрывает его, поэтому
+выключать им код, где может встретиться `*/`, нельзя. Код выключают через `//`
+в каждой строке.
+
+## Заголовок файла
+
+Файл начинается с `//!`. Заголовок описывает файл, а не первое объявление под
+ним, и отделён от кода пустой строкой.
+
+Состав, по порядку:
+
+1. Одна фраза: что это за модуль.
+2. После пустой строки `//!` — как модуль устроен: главные понятия и
+   инварианты.
+3. В конце, если есть, — откуда модуль взят и где записано решение.
+
+Заголовок не пишет автора, дату и лицензию: их хранят система контроля версий
+и файл пакета. Не пишет список функций: его строит генератор документации. Не
+пишет того, что компилятор выводит сам: слой, эффекты, зависимости.
+
+Служебные строки инструментов, например `// uses: prelude` в тестах Amber, идут
+после заголовка обычным `//`, затем пустая строка.
 
 ```efen
-// Однострочный комментарий
+//! A pool of 64 KB blocks on raw memory: lends a block to C and takes it back.
+//!
+//! 32 blocks, each aligned to its size, lie in one area behind the header's
+//! block. Free blocks chain through their first word, by index, below the
+//! frontier. While a block is out, the area has no owner: the pool names it and
+//! owns it again when the last block comes back.
+//!
+//! Follows `block_pool.rs` of `model`; the plan is `dev/plans/S74.md` §23.7.
+// uses: prelude
 
-/*
- * Многострочный
- * комментарий
- */
+const BLOCK = 65536
 ```
 
-**Канал:** `HIDDEN` (1)
-**Назначение:** Пояснения в коде, временные заметки
-**Доступ:** Через `TokenStream`, не попадают в AST
+Модуль, объявленный блоком `module Name { … }`, документирует `//!` сразу
+после своей `{`. В любом другом месте `//!` ничего не документирует —
+предупреждение `W.syntax.misplaced-module-doc`.
 
-### 2. Doc-комментарии
+## Документация объявления
+
+`///` стоит прямо над объявлением, без пустой строки, и над его атрибутами,
+если они есть:
 
 ```efen
-/// Однострочный doc-комментарий
-
-/**
- * Многострочный
- * doc-комментарий
- */
+/// A block of the pool: the next free block's index while free, the caller's
+/// bytes while lent.
+@align(BLOCK)
+struct Block {
+    var next: Int = NONE
+    area rest: Byte
+}
 ```
 
-**Канал:** `DOC` (2)
-**Назначение:** Документация API, генерация docs
-**Доступ:** Автоматически прикрепляются к AST узлам
+Что документирует `///`:
 
-## Использование с `param`
+| Документирует | Не документирует |
+|---|---|
+| функция, `generator` | `use`, `module X` строкой, `package` |
+| `class`, `struct`, `contract`, `interface`, `implementation` с именем | `implements`, `conforms`, `in`, `with { }` |
+| `variant`, `enum` и каждый их вариант | встроенный тип (`Header` строкой в `struct`) |
+| `alias`, `type`, `strategy`, `projection`, `context`, `aspect` | `one`, `catch`, `provide`, `test` |
+| `const`, `let` и `var` файла и типа (поля) | `#if`, `#else` |
+| `area`, `set`, `layout`, `state` | локальные `let`, `var` и инструкции в теле |
+| `param` в теле функции | условия в `{ }` |
 
-Наша уникальная фича - документирование параметров внутри функции.
-Все объявления `param` идут подряд в начале тела, до первой инструкции —
-см. [Функции](functions.md):
+Над `#if` документацию не пишут: каждая ветка документирует своё объявление.
+
+Комментарий говорит то, чего нет в коде. Первый абзац, до пустой строки `///`,
+— сводка: её показывают оглавление документации и подсказка редактора. Стиль —
+одна фраза о том, что объявление делает или чем является. Дальше, если нужно:
+смысл результата, `null` и исключений, крайние случаи, почему так сделано, что
+объявление оставляет вызывающему.
+
+Комментарий не повторяет то, что генератор документации возьмёт из кода:
+типы, права `own`, `mut`, `read`, условия в `{ }`, `throws`, эффекты. Повтор
+расходится с кодом при первой правке. Поэтому нет разделов `# Arguments`,
+`# Returns`, `# Errors`, как в Rust. Устаревшее объявление помечается
+атрибутом `@deprecated("…")` ([алиасы типов](type-aliases.md)), а не словами в
+документации. Компилятор не требует документации там, где её нет.
+
+Параметр из заголовка функции описывается пунктом `- имя: текст`, только когда
+имя и тип не объясняют его роль. Пункт списка, имя которого совпадает с
+параметром, — документация этого параметра. Параметр, объявленный через
+`param`, документирует свой `///` над ним, как поле:
 
 ```efen
+/// Lends a block, or `null` when none is free.
+///
+/// - clear: zero the block before lending it.
+fn acquire(pool: mut Pool, clear: Bool) -> own Pointer? {
+```
+
+```efen
+/// The discount for an order, capped by `maxDiscount`.
 fn calculateDiscount -> Float {
-    /// Customer's order identifier
-    /// Must be a valid UUID v4
+    /// The customer's order; a UUID v4.
     param orderId: String
 
-    /// Discount percentage (0-100)
-    /// Default: 10%
+    /// Percent of the order's total, 0 to 100.
     param discountRate: Float = 10.0
 
-    /**
-     * Maximum discount amount in dollars
-     *
-     * Range: $0 - $1000
-     * Default: $100
-     */
+    /// In dollars, 0 to 1000.
     param maxDiscount: Float = 100.0
+
+    /// Rounds the discount down to whole cents.
+    param roundDown: Bool = true
 
     let order = loadOrder(orderId)
     let discount = min(order.total * discountRate / 100, maxDiscount)
@@ -62,130 +137,66 @@ fn calculateDiscount -> Float {
 }
 ```
 
-## Архитектура
+Обычные `//` между `///` и объявлением — заметка для читателя кода, например
+`// TODO`. В документацию она не попадает:
 
-### Каналы токенов ANTLR4
-
-```
-Source Code: fn foo { /// Doc comment
-                         let x = 42; // regular comment
-
-DEFAULT (0):  [fn] [foo] [(] [)] [{] [let] [x] [=] [42] [;]
-DOC (2):      ..................[/// Doc comment]..............
-HIDDEN (1):   ..........................................[// regular comment]
+```efen
+/// Gives a block back to the pool.
+// TODO: batch the frees of one region.
+fn release(pool: mut Pool, block: own PoolBlock) {
 ```
 
-### Извлечение комментариев
+### Разметка
 
-```cpp
-#include "Parser/CommentExtractor.h"
+Текст документации — Markdown: абзацы через пустую строку `///`, код в
+обратных кавычках, списки, блоки кода в тройных кавычках. Ссылка на
+объявление — его имя в квадратных скобках: `[Pool]`, `[Pool.acquire]`.
 
-// В ASTBuilder::exitFunctionDeclaration
-auto token = ctx->getStart();
-auto docComments = CommentExtractor::extractDocComments(
-    tokens,  // TokenStream
-    token    // До какого токена искать
-);
+## Проверка компилятора
 
-std::string documentation = CommentExtractor::joinDocComments(docComments);
-functionNode->setDocumentation(documentation);
+`//` прямо над объявлением, которое документирует `///`, — предупреждение
+`W.syntax.doc-comment-expected`: комментарий на этом месте описывает
+объявление, значит, он должен быть документацией. Исправление заменяет `//`
+на `///` в каждой строке комментария. Над первым объявлением файла
+исправление предлагает и `//!`: такой комментарий может быть заголовком файла.
+
+```efen
+// Gives a block back to the pool.
+fn release(pool: mut Pool, block: own PoolBlock) {
 ```
 
-### Пример результата
-
-```cpp
-// AST Node после парсинга:
-Function {
-    name: "calculateDiscount",
-    documentation: "Customer's order identifier\nMust be a valid UUID v4",
-    parameters: [
-        Parameter {
-            name: "orderId",
-            type: "String",
-            documentation: "Customer's order identifier\nMust be a valid UUID v4"
-        },
-        Parameter {
-            name: "discountRate",
-            type: "Float",
-            default: 10.0,
-            documentation: "Discount percentage (0-100)\nDefault: 10%"
-        }
-    ]
-}
+```text
+warning[W.syntax.doc-comment-expected]: this comment documents the declaration below, so it is a doc comment
+ --> pool.efn:1:1
+  |
+1 | // Gives a block back to the pool.
+  | ^^ a plain comment
+2 | fn release(pool: mut Pool, block: own PoolBlock) {
+  | -- the declaration
+  = help: write `///`: `/// Gives a block back to the pool.`
+  = help: or, if it describes the file, `//!`: `//! Gives a block back to the pool.`
 ```
+
+Предупреждения нет, если между комментарием и объявлением пустая строка, если
+над комментарием стоит `///` (это заметка), если комментарий написан через
+`////` и над объявлением, которое `///` не документирует.
+
+Это предупреждение, а не диагностика стиля `S`: исправление стиля не меняет
+смысла программы, а это переносит текст в опубликованную документацию, и
+решает автор ([группы диагностик](diagnostic-groups.md)).
 
 ## Генерация документации
 
-```bash
-# Будущая команда для генерации docs
-efenc doc --output ./docs src/**/*.efen
-```
+Генератор документации (будущий инструмент Amber) собирает `//!` и `///`, а
+сигнатуры, права, условия и эффекты берёт из кода. Тот же текст показывает
+редактор при наведении на имя.
 
-Результат:
-```markdown
-## calculateDiscount
+## Сравнение с другими языками
 
-Customer's order identifier
-Must be a valid UUID v4
-
-**Parameters:**
-- `orderId: String` - Customer's order identifier. Must be a valid UUID v4
-- `discountRate: Float = 10.0` - Discount percentage (0-100). Default: 10%
-- `maxDiscount: Float = 100.0` - Maximum discount amount in dollars. Range: $0 - $1000. Default: $100
-
-**Returns:** `Float`
-```
-
-## IDE интеграция
-
-### Hover information
-```
-┌─────────────────────────────────────┐
-│ fn calculateDiscount(...)           │
-│                                     │
-│ Customer's order identifier         │
-│ Must be a valid UUID v4             │
-│                                     │
-│ Parameters:                         │
-│ • orderId: String                   │
-│ • discountRate: Float = 10.0        │
-│ • maxDiscount: Float = 100.0        │
-└─────────────────────────────────────┘
-```
-
-### Auto-complete
-```
-calculateDiscount(
-  orderId: String,        // Customer's order identifier. Must be UUID v4
-  ▌
-)
-```
-
-## Лучшие практики
-
-### ✅ Хорошо
-
-```efen
-/// Validates user email address
-/// Returns true if email format is valid
-/// - email: Must follow RFC 5322 format
-fn validateEmail(email: String) -> Bool {
-    return email.matches(emailRegex)
-}
-```
-
-### ❌ Плохо
-
-```efen
-// this function validates email  (обычный комментарий вместо doc)
-fn validateEmail(email: String) -> Bool {
-    return email.matches(emailRegex)
-}
-```
-
-## Совместимость
-
-- **Rust:** Похоже на `///` и `//!`
-- **Swift:** Аналог `///` markup
-- **TypeScript:** Похоже на JSDoc `/** */`
-- **Efen уникальность:** `param` с doc-комментариями внутри функции!
+- **Rust:** `///` и `//!` с тем же смыслом, Markdown, ссылки `[Name]`.
+- **Zig:** только `///` и `//!`, блочных комментариев нет совсем.
+- **Swift, Dart:** `///` рекомендован вместо `/** */`.
+- **Go:** обычный `//` над объявлением считается документацией; Efen
+  требует `///`, чтобы смысл был виден в самой строке.
+- **Kotlin, Java, TypeScript:** `/** */` (KDoc, Javadoc, JSDoc); Efen этот
+  стиль не берёт.
