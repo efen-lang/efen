@@ -6,5 +6,6 @@
 семантическая ветвь языка: исходная модель Efen и HIR остаются общими.
 
 - [Обзор runtime API](index.md).
+- [Что компилятор берёт у рантайма](lang-roles.md).
 - [Runtime memory](memory.md).
 - [Общая модель памяти Efen](../memory/README.md).
