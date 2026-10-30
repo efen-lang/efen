@@ -70,8 +70,22 @@ generator numbers yield Int {
 `Generator<yield: String, resume: String, result: Int>` в любом порядке. Отсутствующие роли — `Void`:
 `Generator<Int>` отдаёт `Int`, ничего не получает и ничего не возвращает. Метки и позиции в одном типе не смешиваются.
 Роли типа стоят в `<>`, поэтому заголовок `generator g -> Generator<Int> yield Int {` однозначен: `g` отдаёт `Int`, а
-результат `g` — генератор, который отдаёт `Int` (Edmond, 2026-10-30). Как тип функции, он несёт `in …` и `throws …` тела: их бросают `start()`, `next()`, `for` и уничтожение.
-Два генератора с одинаковыми ролями, контекстами и `throws` дают значения одного типа.
+результат `g` — генератор, который отдаёт `Int` (Edmond, 2026-10-30).
+
+`throws` и `in` тела пишутся после `>`, как у типа функции ([types/function-type.md](types/function-type.md)):
+их бросают и требуют `start()`, `next()`, `for` и уничтожение. В идентичность `Generator<…>` они не входят: у `let`
+компилятор выводит их из тела, а у `var`, поля, параметра и публичного имени записанный тип — верхняя граница, и
+генератор, который бросает или требует больше, туда не присваивается. Хвост объявления принадлежит самому
+объявлению, поэтому эффекты генератора-результата пишутся в скобках (Edmond, 2026-10-30):
+
+```efen
+let g = lines()                                    // throws и in выведены из тела lines
+var source: Generator<String> throws IoError in Files
+fn open -> (Generator<String> throws IoError)      // throws у генератора
+fn open -> Generator<String> throws IoError        // throws у open
+generator g -> (Generator<Int> throws E) yield Int  // throws у генератора-результата
+```
+
 
 Три типа различаются намеренно: отданное значение и завершение с результатом различимы даже при совпадающих типах
 (асимметричные сопрограммы Lua, `Coroutine s m r` из Haskell-библиотеки monad-coroutine, эффект `Yield: A -> B` с
