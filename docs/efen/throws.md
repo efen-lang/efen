@@ -64,8 +64,10 @@ fn handler nothrows {
 
 Исключение, класс которого объявляет контракт `Fault`, — **сбой**: отказ машины
 или проверяемой операции, который код бизнес-уровня не может предотвратить в
-месте, где он случился. Сбои стандартной библиотеки: `AllocationError`,
-`OverflowError`, `DivisionByZeroError`. Контракт наследуется подклассами.
+месте, где он случился. Сбои, которые бросает сам компилятор, объявлены в файлах
+`lang::` ([что компилятор берёт у рантайма](runtime/lang-roles.md)):
+`AllocationError`, `OverflowError`, `DivisionByZeroError`. Контракт наследуется
+подклассами.
 
 ```efen
 class AllocationError: Exception {
