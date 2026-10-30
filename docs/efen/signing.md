@@ -93,8 +93,7 @@ config server {
 Библиотека объявляет, до каких возможностей она может дотянуться, и компилятор это проверяет.
 
 ```efen
-config json {
-    kind: library
+config json {                           // без программ: только библиотека
     capabilities: [fs.read]
 }
 ```

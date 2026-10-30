@@ -13,24 +13,24 @@
 
 ### Одна группа
 ```cpp
-diagnosticEngine.error(loc, "package already declared")
+diagnosticEngine.error(loc, "name is both a module and a package")
     .withGroup(DiagnosticGroup::Package);
 ```
 
 ### Несколько групп (как теги)
 ```cpp
-diagnosticEngine.error(loc, "package already declared")
+diagnosticEngine.error(loc, "name is both a module and a package")
     .withGroups({DiagnosticGroup::Package, DiagnosticGroup::Declaration});
 ```
 
 ## Вывод компилятора
 
 ```
-error: package 'MyPackage' is already declared in namespace 'App' [#Package] [#Declaration]
- --> src/main.efen:5:9
+error: 'model' names both module 'model' of this package and package 'model' [#Package] [#Declaration]
+ --> server/routes.efen:3:5
   |
-5 | package MyPackage;
-  |         ^^^^^^^^^
+3 | use model
+  |     ^^^^^
 ```
 
 ## Управление через флаги
@@ -40,13 +40,13 @@ error: package 'MyPackage' is already declared in namespace 'App' [#Package] [#D
 
 ```bash
 # Сделать все ошибки Package критическими
-efenc -Werror Package main.efen
+efen build -Werror Package
 
 # Подавить предупреждения о deprecated
-efenc -Wno-warn DeprecatedFeature main.efen
+efen build -Wno-warn DeprecatedFeature
 
 # Показать группы в выводе (по умолчанию включено)
-efenc -print-diagnostic-groups main.efen
+efen build -print-diagnostic-groups
 ```
 
 ## Доступные группы
@@ -118,8 +118,8 @@ notice: `ensures` of `span` is not proved [#Proof]
 диагностику (Edmond, 2026-10-29):
 
 ```bash
-efenc -Wwarn Proof main.efen     # заметки Proof становятся предупреждениями (флаг -Wwarn — агент)
-efenc -Werror Proof main.efen    # и ошибками
+efen build -Wwarn Proof     # заметки Proof становятся предупреждениями (флаг -Wwarn — агент)
+efen build -Werror Proof    # и ошибками
 ```
 
 Возможное переполнение арифметики условия — ошибка, а не заметка.

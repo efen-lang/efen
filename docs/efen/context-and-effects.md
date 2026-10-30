@@ -754,9 +754,7 @@ fn spread(values: [Int]) -> Int {
 Библиотека задаёт умолчание в своём `project.efen`:
 
 ```efen
-config http {
-    kind: library
-
+config http {                           // без программ: только библиотека
     effects {
         Logger: ConsoleLogger
     }

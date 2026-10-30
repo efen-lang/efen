@@ -105,7 +105,7 @@ fn process(arr: [Int], index: Int) -> Int {
 Режим отладки с минимальными оптимизациями и максимальной отладочной информацией:
 
 ```bash
-efenc --mode=debug main.efen
+efen build --mode=debug
 ```
 
 **Характеристики:**
@@ -120,7 +120,7 @@ efenc --mode=debug main.efen
 Режим релиза с агрессивными оптимизациями:
 
 ```bash
-efenc --mode=release main.efen
+efen build --mode=release
 ```
 
 **Характеристики:**
@@ -136,7 +136,7 @@ efenc --mode=release main.efen
 Оптимизированная сборка с отладочной информацией:
 
 ```bash
-efenc --mode=release-debug main.efen
+efen build --mode=release-debug
 ```
 
 **Характеристики:**
@@ -167,7 +167,7 @@ mode testing {
 Использование:
 
 ```bash
-efenc --mode=testing main.efen
+efen build --mode=testing
 ```
 
 ### Условная компиляция по режиму
@@ -216,7 +216,7 @@ module legacy {
 ### Нативная компиляция
 
 ```bash
-efenc --target=native main.efen
+efen build --target=native
 ```
 
 Компиляция для текущей платформы с оптимизациями под конкретный процессор.
@@ -224,9 +224,9 @@ efenc --target=native main.efen
 ### Кросс-компиляция
 
 ```bash
-efenc --target=x86_64-linux-gnu main.efen
-efenc --target=aarch64-apple-darwin main.efen
-efenc --target=wasm32-unknown-unknown main.efen
+efen build --target=x86_64-linux-gnu
+efen build --target=aarch64-apple-darwin
+efen build --target=wasm32-unknown-unknown
 ```
 
 ### JIT компиляция
@@ -234,7 +234,7 @@ efenc --target=wasm32-unknown-unknown main.efen
 Режим динамической компиляции во время выполнения:
 
 ```bash
-efenc --mode=jit main.efen
+efen build --mode=jit
 ```
 
 ## Сборка всей программы
@@ -277,7 +277,7 @@ fn f(w: Walker, v: mut Vector<Int>) {
 ### Статическая линковка
 
 ```bash
-efenc --link=static main.efen
+efen build --link=static
 ```
 
 Всё включается в один исполняемый файл.
@@ -285,7 +285,7 @@ efenc --link=static main.efen
 ### Динамическая линковка
 
 ```bash
-efenc --link=dynamic main.efen
+efen build --link=dynamic
 ```
 
 Использование динамических библиотек.
@@ -303,7 +303,7 @@ efenc --link=dynamic main.efen
 ### Профилирование производительности
 
 ```bash
-efenc --profile=perf main.efen
+efen build --profile=perf
 ```
 
 Добавляет инструментацию для профилирования.
@@ -311,7 +311,7 @@ efenc --profile=perf main.efen
 ### Профилирование памяти
 
 ```bash
-efenc --profile=memory main.efen
+efen build --profile=memory
 ```
 
 Отслеживание аллокаций и утечек памяти.
@@ -319,7 +319,7 @@ efenc --profile=memory main.efen
 ### Coverage режим
 
 ```bash
-efenc --profile=coverage main.efen
+efen build --profile=coverage
 ```
 
 Измерение покрытия кода тестами.
@@ -349,9 +349,7 @@ config server {
     mode production from release {
         optimization: aggressive
 
-        target {
-            arch: "x86_64"
-        }
+        target: "x86_64-linux-gnu"
     }
 
     mode testing {
@@ -365,19 +363,19 @@ config server {
 Использование:
 
 ```bash
-efenc --mode=production main.efen
+efen build --mode=production
 ```
 
 ## Лучшие практики
 
 1. **Используйте debug для разработки**
    ```bash
-   efenc --mode=debug main.efen
+   efen build --mode=debug
    ```
 
 2. **Release для production**
    ```bash
-   efenc --mode=release main.efen
+   efen build --mode=release
    ```
 
 3. **Песочница для ненадёжного кода**
@@ -390,10 +388,10 @@ efenc --mode=production main.efen
 
 4. **Профилирование перед оптимизацией**
    ```bash
-   efenc --profile=perf --mode=release main.efen
+   efen build --profile=perf --mode=release
    ```
 
 5. **Тестирование в режиме близком к production**
    ```bash
-   efenc --mode=release-debug main.efen
+   efen build --mode=release-debug
    ```
