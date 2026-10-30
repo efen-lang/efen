@@ -327,9 +327,11 @@ flow generator ticketsPrinter(ticket: Ticket) in Logger, Queue, Account {
 ## Flow генераторы
 
 Генераторы на основе `flow` позволяют создавать ленивые последовательности значений в монадическом контексте.
+`flow generator` пока не входит в язык; обычные генераторы и их шаг `.yielded`/`.completed` описаны в
+[generators.md](generators.md).
 
 ```efen
-flow generator numberStream -> Int {
+flow generator numberStream yield Int {
     var n = 0
     while true {
         n = n + 1
