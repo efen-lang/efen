@@ -393,9 +393,33 @@ fn dataOperation {
 
 Для того чтобы ограничить обработку исключения,
 следует использовать контракт `CatchRestriction`.
-Он указывает компилятору, что это исключение ловят не везде, а только в особых точках. Где именно программе
-разрешено ловить отмену и как прогонщик тестов получает право ловить `AssertionError`, пока не решено (Edmond,
-2026-10-31: прежний пример контракта-обработчика `CancellationHandler` убран, его назначение неясно).
+Он указывает компилятору, что это исключение ловят не везде, а только в особых точках.
+
+`AssertionError` и его подклассы ловят только те, кому это явно разрешено: функция объявляет в начале тела
+`conforms AssertionHandler`, контракт из `lang::` (Edmond, 2026-10-31). Без него `catch e: AssertionError` —
+ошибка компиляции. Замыкание внутри такой функции получает её право (агент). `assert throws AssertionError`
+разрешения не требует: это сама проверка, а не перехват. Объявить `conforms AssertionHandler` может только пакет
+тестового фреймворка, выбранный в конфиге сборки ([тесты](tests/tests.md), агент, S88).
+
+```efen
+contract AssertionHandler: CatchRules {
+    required catch AssertionError
+}
+
+fn runCase(body: () -> Void) -> Outcome {
+    conforms AssertionHandler
+
+    try {
+        body()
+        return .passed
+    } catch e: AssertionError {
+        return .failed(e)
+    }
+}
+```
+
+Где программе разрешено ловить отмену, пока не решено (Edmond, 2026-10-31: прежний пример контракта-обработчика
+`CancellationHandler` убран, его назначение неясно).
 
 `CatchRestriction` объявляют только корни `Cancellation` и `AssertionError`. Под `Exception` или `Fault`
 ограничение — ошибка компиляции, поэтому `catch e: Exception` и общий `catch` ловят ровно то, что называют, и
