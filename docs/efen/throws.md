@@ -47,8 +47,8 @@ fn processData(data: String) {
 ```efen
 contract Throwable {
     fn reason() -> Reason nofail
-    fn stackTrace(limit: Int, frames: mut [TraceFrame]) -> Trace
-    fn throwTrace(limit: Int, frames: mut [TraceFrame]) -> Trace
+    fn stackTrace(limit: Int, frames: TraceFrames) -> Trace    // по умолчанию 64 и .all (трасса стека ниже)
+    fn throwTrace(limit: Int, frames: TraceFrames) -> Trace
 }
 
 enum Reason {
@@ -108,6 +108,7 @@ Throwable                      контракт: reason(), трассы
 - Может ли программа наследовать `Cancellation` и `AssertionError`.
 - Что возвращает `reason()` класса, который его не объявил, и может ли подкласс сбоя вернуть не `.program` и не
   `.environment`.
+- Имя типа значений `.all` и `.program` у трасс (`TraceFrames` — рабочее) и запись значений параметров по умолчанию.
 - Имена `MissingOptionalError` и `UncaughtHandler.handle` (эксперт по названиям предложил `NullUnwrapError` и
   `handle`).
 
