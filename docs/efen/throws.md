@@ -418,8 +418,26 @@ fn runCase(body: () -> Void) -> Outcome {
 }
 ```
 
-Где программе разрешено ловить отмену, пока не решено (Edmond, 2026-10-31: прежний пример контракта-обработчика
-`CancellationHandler` убран, его назначение неясно).
+`Cancellation` и её подклассы ловят так же только с явным разрешением: функция объявляет в начале тела
+`conforms CancellationHandler`, контракт из `lang::`. Нужно это в конце корутины: отмена, дошедшая до её конца,
+поглощается там, задача завершается отменённой (Edmond, 2026-10-31). Без разрешения `catch` отмены и
+`assert throws` отмены — ошибка компиляции; замыкание внутри такой функции получает её право (агент).
+
+```efen
+contract CancellationHandler: CatchRules {
+    required catch Cancellation
+}
+
+fn coroutineEnd(body: () -> Void) {
+    conforms CancellationHandler
+
+    try {
+        body()
+    } catch e: Cancellation {
+        // отмена поглощена: задача завершилась отменённой
+    }
+}
+```
 
 `CatchRestriction` объявляют только корни `Cancellation` и `AssertionError`. Под `Exception` или `Fault`
 ограничение — ошибка компиляции, поэтому `catch e: Exception` и общий `catch` ловят ровно то, что называют, и
