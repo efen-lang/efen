@@ -51,11 +51,26 @@ contract Throwable {
     fn throwTrace(limit: Int, frames: TraceFrames) -> Trace
 }
 
-enum Reason {
+open enum Reason {
     program          // баг: код неверен
     environment      // код верен, мир не дал: память, диск, сеть
     user             // неверный ввод: текст можно показать пользователю
     cancellation     // никто не виноват: задачу отменили
+}
+```
+
+`Reason` открыт: программа добавляет свои причины расширением ([enum](types/enum.md#расширение)). `match` по
+`reason()` пишет `_` или `@extended _`:
+
+```efen
+enum StorageReason: Reason {
+    quota
+}
+
+class QuotaError: Exception {
+    fn reason() -> Reason nofail {
+        return StorageReason.quota
+    }
 }
 ```
 
@@ -108,8 +123,6 @@ Throwable                      контракт: reason(), трассы
 - Может ли программа наследовать `Cancellation` и `AssertionError`.
 - Что возвращает `reason()` класса, который его не объявил, и может ли подкласс сбоя вернуть не `.program` и не
   `.environment`.
-- `Reason` должен быть расширяемым: программа добавляет свои значения (Edmond, 2026-10-31). Расширение `enum`, как
-  наследование классов, — отдельная задача языка.
 - Имя типа значений `.all` и `.program` у трасс (`TraceFrames` — рабочее) и запись значений параметров по умолчанию.
 - Имена `MissingOptionalError` и `UncaughtHandler.handle` (эксперт по названиям предложил `NullUnwrapError` и
   `handle`).

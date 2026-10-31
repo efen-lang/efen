@@ -46,7 +46,8 @@ let b = Side.right(value: 1) // b отличается от a
 
 Компилятор выбирает физическую representation: fixed tagged union, косвенное
 хранение или другую эквивалентную форму. Исходная программа не наблюдает этот
-выбор.
+выбор. Исключение — открытый variant: его схему хранения выбирает корень
+(«Расширение»).
 
 ## Constructors
 
@@ -204,9 +205,95 @@ variant Character {
 }
 ```
 
+## Расширение
+
+`open variant` расширяется так же, как [`open enum`](enum.md#расширение): расширение добавляет новые constructors,
+его значения годятся там, где ждут базу (Edmond 2026-10-31). Правила enum действуют и здесь: короткая запись,
+имена, `match` с `_` или `@extended _`, перезапись места, методы и контракты, generic, представление тега, сборка
+программы. Raw values и `CaseIterable` у variant нет и при расширении.
+
+```efen
+open indirect variant Expression {
+    number { value: Int }
+    addition { left: Expression, right: Expression }
+}
+
+variant ExtraExpression: Expression {
+    negation { operand: Expression }
+}
+
+fn evaluate(expr: Expression) -> Int {
+    return match expr {
+        .number.{ let value }: value
+        .addition.{ let left, let right }: evaluate(left) + evaluate(right)
+        ExtraExpression.negation.{ let operand }: -evaluate(operand)
+        @extended _: 0
+    }
+}
+```
+
+Расширение не меняет поля constructors базы и расширяет только `variant`, не `enum`.
+
+### Схемы хранения
+
+Размер значения variant — тег плюс наибольший constructor. У открытого variant наибольший constructor может прийти
+из расширения в другом пакете. Корень выбирает одну из двух схем (Edmond 2026-10-31):
+
+- **В значении** (по умолчанию). Размер открытого variant считает сборка программы по всей иерархии. Кучи нет.
+- **В куче** — `conforms IndirectExtensions` у корня. Данные каждого constructor, объявленного не в корне, лежат в
+  куче, как у `indirect`; размер корня известен в его пакете.
+
+```efen
+open variant Shape {
+    conforms IndirectExtensions
+    dot
+}
+```
+
+Правила схем:
+
+- Все типы иерархии, включая закрытые расширения, имеют раскладку корня. Поэтому значение расширения копируется
+  в место базы без перевода.
+- `IndirectExtensions` пишет только корень, безусловно и прямо в своём теле: не под `#if`, не через уточняющий
+  контракт; ограничением generic-параметра контракт не служит. Это контракт `lang::` без требований.
+- В схеме «в куче» создание значения расширения выделяет память и может бросить `AllocationError`. Копия тоже
+  выделяет, поэтому `IndirectExtensions` вместе с `ImplicitlyCopyable` — ошибка: копия пишется `copy s`, и
+  `AllocationError` стоит в сводке каждого `copy` этого типа. `let s as B` в `match` заимствует значение, а не
+  копирует. В программе без кучи создание значения расширения с данными — ошибка сборки с именем constructor.
+- В схеме «в значении» размер корня известен в его пакете, только если его constructors не содержат по значению
+  другой открытый variant в той же схеме.
+- Сборка программы предупреждает, когда constructor расширения больше наибольшего constructor корня, и называет
+  его: каждое значение корня в программе выросло (группа диагностик `VariantSize`). Ответ — `indirect` у этого
+  constructor.
+- Цикл размеров между расширениями (`A` содержит `B` через расширение, `B` содержит `A`) — ошибка сборки программы.
+  Ошибка перечисляет все constructors цикла; основное место — constructor с наибольшим полным путём, по сравнению из
+  раздела представления enum. Ответ — `indirect` у любого из них.
+- `indirect` у корня покрывает и constructors расширений; `indirect` у объявления расширения покрывает его
+  constructors.
+- Перевод корня на `IndirectExtensions` или обратно — ломающее изменение: меняются сводки исключений.
+- Файлы `lang::` не объявляют открытый variant: раскладка `lang` — часть версии рантайма, а куча в `lang` запрещена.
+
+### Соответствия полей
+
+Поле constructor расширения обязано удовлетворять соответствиям корня, которые зависят от полей: `Equatable`,
+`Copyable`, `ImplicitlyCopyable`, `Movable`. Иначе ошибка в расширении:
+
+```efen
+open variant Shape {
+    conforms ImplicitlyCopyable
+    dot
+}
+
+variant FileShape: Shape {
+    file { handle: File }      // ошибка: File не Copyable, а Shape копируется неявно
+}
+```
+
+`@abi(c)` у открытого variant и у его расширения — ошибка: раскладка C фиксирована объявлением.
+
 ## Закрытость и `@unknown _`
 
-Набор constructors закрыт в пределах одной версии декларации. Библиотека может
+Набор constructors закрытого variant закрыт в пределах одной версии декларации. Библиотека может
 добавить case в следующей версии; клиент использует `@unknown _`, если ему нужна
 исходная совместимость с таким изменением:
 
@@ -218,8 +305,8 @@ match response {
 }
 ```
 
-Эта ветка не превращает тип в открытую runtime-иерархию. Для открытого набора
-проверенных exact-видов служит `Family<Base>`.
+`@unknown _` относится к закрытому variant. Открытый variant («Расширение») требует `_` или `@extended _`.
+`Family<Base>` — открытый носитель видов хранения для layout, а не тип значения.
 
 ## Отличие от enum и structural union
 
@@ -256,7 +343,7 @@ alias Scalar = Int | Float
 
 - Raw values разрешены у `enum`, но не у `variant`.
 - `CaseIterable` не синтезируется для `variant`.
-- `variant` не наследуется и не расширяется из другого `variant`.
+- Расширяется только `open variant` и только другим `variant` («Расширение»).
 - Безымянных полей constructor нет.
 
 ## См. также

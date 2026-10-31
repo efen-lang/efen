@@ -22,6 +22,9 @@
 | **Тип с compile-time параметром-значением** | Concrete generic-тип, identity которого включает каноническое compile-time значение: например `User<root>` или `Matrix<3, 4>`. Это обычная generic-модель Efen, а не отдельная feature. | [Типы с параметрами-значениями](types/value-parameterized-types.md), [generics](generics.md) |
 | **Dialect** | Frontend-уровень, который отображает другой исходный язык или профиль синтаксиса в семантику Efen и Amber HIR. | [Диалекты](dialects.md) |
 | **Effect** | Контракт или интерфейс, который функция использует как внешнюю зависимость: `in X` или `%X.f()`; особой пометки у объявления нет. Требование статически отслеживается и идёт по графу вызовов; контракт связывает конфигурация сборки, интерфейс — значение в `with`. | [Контексты и эффекты](context-and-effects.md) |
+| **Открытый enum / variant** | `open enum` или `open variant`: другие объявления добавляют к нему значения (`enum StorageReason: Reason { quota }`), как подкласс к классу. `match` по нему требует `_` или `@extended _`. | [Enum](types/enum.md#расширение), [variant](types/variant.md#расширение) |
+| **`@extended _`** | Ветка `match` по открытому типу: ловит значения расширений, значения самого типа перечисляются. | [Match](blocks/match.md#extended-_) |
+| **IndirectExtensions** | Контракт корня открытого variant: данные constructors расширений лежат в куче, размер корня не зависит от программы. | [Variant](types/variant.md#схемы-хранения) |
 | **Family** | Открытый tagged carrier `Family<Base>`, куда проверенные новые виды могут добавляться без закрытого множества cases одного `variant`. | [Адреса](memory/addresses.md), [колоночные layout](memory/columnar-layouts.md) |
 | **Fault / сбой** | Потомок класса-корня `Fault`: `AllocationError`, `OverflowError`, `DivisionByZeroError`, `MissingOptionalError`, `BoundsError`. `nothrows` его пропускает, `nofail` — нет; общий `catch` его не ловит. | [Throws](throws.md#nofail-системная-точка-ответственности) |
 | **Throwable** | Контракт всего, что можно бросить: `reason()` (кто виноват: `Reason`) и трассы. Его соблюдают только корни `Exception`, `Fault`, `Cancellation`, `AssertionError` из `lang::`. | [Throws](throws.md#иерархия) |
@@ -77,4 +80,4 @@
 | Strategy и aspect | Strategy разрешает поведение; aspect участвует в построении абстракции и её HIR. |
 | `isolated` и `without Context` | `isolated` закрывает весь вывод внешних эффектов; `without Context` закрывает одно контекстное требование. |
 | Variant и structural union | Variant вводит номинальные cases; `T | U` только объединяет существующие типы. |
-| Variant и `Family<Base>` | Variant закрыт; family допускает проверенные новые exact-виды. |
+| Variant и `Family<Base>` | Open variant — тип значения с расширениями; family — открытый носитель видов хранения для layout. |

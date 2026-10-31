@@ -39,3 +39,16 @@ contract ReferenceCounterContract {
     var referenceCount: Int { get }
 }
 ```
+
+## IndirectExtensions
+
+Контракт `lang::` без требований. Корень открытого `variant` пишет `conforms IndirectExtensions`, чтобы данные
+constructors его расширений лежали в куче и размер корня не зависел от программы ([схемы
+хранения](variant.md#схемы-хранения)).
+
+```efen
+open variant Shape {
+    conforms IndirectExtensions
+    dot
+}
+```
