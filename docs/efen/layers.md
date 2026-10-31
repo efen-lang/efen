@@ -213,7 +213,7 @@ Elixir объявляет границу через `deps` и `exports` прям
 
 ## См. также
 
-- [packages.md](packages.md) — рабочее пространство, пакеты, модули и программы
+- [packages.md](packages.md) — рабочее пространство, пакеты и модули
 - [visibility.md](visibility.md) — видимость абстракций
 - [context-and-effects.md](context-and-effects.md) — статическое связывание
   эффектов и контекстов
