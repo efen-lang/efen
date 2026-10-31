@@ -422,7 +422,7 @@ module Sqlite
 предупреждает (Edmond 01:09):
 
 ```text
-warning: Sqlite.efn is not checked against sqlite3.h: the header is not found for target x86_64-windows
+warning: Sqlite.efen is not checked against sqlite3.h: the header is not found for target x86_64-windows
 ```
 
 Сверка снимает с объявления права и условия Efen и сравнивает остальное с заголовком:
@@ -439,7 +439,7 @@ warning: Sqlite.efn is not checked against sqlite3.h: the header is not found fo
 
 ```text
 error: `sqlite3_column_count` differs from sqlite3.h
-  --> Sqlite.efn:40:56
+  --> Sqlite.efen:40:56
    |
 40 | @abi(c) fn sqlite3_column_count(statement: read sqlite3_stmt) -> Int64
    |                                                                   ^^^^^ declared `Int64`
@@ -497,7 +497,7 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 ## Команды
 
 - `amber import-c <header> --module <Name>` создаёт модуль по заголовку.
-- `amber import-c --update <Name>.efn` сверяет модуль с новым заголовком и обновляет его.
+- `amber import-c --update <Name>.efen` сверяет модуль с новым заголовком и обновляет его.
 - `amber foreign-report` выводит анализ: какие пакеты верят C, через какие модули, сколько объявлений пакет заполнил
   сам и сколько взял у чужого пакета, что из заголовков пропущено (Edmond 01:21). Сборка об этом молчит.
 
@@ -535,7 +535,7 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 
 Нет в спецификации, предложено в этом черновике:
 
-- `@foreign`, `@header("x.h")` на модуле и `.efn`-модуль, созданный по заголовку;
+- `@foreign`, `@header("x.h")` на модуле и `.efen`-модуль, созданный по заголовку;
 - `@platform` на объявлении, а не только на `implementation`, и в пакете вне стандартной библиотеки;
 - `@c("прототип")`, `@symbol("имя")`, `targets:` у `@header` и отпечаток цели;
 - `mut T?` для `T**`, пустая перед вызовом;

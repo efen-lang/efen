@@ -169,7 +169,7 @@ fn release(pool: mut Pool, block: own PoolBlock) {
 
 ```text
 warning[W.syntax.doc-comment-expected]: this comment documents the declaration below, so it is a doc comment
- --> pool.efn:1:1
+ --> pool.efen:1:1
   |
 1 | // Gives a block back to the pool.
   | ^^ a plain comment
@@ -210,7 +210,7 @@ fn allocate(bytes: Int) -> Pointer? {
 
 ```text
 warning[W.syntax.doc-unknown-parameter]: the doc comment names parameter `size`, but `allocate` has none of that name
- --> a.efn:3:7
+ --> a.efen:3:7
   |
 3 | /// - size: how many bytes.
   |       ^^^^ no such parameter

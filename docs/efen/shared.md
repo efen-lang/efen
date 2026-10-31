@@ -351,7 +351,7 @@ projection SecondEditor for Inbox {
 
 ```text
 error: field `letters` is written under two different locks
-  --> inbox.efn:13
+  --> inbox.efen:13
    |  projection FirstEditor ... { first is Mutex.Held }
    |  projection SecondEditor ... { second is Mutex.Held }
    = help: guard `letters` by one lock in both projections
@@ -611,10 +611,10 @@ fn handle(pool: mut Pool)
 
 ```text
 error: `download` may wait while `pool.mutex` is held
-  --> pool.efn:5
+  --> pool.efen:5
    |  with pool.mutex {
    |      download()
-   = note: `download` waits via `readSocket` (net.efn:88)
+   = note: `download` waits via `readSocket` (net.efen:88)
 ```
 
 ### Исключение: `ordered`

@@ -80,7 +80,7 @@ if name == "Привет" { … }    // пока String встроен: lang::St
 находит её по контракту, а не по имени: в сборке может быть ровно одна реализация каждого пункта.
 
 ```efen
-// lang/items.efn
+// lang/items.efen
 @unique
 contract Trap {
     fn stop(record: StopRecord) -> Never nofail
