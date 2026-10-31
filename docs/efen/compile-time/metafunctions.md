@@ -185,7 +185,7 @@ meta fn tryCatch(tryBody: Statement, catchBody: Statement) -> InlineClosure {
     return inline {
         try {
             ${tryBody}
-        } catch e: Error {
+        } catch e: Exception {
             println("Error caught: ${e}")
             ${catchBody}
         }
@@ -289,7 +289,7 @@ meta fn tryCatch(tryBody: Statement, catchBody: Statement) -> InlineClosure {
     return inline {
         try {
             ${tryBody}
-        } catch e: Error {
+        } catch e: Exception {
             println("Error caught: ${e}")
             ${catchBody}
         }
@@ -399,7 +399,7 @@ meta fn measure(name: String, body: InlineClosure) -> InlineClosure {
             ${body}
             let duration = Timer.now() - start
             println("✓ Success: ${duration}ms")
-        } catch e: Error {
+        } catch e: Exception {
             let duration = Timer.now() - start
             println("✗ Failed: ${e} (${duration}ms)")
         }
@@ -798,7 +798,7 @@ meta fn withTransaction(setup: Statement, body: Statement, cleanup: Statement) -
             ${body}
 
             transaction.commit()
-        } catch e: Error {
+        } catch e: Exception {
             transaction.rollback()
             throw e
         } finally {
@@ -861,7 +861,7 @@ meta fn retry(maxAttempts: Int, body: InlineClosure) -> InlineClosure {
             try {
                 ${body}
                 success = true
-            } catch e: Error {
+            } catch e: Exception {
                 attempts++
                 if attempts >= maxAttempts {
                     throw e
@@ -2226,7 +2226,7 @@ meta fn withResource<R: Disposable, T>(acquire: inline -> R, use: inline (R) -> 
         try {
             resource = acquire()
             result = use(resource!)
-        } catch e: Error {
+        } catch e: Exception {
             error = e
         } finally {
             resource?.dispose()

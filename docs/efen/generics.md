@@ -674,7 +674,7 @@ Variadic-параметр можно ограничить контрактом:
 
 ```efen
 generic ...Errors: Type
-where ...Errors: Exception
+where ...Errors: Throwable
 ```
 
 Раскрытие `...Errors` в `where` создаёт ограничение для каждого аргумента:

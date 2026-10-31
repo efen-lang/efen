@@ -161,7 +161,7 @@ fn process(data: String) {
 ```efen
 fn process(data: String) {
     someOperation()
-    catch Error log("Ошибка")
+    catch Exception log("Ошибка")
     anotherOperation()
     catch log("Другая ошибка")
 }
@@ -169,7 +169,7 @@ fn process(data: String) {
 
 Если в блоке `catch` или `on` одна инструкция и вся запись помещается в одну
 строку, блок получает диагностику стиля с исправлением на краткую форму:
-`catch Error { log("Ошибка") }` → `catch Error log("Ошибка")`.
+`catch Exception { log("Ошибка") }` → `catch Exception log("Ошибка")`.
 
 ### on Exception
 
@@ -204,7 +204,7 @@ fn complex {
         operation2()
         operation3()
 
-        catch e: Error {
+        catch e: Exception {
             // Перехватывает только operation2 и operation3
         }
     }

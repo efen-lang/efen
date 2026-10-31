@@ -294,8 +294,8 @@ fn openReserved(pool: mut Pool) -> own Connection
 `connect()` ждёт сеть, поэтому стоит вне блока: место под новое соединение
 занимает счётчик `openCount` под блокировкой (см. `acquire` в
 [ожидании условия](#ожидание-условия)), а само соединение открывается без неё.
-Место возвращает `defer`, а не `catch e: Error`: отмена задачи —
-`CancellationException`, а не `Error`, и `catch` её не поймал бы (агент).
+Место возвращает `defer`, а не `catch e: Exception`: отмена задачи —
+`Cancellation`, а не `Exception`, и `catch` её не поймал бы (агент).
 Ожидание внутри `defer` и при раскрутке исключения отменой не прерывается, как
 ожидание при выходе из блока задач (см. [Задача `spawn`](closure.md#задача-spawn)):
 иначе `enter` в `defer` отменённой задачи бросил бы снова, и место не вернулось
@@ -485,7 +485,7 @@ mut fn waitFor(condition: () -> T? under self throws ...Errors) -> T state Lock.
     generic T: Type
     generic ...Errors: Type
     where T: NonOptional
-    where ...Errors: Exception
+    where ...Errors: Throwable
 
     while true {
         var ticket: Ticket
@@ -513,7 +513,7 @@ shared struct Condition {
         generic T: Type
         generic ...Errors: Type
         where T: NonOptional
-        where ...Errors: Exception
+        where ...Errors: Throwable
 
         // как у Mutex, но очередь своя; mutex выводится Free и на выходе
     }
