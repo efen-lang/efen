@@ -350,12 +350,12 @@ where target is Box<T> {
 ```efen
 strategy OptionalOrThrow<T> for T {
     conforms Coerce<T?>
-    static fn coerce(value: T?) -> T throws MissingOptionalError {
+    static fn coerce(value: T?) -> T throws NullUnwrapError {
         if let result = value {
             return result
         }
 
-        throw MissingOptionalError()
+        throw NullUnwrapError()
     }
 }
 ```

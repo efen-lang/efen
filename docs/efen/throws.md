@@ -41,14 +41,15 @@ fn processData(data: String) {
 ## Иерархия
 
 Бросить можно только значение, которое соблюдает контракт `Throwable`. Его соблюдают четыре класса-корня из файлов
-`lang::` ([что компилятор берёт у рантайма](runtime/lang-roles.md)), и только они: свой класс программы объявить
-`conforms Throwable` не может, он наследует один из корней (Edmond, 2026-10-31).
+`lang::` ([что компилятор берёт у рантайма](runtime/lang-roles.md)). Свой класс программы наследует один из корней;
+свой корень с `conforms Throwable` программа объявляет только вместе с `CatchRestriction`
+([ограничение обработки](#ограничение-обработки-исключений)) (Edmond, 2026-10-31).
 
 ```efen
 contract Throwable {
     fn reason() -> Reason nofail
-    fn stackTrace(limit: Int, frames: TraceFrames) -> Trace    // по умолчанию 64 и .all (трасса стека ниже)
-    fn throwTrace(limit: Int, frames: TraceFrames) -> Trace
+    fn stackTrace(limit: Int = 64, frames: TraceFrames = .all) -> Trace    // трасса стека ниже
+    fn throwTrace(limit: Int = 64, frames: TraceFrames = .all) -> Trace
 }
 
 open enum Reason {
@@ -56,6 +57,7 @@ open enum Reason {
     environment      // код верен, мир не дал: память, диск, сеть
     user             // неверный ввод: текст можно показать пользователю
     cancellation     // никто не виноват: задачу отменили
+    unknown          // класс не назвал причину
 }
 ```
 
@@ -80,7 +82,7 @@ Throwable                      контракт: reason(), трассы
 ├─ Fault                       сбой: код в месте броска его не исправит
 │  ├─ OverflowError            .program
 │  ├─ DivisionByZeroError      .program
-│  ├─ MissingOptionalError     .program      x! на null
+│  ├─ NullUnwrapError          .program      x! на null
 │  ├─ BoundsError              .program      индекс или диапазон вне коллекции
 │  ├─ AllocationError          .environment
 │  └─ StackExhaustedError      .environment
@@ -115,17 +117,10 @@ Throwable                      контракт: reason(), трассы
 
 Решение Edmond от 2026-10-31.
 
-Открыто:
-
-- Пропускает ли `nothrows` отмену (сейчас записано агентом: да, иначе `nothrows` функция с точкой ожидания не
-  собирается).
-- Пропускает ли `catch` предка подкласс с `CatchRestriction` (записано агентом: да).
-- Может ли программа наследовать `Cancellation` и `AssertionError`.
-- Что возвращает `reason()` класса, который его не объявил, и может ли подкласс сбоя вернуть не `.program` и не
-  `.environment`.
-- Имя типа значений `.all` и `.program` у трасс (`TraceFrames` — рабочее) и запись значений параметров по умолчанию.
-- Имена `MissingOptionalError` и `UncaughtHandler.handle` (эксперт по названиям предложил `NullUnwrapError` и
-  `handle`).
+- **Причина по умолчанию.** Класс, который не объявил `reason()`, берёт его у предка; корни `Exception` и `Fault`
+  возвращают `.unknown`. Сбой возвращает любую причину, кроме `.cancellation` (Edmond, 2026-10-31).
+- **Имена** `NullUnwrapError`, `UncaughtHandler.handle` и `TraceFrames` выбрал агент (Edmond 2026-10-31: «имена решай
+  сам»).
 
 ## Синтаксис
 
@@ -155,7 +150,7 @@ fn handler nothrows {
 код бизнес-уровня не может предотвратить в месте, где он случился. Сбои, которые
 бросает сам компилятор, объявлены в файлах `lang::`
 ([что компилятор берёт у рантайма](runtime/lang-roles.md)): `AllocationError`,
-`OverflowError`, `DivisionByZeroError`, `MissingOptionalError`, `BoundsError`.
+`OverflowError`, `DivisionByZeroError`, `NullUnwrapError`, `BoundsError`.
 Свой сбой программа объявляет подклассом:
 
 ```efen
@@ -399,10 +394,25 @@ fn dataOperation {
 Он указывает компилятору, что это исключение может быть поймано 
 только в функциях, которые поддерживают контракт, где указана возможность обработки этого исключения.
 
-`CatchRestriction` наследуется подклассами. `catch`, который называет предка без ограничения (общий `catch`,
-`catch e: Exception`, `catch e: Fault`), класс с ограничением не ловит: оно проходит мимо дальше. `catch`, который
-называет его явно, вне функции с контрактом-обработчиком — ошибка компиляции; `assert throws AssertionError` —
-исключение из этого правила (агент).
+`CatchRestriction` объявляет только корень: класс с `conforms Throwable`, который не наследует `Exception` и `Fault`,
+как `Cancellation` и `AssertionError`. Под `Exception` или `Fault` ограничение — ошибка компиляции, поэтому
+`catch e: Exception` и общий `catch` ловят ровно то, что называют, и ограниченное исключение не встречают. Корни
+открыты для наследования, подкласс несёт ограничение корня (Edmond, 2026-10-31). `catch`, который называет такой класс
+вне функции с контрактом-обработчиком, — ошибка компиляции; `assert throws AssertionError` — исключение из этого
+правила (агент).
+
+```efen
+class LeaseExpired {                 // свой корень
+    conforms Throwable
+    conforms CatchRestriction
+}
+
+class Timeout: Cancellation { }      // отмена по таймауту; ловит её только контекст задач
+
+class Wrong: Exception {
+    conforms CatchRestriction        // ошибка: ограничение под Exception
+}
+```
 
 ```efen
 contract CancellationHandler : CatchRules {
@@ -422,7 +432,7 @@ class Cancellation {
 `Cancellation` — не ошибка, поэтому правила для `Exception` её не касаются: она не входит в сводку исключений,
 проходит сквозь `nothrows`, `throws only` и `isolated` и не доставляется внутри `nofail`, `deinit`, `dispose` и
 `defer` ([контексты](context-and-effects.md)). Иначе `nothrows` функция с точкой ожидания не собралась бы: поймать
-отмену она не вправе, выпустить — тоже (агент, из решения Edmond 2026-10-31).
+отмену она не вправе, выпустить — тоже (Edmond, 2026-10-31).
 
 Если исключение объявляет `MustHandle` вместе с `CatchRestriction`, оба
 требования действуют сразу: поймать обязан непосредственный вызывающий, и он же

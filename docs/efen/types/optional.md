@@ -240,16 +240,16 @@ let result = calc?.add(a: 5, b: 3)  // Int?
 ### 5. Forced Unwrapping (!)
 
 `x!` разворачивает `T?` в `T`. Если значение `null`, бросается
-`MissingOptionalError`; исключение входит в выведенный `throws` функции, как и
+`NullUnwrapError`; исключение входит в выведенный `throws` функции, как и
 у контекстного разворачивания. Остановки выполнения нет: `x!` — короткая запись
-`x != null ? x : throw MissingOptionalError()`.
+`x != null ? x : throw NullUnwrapError()`.
 
 ```efen
 let optionalNumber: Int? = 42
 let number = optionalNumber!  // Int = 42
 
 let empty: Int? = null
-let value = empty!            // бросает MissingOptionalError
+let value = empty!            // бросает NullUnwrapError
 ```
 
 **Когда использовать:**
@@ -409,7 +409,7 @@ let required: T = dictionary["key"]
 // OptionalOrThrow<T>.coerce(dictionary["key"])
 ```
 
-Отсутствующее значение бросает `MissingOptionalError`. Этот эффект участвует в
+Отсутствующее значение бросает `NullUnwrapError`. Этот эффект участвует в
 обычном выводе `throws`. Точное совпадение `T?` имеет приоритет, цепочки coercion
 не строятся, а без ожидаемого типа разворачивание не выполняется.
 

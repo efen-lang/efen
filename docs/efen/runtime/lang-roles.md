@@ -121,7 +121,7 @@ implementation Trap {
 | `AllocationError` | Нехватка памяти | `Fault`; в файлах `lang::`; без полей, вечный: бросок ничего не выделяет |
 | `OverflowError` | Переполнение | `Fault`; в файлах `lang::`; без полей, вечный |
 | `DivisionByZeroError` | Деление на ноль | `Fault`; в файлах `lang::`; без полей, вечный |
-| `MissingOptionalError` | `x!` на `null` | `Fault`; в файлах `lang::`; без полей, вечный |
+| `NullUnwrapError` | `x!` на `null` | `Fault`; в файлах `lang::`; без полей, вечный |
 | `BoundsError` | Недоказанный индекс или диапазон вне коллекции | `Fault`; в файлах `lang::`; без полей, вечный |
 | `StackExhaustedError` | Исчерпание стека | `Fault`; в файлах `lang::`; без полей, вечный |
 | `UncaughtHandler` | Брошенное, которому некуда идти ([исключения](../throws.md#исключение-которое-никто-не-ловит)) | `@unique` контракт, `fn handle(thrown: Throwable) -> Never nofail`; реализация по умолчанию — рантайма, программа связывает свою в `effects`; вызывается до раскрутки, ничего не выделяет, работает на запасном стеке |

@@ -108,7 +108,7 @@ let charlieAge = ages["Charlie"]    // Int? = null
 let aliceAge: Int? = ages["Alice"] // optional сохраняется
 let requiredAge: Int = ages["Alice"]
 // Эквивалентно OptionalOrThrow<Int>.coerce(ages["Alice"])
-// и может бросить MissingOptionalError.
+// и может бросить NullUnwrapError.
 ```
 
 Без ожидаемого типа результат остаётся optional. Вставленная coercion является
