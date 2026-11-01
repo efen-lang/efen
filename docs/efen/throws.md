@@ -53,7 +53,7 @@ fn processData(data: String) {
 
 ```efen
 contract Throwable {
-    fn reason() -> Reason nofail
+    fn reason -> Reason nofail
     fn stackTrace(limit: Int = 64, frames: TraceFrames = .all) -> Trace    // трасса стека ниже
     fn throwTrace(limit: Int = 64, frames: TraceFrames = .all) -> Trace
 }
@@ -78,7 +78,7 @@ enum StorageReason: Reason {
 }
 
 class QuotaError: Exception {
-    fn reason() -> Reason nofail {
+    fn reason -> Reason nofail {
         return StorageReason.quota
     }
 }
@@ -108,7 +108,7 @@ Throwable                      контракт: reason(), трассы
   ```efen
   class ParseError: Exception {
       var source: Reason                      // поле формы → .user, свой файл → .program
-      fn reason() -> Reason nofail {
+      fn reason -> Reason nofail {
           return source
       }
   }
@@ -519,7 +519,7 @@ class Cancellation {
     conforms SpecialThrowable
     caught by CancellationHandler
 
-    fn reason() -> Reason nofail {
+    fn reason -> Reason nofail {
         return .cancellation
     }
 }
@@ -570,7 +570,7 @@ class Timeout: Cancellation { }      // можно: отмена по тайма
 ```efen
 class LeaseExpired: Cancellation { }
 
-fn release() nofail {
+fn release nofail {
     throw LeaseExpired()             // ошибка: отмена не выходит из nofail
 }
 ```

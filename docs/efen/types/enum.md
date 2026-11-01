@@ -214,7 +214,7 @@ enum StorageReason: Reason {
 подкласс там, где ждут базу:
 
 ```efen
-fn reason() -> Reason nofail {
+fn reason -> Reason nofail {
     return StorageReason.quota
 }
 ```

@@ -810,7 +810,7 @@ config server {
 ```efen
 @unique
 contract ErrorNumber {
-    fn get() -> Int
+    fn get -> Int
     fn set(value: Int)
 }
 ```

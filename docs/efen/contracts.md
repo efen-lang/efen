@@ -492,8 +492,8 @@ interface MyInterface : ParentInterface, AnotherParentInterface {
 contract Exceptions {
     open class Exception {
         conforms Throwable
-        @constructor fn init() -> Self
-        open fn reason() -> Reason nofail
+        @constructor fn init -> Self
+        open fn reason -> Reason nofail
     }
 }
 
@@ -501,8 +501,8 @@ contract Exceptions {
 implementation Exceptions {
     class Exception {
         var message: String
-        @constructor fn init() -> Self { … }
-        fn reason() -> Reason nofail { return .program }
+        @constructor fn init -> Self { … }
+        fn reason -> Reason nofail { return .program }
     }
 }
 
