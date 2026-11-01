@@ -300,8 +300,10 @@ Amber называет пропущенное в отчёте `amber foreign-rep
 функции (`stat` → `stat64` в glibc при `_FILE_OFFSET_BITS=64`), стоит в `@symbol` под `@platform` цели.
 
 ```efen
-@foreign @header("sqlite3.h")
-module Sqlite
+module {
+    foreign: c
+    header: "sqlite3.h"
+}
 
 const SQLITE_OK = 0
 const SQLITE_ROW = 100
@@ -324,8 +326,10 @@ const SQLITE_ROW = 100
 Заполненный модуль:
 
 ```efen
-@foreign @header("sqlite3.h")
-module Sqlite
+module {
+    foreign: c
+    header: "sqlite3.h"
+}
 
 @release(sqlite3_close_v2)
 type sqlite3
@@ -413,8 +417,11 @@ const O_DIRECTORY = 16384
 под цель, которой нет в списке, — ошибка с советом добавить цель и перегенерировать.
 
 ```efen
-@foreign @header("sqlite3.h", targets: ["x86_64-linux", "aarch64-linux", "x86_64-windows"])
-module Sqlite
+module {
+    foreign: c
+    header: "sqlite3.h"
+    targets: ["x86_64-linux", "aarch64-linux", "x86_64-windows"]
+}
 ```
 
 Сборка хэширует файлы из отпечатка цели без clang. clang она запускает, только когда хэш изменился, и тогда сверяет
@@ -422,7 +429,7 @@ module Sqlite
 предупреждает (Edmond 01:09):
 
 ```text
-warning: Sqlite.efen is not checked against sqlite3.h: the header is not found for target x86_64-windows
+warning: sqlite.efen is not checked against sqlite3.h: the header is not found for target x86_64-windows
 ```
 
 Сверка снимает с объявления права и условия Efen и сравнивает остальное с заголовком:
@@ -496,8 +503,8 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 
 ## Команды
 
-- `amber import-c <header> --module <Name>` создаёт модуль по заголовку.
-- `amber import-c --update <Name>.efen` сверяет модуль с новым заголовком и обновляет его.
+- `amber import-c <header> --module <name>` создаёт модуль `<name>.efen` по заголовку.
+- `amber import-c --update <name>.efen` сверяет модуль с новым заголовком и обновляет его.
 - `amber foreign-report` выводит анализ: какие пакеты верят C, через какие модули, сколько объявлений пакет заполнил
   сам и сколько взял у чужого пакета, что из заголовков пропущено (Edmond 01:21). Сборка об этом молчит.
 
@@ -538,9 +545,9 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 
 Нет в спецификации, предложено в этом черновике:
 
-- `@foreign`, `@header("x.h")` на модуле и `.efen`-модуль, созданный по заголовку;
+- опции модуля `foreign: c` и `header: "x.h"` ([опции модуля](packages.md#опции-модуля)) и `.efen`-модуль, созданный по заголовку;
 - `@platform` на объявлении, а не только на `implementation`, и в пакете вне стандартной библиотеки;
-- `@c("прототип")`, `@symbol("имя")`, `targets:` у `@header` и отпечаток цели;
+- `@c("прототип")`, `@symbol("имя")`, опция модуля `targets` и отпечаток цели;
 - `mut T?` для `T**`, пустая перед вызовом;
 - `@fill` и тип C после него;
 - `@release(f)` у непрозрачного типа и сам непрозрачный тип без размера;

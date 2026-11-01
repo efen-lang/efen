@@ -81,7 +81,7 @@ struct Block {
 
 | Документирует | Не документирует |
 |---|---|
-| функция, `generator` | `use`, `module X` строкой, `package` |
+| функция, `generator` | `use`, `module { }` строкой, `package` |
 | `class`, `struct`, `contract`, `interface`, `implementation` с именем | `implements`, `conforms`, `in`, `with { }` |
 | `variant`, `enum` и каждый их вариант | встроенный тип (`Header` строкой в `struct`) |
 | `alias`, `type`, `strategy`, `projection`, `context`, `aspect` | `one`, `catch`, `provide`, `test` |

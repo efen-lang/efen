@@ -301,8 +301,6 @@ alias InternalID = Int
 
 ```efen
 // types.efen
-module MyApp::Types
-
 alias UserID = String
 alias PostID = Int
 
@@ -311,7 +309,7 @@ alias Handler<T> = (T) -> Void
 
 ```efen
 // main.efen
-use MyApp::Types
+use types
 
 fn processUser(id: UserID) {
     // ...
