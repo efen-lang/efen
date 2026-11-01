@@ -700,21 +700,23 @@ fn spread(values: [Int]) -> Int {
   уборку отмена не обрывает.
 
 Исключение задачи, которое вылетает из её слота завершения, известно по типу корутины: тип несёт список исключений
-её задачи, как тип функции, и компилятор выводит его сам (Edmond, 2026-11-01). Запись — как у генератора, список
-после `>`:
+её задачи, как тип функции, и компилятор выводит его сам (Edmond, 2026-11-01). Тип корутины — `Coroutine<F>`, где `F` — тип замыкания задачи, и
+список — хвост этого типа функции (Edmond, 2026-11-01): граница, вывод у `let` и скобки — как у
+[типа функции](types/function-type.md):
 
 ```efen
 fn dispatch(r: Request) -> Response {
     conforms RedirectHandler
 
-    let c = spawn { route(r) }                 // c: Coroutine<Response> throws Redirect
+    let c = spawn { route(r) }                 // c: Coroutine<() -> Response throws Redirect>
     return await(c)                            // Redirect вылетает здесь; право проверяется у dispatch
 }
 ```
 
 Конец задачи — вход `TaskEntry` ([кто ловит всё](throws.md#входы-кто-ловит-всё)): он поглощает отмену, а остальное
 кладёт в слот завершения как [`Thrown`](throws.md#thrown-исключение-любого-корня); `await` бросает это исключение
-заново с типом из `Coroutine<T> throws E`.
+заново с типом из хвоста `F` у `Coroutine<F>`: `fn await<T>(job: own Coroutine<() -> T>) -> T` бросает то, что
+бросает замыкание `job`, и это выводится, как у вызова через значение функции.
 
 Отмена — особый вид брошенного, как в True Async (Edmond, 2026-10-26): свой корень `Cancellation`, а не
 `Exception` (Edmond, 2026-10-31), отдельный канал `SpecialThrowable` (Edmond, 2026-11-01). Видов
