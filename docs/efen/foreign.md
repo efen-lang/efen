@@ -229,7 +229,7 @@ interface Pollable {
     var descriptor: Descriptor { get }      // Descriptor — тип только для чтения: edit не закроет и не заменит его
 }
 
-var epoll = Epoll<Connection>()             // обычное значение: может быть полем сервера или задачи
+var epoll = Epoll<Connection>()             // обычное значение: может быть полем сервера или корутины
 
 let key = epoll.add(take conn, events: EPOLLIN)      // Key?; при отказе ядра conn остаётся у вызывающего
 
@@ -539,7 +539,7 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 - Заголовки C++ и Objective-C.
 - `epoll`: срабатывание по фронту (`EPOLLET`) и `EPOLLONESHOT` с повторным взводом (`EPOLL_CTL_MOD`); добавление и
   снятие чужой записи во время обхода; соединения, которые живут в области пользователя, а не в таблице `Epoll`;
-  `wait` и `remove` из разных задач ([общая память](shared.md)); как записать запрет `Epoll` в дочернем процессе.
+  `wait` и `remove` из разных корутин ([общая память](shared.md)); как записать запрет `Epoll` в дочернем процессе.
 
 ## Придумано
 

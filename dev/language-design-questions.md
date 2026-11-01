@@ -1229,9 +1229,9 @@ fn refresh(stats: &Stats, values: [Int]) {
 явное решение о судьбе задачи на каждом пути (`cancel()`, `background()`,
 `defer`) — заменено двумя видами запуска.
 
-Основание: [задача `spawn`](../docs/efen/closure.md#задача-spawn),
+Основание: [корутина `spawn`](../docs/efen/closure.md#корутина-spawn),
 [асинхронный контекст](../docs/efen/context-and-effects.md#асинхронный-контекст),
-[задачи в областях доступа](../docs/efen/types/access-regions.md#задачи-spawn).
+[корутины в областях доступа](../docs/efen/types/access-regions.md#корутины-spawn).
 
 ### Q59 · Решено 2026-10-27, заменено того же дня (Q60) · Общая память: `shared`, зона `sync`, атомики, роли
 
