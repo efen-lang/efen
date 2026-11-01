@@ -66,26 +66,30 @@ generator numbers yield Int {
 Порядок: хвост сигнатуры как у функции (`state`, `in`, `throws`, `where`, [conditions.md](conditions.md)), затем
 `yield`, `resume`, затем `requires` и `ensures`. Каждая роль — не больше одного раза.
 
-Тип значения генератора — `Generator<…>`, его аргументы — роли: по позиции `Generator<Y, R, C>` или с метками
-`Generator<yield: String, resume: String, result: Int>` в любом порядке. Отсутствующие роли — `Void`:
-`Generator<Int>` отдаёт `Int`, ничего не получает и ничего не возвращает. Метки и позиции в одном типе не смешиваются.
-Роли типа стоят в `<>`, поэтому заголовок `generator g -> Generator<Int> yield Int {` однозначен: `g` отдаёт `Int`, а
-результат `g` — генератор, который отдаёт `Int` (Edmond, 2026-10-30).
+Тип значения генератора пишется как тип функции: это заголовок объявления без имени и параметров (параметры
+переданы при создании), ключевое слово `generator`, затем роли `-> C`, `yield Y`, `resume R`, затем хвост `throws`,
+`in`, `nothrows`, `nofail`, как у типа функции после результата. Отсутствующие роли — `Void`: `generator yield Int`
+отдаёт `Int`, ничего не получает и ничего не возвращает. Это не обобщённый класс и не имя из библиотеки: тип
+узнаётся по слову `generator`, как тип функции — по `->` (Edmond, 2026-11-01). `start()`, `next()` и остальное
+реализует `lang` через контракт.
 
-`throws` и `in` тела пишутся после `>`, как у типа функции ([types/function-type.md](types/function-type.md)):
-их бросают и требуют `start()`, `next()`, `for` и уничтожение. В идентичность `Generator<…>` они не входят: у `let`
-компилятор выводит их из тела, а у `var`, поля, параметра и публичного имени записанный тип — верхняя граница, и
-генератор, который бросает или требует больше, туда не присваивается. Хвост объявления принадлежит самому
-объявлению, поэтому эффекты генератора-результата пишутся в скобках (Edmond, 2026-10-30):
+Эффекты тела — те же, что у типа функции ([types/function-type.md](types/function-type.md)): их бросают и требуют
+`start()`, `next()` и `for`; уничтожение бросает только то, что бросает очистка, живая у `yield`. В идентичность типа
+эффекты не входят: у `let` компилятор выводит их из тела, а у `var`, поля, параметра и публичного имени записанный
+тип — верхняя граница, и генератор, который бросает или требует больше, туда не присваивается. Хвост объявления
+принадлежит самому объявлению, поэтому тип генератора в результате с ролями или эффектами пишется в скобках, как
+возвращаемая функция:
 
 ```efen
-let g = lines()                                    // throws и in выведены из тела lines
-var source: Generator<String> throws IoError in Files
-fn open -> (Generator<String> throws IoError)      // throws у генератора
-fn open -> Generator<String> throws IoError        // throws у open
-generator g -> (Generator<Int> throws E) yield Int  // throws у генератора-результата
-```
+generator lines(path: String) yield String { … }
 
+let g = lines("a.txt")                              // тип generator yield String; throws и in выведены из тела
+var source: generator yield String throws IoError in Files
+fn open -> (generator yield String throws IoError)  // throws у генератора
+fn open -> generator yield String throws IoError    // throws у open
+generator g -> (generator yield Int) yield Int      // результат g — генератор, который отдаёт Int
+var steps: generator -> Bool yield String resume Int
+```
 
 Три типа различаются намеренно: отданное значение и завершение с результатом различимы даже при совпадающих типах
 (асимметричные сопрограммы Lua, `Coroutine s m r` из Haskell-библиотеки monad-coroutine, эффект `Yield: A -> B` с
@@ -256,7 +260,7 @@ assert g.result == 5
   отдаваемое значение. Доказывается у каждого `yield`; у переменной `for` и у шага `.yielded` это факт.
 - **`requires resume ==> P`** — условие значения, которое передаёт `next(value)`. В теле это факт в точке после
   `yield`. Проверяет вызывающий: `next(v)` проверяет условие, если не доказал его сам, и при нарушении
-  останавливает программу с указанием своей строки. В типе `Generator<…>` условия нет.
+  останавливает программу с указанием своей строки. В типе генератора условия нет.
 
 ```efen
 generator lookup(table: read [Int])
@@ -316,7 +320,7 @@ with fileLog {
     }
 }
 
-fn outlived -> Generator<String> {
+fn outlived -> generator yield String {
     with fileLog {
         return lines()  // ошибка: генератор переживает with, а lines() нужен его контекст
     }
