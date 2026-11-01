@@ -37,7 +37,7 @@
 | **Managed slot** | Режим конкретного storage-слота, где lifetime-операции строит выбранная модель управления, а не обычный borrow checker. Это не право типа и не исходный модификатор. | [Ownership](types/ownership.md) |
 | **Metadata** | Типизированные compile-time данные декларации; отдельное решение определяет, какая добавленная metadata нужна runtime. | [Metadata](aspects/metadata.md) |
 | **Metafunction** | Compile-time функция, возвращающая `InlineClosure` или преобразующая HIR. Шаблон и placeholders типизированы по её контракту; вставленный результат проходит обычные разрешение и проверки. | [Метафункции](compile-time/metafunctions.md) |
-| **Module** | Файл `.efen` пакета или блок `module x { }` в нём; область имён, `use` и `private`. Путь модуля — путь файла от папки пакета: `tax/rates.efen` — `tax::rates`. | [Пакеты и модули](packages.md#модуль) |
+| **Module** | Файл `.efen` пакета; блока `module x { }` нет; область имён, `use` и `private`. Путь модуля — путь файла от папки пакета: `tax/rates.efen` — `tax::rates`. | [Пакеты и модули](packages.md#модуль) |
 | **Naming register** | Регистр первой буквы определяет категорию имени: типы и контексты начинаются с заглавной, значения, элементы `enum` и cases `variant` — со строчной. | [Ориентиры и границы](README.md#ориентиры-и-границы) |
 | **Opaque type** | Номинальная identity со скрытой реализацией и явно ограниченной областью раскрытия. | [Дженерики](generics.md) |
 | **Origin** | Статическая связь ссылки с местом или population, определяющая срок её допустимой жизни. Не путать с provenance сгенерированного HIR. | [Ownership](types/ownership.md), [адреса](memory/addresses.md) |

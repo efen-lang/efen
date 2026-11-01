@@ -250,23 +250,19 @@ const DATABASE_PORT = 5432
 Организация констант в отдельных модулях:
 
 ```efen
-// constants/network.efen
-module network {
-    public const DEFAULT_PORT = 8080
-    public const TIMEOUT_MS = 5000
-    public const MAX_RETRIES = 3
-}
+// constants/network.efen — модуль constants::network
+const DEFAULT_PORT = 8080
+const TIMEOUT_MS = 5000
+const MAX_RETRIES = 3
 
-// constants/limits.efen
-module limits {
-    public const MAX_FILE_SIZE = 10 * 1024 * 1024  // 10 МБ
-    public const MAX_USERS = 1000
-    public const MAX_CONCURRENT_REQUESTS = 100
-}
+// constants/limits.efen — модуль constants::limits
+const MAX_FILE_SIZE = 10 * 1024 * 1024  // 10 МБ
+const MAX_USERS = 1000
+const MAX_CONCURRENT_REQUESTS = 100
 
-// Использование
-use network
-use limits
+// Использование в другом модуле пакета
+use constants::network as network
+use constants::limits as limits
 
 fn startServer {
     listen(network::DEFAULT_PORT)
@@ -331,13 +327,12 @@ fn process {
    const API_ENDPOINT = "https://api.example.com"
    ```
 
-2. **Группируйте связанные константы**
+2. **Группируйте связанные константы** в свой модуль-файл
    ```efen
-   module DatabaseConfig {
-       const HOST = "localhost"
-       const PORT = 5432
-       const MAX_CONNECTIONS = 10
-   }
+   // database/config.efen — модуль database::config
+   const HOST = "localhost"
+   const PORT = 5432
+   const MAX_CONNECTIONS = 10
    ```
 
 3. **Предпочитайте константы magic numbers**
