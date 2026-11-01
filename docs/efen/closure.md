@@ -346,7 +346,7 @@ with makeTaskGroup() {
     let user = spawn { loadUser(id) }
     let orders = spawn { loadOrders(id) }
     let avatar = spawn { loadAvatar(await(user)) }   // стартует, как только готов user;
-                                                     // user дождётся корутина avatar
+                                                     // user дождётся корутины avatar
     show(await(avatar), await(orders))
 }
 ```
