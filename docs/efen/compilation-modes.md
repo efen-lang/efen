@@ -76,7 +76,6 @@ meta fn generateStructs(config: compiler::File) -> [Declaration] {
 sandbox {
     injectBoundsChecks: true      // Проверка выхода за границы массива
     injectNullChecks: true         // Проверка на null
-    injectOverflowChecks: true     // Проверка переполнения
 }
 
 // Исходный код
@@ -89,14 +88,12 @@ fn process(arr: [Int], index: Int) -> Int {
     if index < 0 || index >= arr.count() {
         panic("Index out of bounds")
     }
-    let value = arr[index]
-    let result = value * 2
-    if result < value {  // Проверка переполнения
-        panic("Integer overflow")
-    }
-    return result
+    return arr[index] * 2
 }
 ```
+
+Переполнение целых песочница не вводит: оно проверяется всегда, в любом режиме сборки и вне песочницы
+([целые без проверок](types/constants.md#целые-без-проверок)).
 
 ## Режимы оптимизации
 
