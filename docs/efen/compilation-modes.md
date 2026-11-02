@@ -186,20 +186,28 @@ fn connectToDatabase {
 
 ## Режимы целевой платформы
 
-### Нативная компиляция
+### Процессор машины сборки
 
 ```bash
-efen build --target=native
+efen build --cpu native
 ```
 
-Компиляция для текущей платформы с оптимизациями под конкретный процессор.
+Компиляция для процессора машины, на которой запущен компилятор. Файл конфигурации так не пишет
+([процессор](build-config.md#процессор)).
 
 ### Кросс-компиляция
 
-```bash
-efen build --target=x86_64-linux-gnu
-efen build --target=aarch64-apple-darwin
-efen build --target=wasm32-unknown-unknown
+Система и архитектура задаются секцией `target` в конфигурации ([платформа](build-config.md#платформа)):
+
+```efen
+config server {
+    mode arm from release {
+        target {
+            os: "linux"
+            arch: "aarch64"
+        }
+    }
+}
 ```
 
 ### JIT компиляция
@@ -304,7 +312,7 @@ efen build --profile=coverage
 ```bash
 efenc \
     --mode=release \
-    --target=x86_64-linux-gnu \
+    --cpu native \
     --link=static \
     --lto=full \
     main.efen
@@ -322,7 +330,9 @@ config server {
     mode production from release {
         optimization: aggressive
 
-        target: "x86_64-linux-gnu"
+        target {
+            cpu: "x86-64-v3"
+        }
     }
 
     mode testing {

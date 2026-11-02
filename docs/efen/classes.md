@@ -276,7 +276,7 @@ class Rectangle {
 
     var perimeter: Float {
         get {
-            return 2 * (width + height)
+            return 2.0 * (width + height)
         }
     }
 }

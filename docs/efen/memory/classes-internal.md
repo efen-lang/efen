@@ -14,8 +14,8 @@
 
 ```efen
 class Point {
-    var x: Float = 0
-    var y: Float = 0
+    var x: Float = 0.0
+    var y: Float = 0.0
     
     @constructor
     fn init(x: Float, y: Float) -> Self {
