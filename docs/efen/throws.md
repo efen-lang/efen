@@ -1050,7 +1050,7 @@ contract UncaughtHandler {
 
 // server/project.efen
 config server {
-    effects {
+    provide {
         UncaughtHandler: CrashReporter
     }
 }
