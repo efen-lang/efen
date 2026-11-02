@@ -1922,7 +1922,6 @@ meta fn optimizedLoop(body: Statement) -> InlineClosure {
     if optLevel >= 2 {
         // Агрессивная оптимизация
         return inline {
-            @vectorize
             @unroll(4)
             ${body}
         }
