@@ -267,8 +267,6 @@ let query = sql"SELECT 1"
 
 Предложения, ещё не закреплённые за языком:
 
-- имена API: `compiler::Plugin`, `register`, `SealedBody`, `Diagnostics`, `compiler::target`,
-  `compiler::File`, `reason`; имена API плагинов компилятора — в [их списке](compiler-plugins.md#открыто);
 - типизированная цитата `Expression<T>` (в [метафункциях](metafunctions.md) `Expression` без типа);
 - резервирование тега диалекта в файле;
   форма регистрации имён;

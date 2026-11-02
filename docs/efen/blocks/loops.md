@@ -370,7 +370,7 @@ for x in values {
 |---|---|---|
 | `+` | `-0.0` | `0` |
 | `*` | `1.0` | `1` |
-| `min` | бесконечность типа (`Float.infinity`, `Float32.infinity`) | наибольшее значение типа |
+| `min` | бесконечность типа (`Float.INFINITY`, `Float32.INFINITY`) | наибольшее значение типа |
 | `max` | минус бесконечность типа | наименьшее значение типа |
 | `&` | — | все биты единицы (`~0`) |
 | `\|`, `^` | — | `0` |
@@ -443,7 +443,7 @@ for (x, y) in zip(a, b) {
 
 ```efen
 var sum: Float = 0.0
-var best = Float.infinity
+var best = Float.INFINITY
 var count = 0
 
 @accumulators(4)

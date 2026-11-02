@@ -118,7 +118,7 @@ notice: `ensures` of `span` is not proved [#Proof]
 диагностику (Edmond, 2026-10-29):
 
 ```bash
-efen build -Wwarn Proof     # заметки Proof становятся предупреждениями (флаг -Wwarn — агент)
+efen build -Wwarn Proof     # заметки Proof становятся предупреждениями
 efen build -Werror Proof    # и ошибками
 ```
 

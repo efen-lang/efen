@@ -199,6 +199,4 @@ Shai-Hulud. Компилятор проверяет потолок возмож�
 - поле `capabilities` в `project.efen` и слова `net`, `fs.read`, `fs.write`, `process`, `clock`, `random`,
   `env`, `foreign`;
 - в секции `trust`: `minAge`, правила по возможностям, `prebuilt`, слово области `package`;
-- команды `amber release`, `amber trust accept`, `amber key new`, `amber audit`;
-- файл подписи пакета `efen.sig`;
 - формат ключа в тексте (`"ed25519:…"`).

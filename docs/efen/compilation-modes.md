@@ -155,7 +155,7 @@ efen build --mode=release-debug
 mode testing {
     optimizationLevel: 1
     debugInfo: true
-    enableAssertions: true
+    assertions: true
     mockExternal: true
 
     // Замена модулей для тестирования
