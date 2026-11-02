@@ -221,7 +221,7 @@ layout запрещены при конфликтующих заимствова
 
 ## Синтаксис контрактов проверяемого диалекта
 
-> Принятая форма — [Условия функций и циклов](../conditions.md) (Edmond, 2026-10-29): из этого раздела в язык
+> Принятая форма — [Условия функций и циклов](../conditions.md): из этого раздела в язык
 > вошли `requires`, `ensures`, `invariant` и `decreases`; `old(x)` стал `previous(x)`, `ensures on throw { }` —
 > посылкой `ensures throws E ==> …`; `reads`, `modifies`, `creates`, `removes` и `opens` не вошли, их выводит
 > компилятор.

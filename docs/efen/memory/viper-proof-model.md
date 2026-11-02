@@ -706,7 +706,7 @@ allocation и bytes наблюдаемо не изменены; после succe
 получает fresh `AllocationId` и освобождает старый ровно один раз. Фраза
 «potentially throwing moves в prepare» без выбора одной из стратегий запрещена.
 
-### 4.8a. `D.extendArea` (рост на месте, Edmond 2026-10-22)
+### 4.8a. `D.extendArea` (рост на месте)
 
 ```text
 pre:
@@ -1830,7 +1830,7 @@ field permission проверяется postcondition leak-check; успешны
 - Viper sketch и Box slice теперь используют state predicate, provisional
   publication, owner bundle, field-resource consumption и resource-backed area
   guards. Эти схемы по-прежнему не названы запущенным proof.
-- После уточнения Edmond `read` у `var tail: read Items.Item?` относится к
+- `read` у `var tail: read Items.Item?` относится к
   сохранённому указателю, а не к изменяемости слота. Запись через его identity
   использует отдельный `WriteCell`, полученный из `LayoutWrite`; прежняя
   классификация такой записи как ошибки прав удалена.
