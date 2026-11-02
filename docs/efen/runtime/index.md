@@ -97,10 +97,9 @@ if unlikely(error) {
     // Редко выполняется
 }
 
-// SIMD операции
-let vec1 = SIMD4<Float>(1, 2, 3, 4)
-let vec2 = SIMD4<Float>(5, 6, 7, 8)
-let result = vec1 + vec2
+// Векторного типа в программе нет: обычные циклы векторизует компилятор,
+// порядок вещественной свёртки задаёт @accumulators(N) (../blocks/loops.md),
+// векторы — внутренний тип std (../types/simd.md)
 ```
 
 ### 5. Системные вызовы (`syscall`)

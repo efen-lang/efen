@@ -37,6 +37,7 @@
 | Константы времени компиляции | [constants](constants.md) |
 | Типы с параметрами-значениями | [value-parameterized types](value-parameterized-types.md) |
 | Встроенные контракты | [built-in contracts](built-in-contracts.md) |
+| Векторы std (только std и рантайм) | [simd](simd.md) |
 
 ## Состояние и ресурсы
 
