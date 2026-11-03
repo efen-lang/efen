@@ -168,7 +168,10 @@ apply(values, grow)          // ошибка: тип `f` не пишет сме�
 ```efen
 // Функция, возвращающая функцию
 fn makeMultiplier(factor: Int) -> (Int) -> Int {
-    return (n: Int) => n * factor
+    return (n: Int) -> Int {
+        capture factor = copy factor   // замыкание переживает параметр: копия пишется явно
+        return n * factor
+    }
 }
 
 let multiplyBy3 = makeMultiplier(3)

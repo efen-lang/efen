@@ -637,7 +637,10 @@ fn main {
     var bus = Bus<items>()
 
     let total = items.count
-    log.on(() -> Void { print(total) })               // можно: total скопирован
+    log.on(() -> Void {
+        capture total = copy total
+        print(total)
+    })                                                // можно: total скопирован явно
     log.on(() -> Void { print(items.count) })         // ошибка: Log не разрешает заимствовать items
     bus.on(() -> Void { items.append(Item(hp: 0)) })  // можно
     bus.on(() -> Void { orders.append(Order()) })     // ошибка: orders нет в Bus<items>

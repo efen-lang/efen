@@ -816,7 +816,10 @@ print(combine(10, 5, "*"))  // 50
 
 ```efen
 fn makeAdder(increment: Int) -> (Int) -> Int {
-    return (value: Int) => value + increment
+    return (value: Int) -> Int {
+        capture increment = copy increment
+        return value + increment
+    }
 }
 
 let addFive = makeAdder(increment: 5)
@@ -825,6 +828,12 @@ let addTen = makeAdder(increment: 10)
 print(addFive(3))   // 8
 print(addTen(3))    // 13
 ```
+
+Возвращённое замыкание переживает параметр `increment`, поэтому заимствовать его
+нельзя. Компилятор не подставляет копию сам: `(value: Int) => value + increment`
+здесь — ошибка `flow.escape` с подсказкой `capture increment = copy increment`.
+Замыкание, которое выглядит связанным с переменной, связано с ней; копия в
+окружении всегда видна в тексте.
 
 ## Trailing Closure Syntax
 
