@@ -198,7 +198,7 @@ Extension диалекты позволяют расширять существ�
 @extensionDialect("async-await")
 dialect AsyncExtension {
     // Добавляем новые ключевые слова
-    keywords: ["async", "await", "spawn"]
+    keywords: ["async", "await"]
 
     // Добавляем новый синтаксис для функций
     syntax function {
