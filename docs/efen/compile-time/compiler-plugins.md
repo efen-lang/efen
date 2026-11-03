@@ -100,13 +100,16 @@ fn load(file: own File, buffer: mut Bytes) {
 комментарии.
 
 ```efen
+public module
+
 use compiler
 
 /// Требует причину у каждого вызова функции C.
-struct Audit {
+public struct Audit {
     conforms compiler::Plugin
 
     fn register(entries: mut compiler::Entries) {
+        entries.attribute(name: "reason")
         entries.inspect(code: "audit.foreign-call", level: .deny, run: checkForeignCalls)
     }
 }
@@ -119,6 +122,10 @@ fn checkForeignCalls(body: compiler::SealedBody, report: mut compiler::Diagnosti
     }
 }
 ```
+
+Атрибут оператора, который читает плагин (`@reason("…")` выше), плагин объявляет при регистрации:
+`entries.attribute(name:)`. Атрибут, который не объявил ни один плагин и не обработал метакод, — ошибка
+([декораторы](../decorators.md#ограничения)). Значение типа плагина создаётся без аргументов.
 
 ## C. Анализ потока данных
 
@@ -149,7 +156,7 @@ struct TaintAnalysis {
     fn finish(facts: compiler::Facts<Taint>, report: mut compiler::Diagnostics) { … }
 }
 
-struct TaintPlugin {
+public struct TaintPlugin {
     conforms compiler::Plugin
 
     fn register(entries: mut compiler::Entries) {
