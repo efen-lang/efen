@@ -112,11 +112,11 @@ var d: generator -> (generator yield Int) yield Bool
 ```
 
 Генератор, созданный от аргумента `mut` или `read`, держит его, пока живёт. Тип пишет это, как тип функции
-([closure.md](closure.md)): `mut<items>` после ролей. После результата объявления такой суффикс принадлежит типу:
-у объявления своего нет:
+([closure.md](closure.md)): право и источник стоят перед типом, `mut<items> generator yield Int`. После типа права
+не пишутся:
 
 ```efen
-fn walker(items: mut [Int]) -> generator yield Int mut<items>
+fn walker(items: mut [Int]) -> mut<items> generator yield Int
 ```
 
 Три типа различаются намеренно: отданное значение и завершение с результатом различимы даже при совпадающих типах
