@@ -327,6 +327,30 @@ while let block = take pool.firstFreeBlock
 `{}` после типа данных — свойство самого типа, как и было: `type Nat: Int { value >= 0 }`, условие поля
 `var length: Size = 0 { value == Items.count }`, условия вида после `struct`.
 
+**Условие поля держит каждая запись.** Компилятор доказывает условие поля в каждой записи: в присваивании, в
+конструкторе, в значении по умолчанию. Поле можно отдать функции на чтение. Параметром `mut` его можно отдать только
+функции, которая обещает то же условие в `ensures`: тогда его доказывают её выходы. Пишущую ссылку `&mut` на такое
+поле взять нельзя: запись через неё никто не проверит. Остальное — ошибка:
+
+```efen
+struct Pool {
+    var blocks: Int = 0 { value >= 0 }
+}
+
+fn setTo(value: mut Int) { value = -5 }
+
+fn setWithin(value: mut Int)
+    ensures value >= 0
+{
+    value = 5
+}
+
+fn lend(pool: mut Pool) {
+    setTo(value: pool.blocks)      // ошибка: setTo не обещает value >= 0
+    setWithin(value: pool.blocks)  // можно
+}
+```
+
 **Состояние типа.** `requires x is State` по оси [typestate](types/typestate.md) — требование состояния, его
 проверяет typestate, и нарушение — всегда ошибка, не заметка:
 
