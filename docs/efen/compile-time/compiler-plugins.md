@@ -109,7 +109,6 @@ public struct Audit {
     conforms compiler::Plugin
 
     fn register(entries: mut compiler::Entries) {
-        entries.attribute(name: "reason")
         entries.inspect(code: "audit.foreign-call", level: .deny, run: checkForeignCalls)
     }
 }
@@ -122,10 +121,6 @@ fn checkForeignCalls(body: compiler::SealedBody, report: mut compiler::Diagnosti
     }
 }
 ```
-
-Атрибут оператора, который читает плагин (`@reason("…")` выше), плагин объявляет при регистрации:
-`entries.attribute(name:)`. Атрибут, который не объявил ни один плагин и не обработал метакод, — ошибка
-([декораторы](../decorators.md#ограничения)). Значение типа плагина создаётся без аргументов.
 
 ## C. Анализ потока данных
 
@@ -293,6 +288,9 @@ config server {
 
 Пока предложения:
 
+- как плагин, который читает атрибут оператора (`@reason("…")`), делает его обработанным: атрибут, который
+  не обработал никто, — ошибка ([декораторы](../decorators.md#ограничения));
+- как компилятор создаёт значение типа плагина (без аргументов или иначе);
 - форма объявления нового вида эффекта;
 - `plugins` внутри `mode`;
 - право вставки счётчика покрытия в функции, которые вызывают условия;
