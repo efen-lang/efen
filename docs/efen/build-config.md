@@ -418,8 +418,8 @@ config server {
 - Имена `cpu` и флагов берутся у LLVM, поэтому их список зависит от версии LLVM в компиляторе.
 - Уровень дистрибутива в глобальном файле для нескольких архитектур сразу.
 - Имена `os` и `arch`: в примерах `"linux"`, `"macos"`, `"windows"`, `"x86_64"`, `"aarch64"`, список не утверждён.
-- Поля `capabilities`, `diagnostics` и зависимость секцией (`version`, `source`, `key`, `submodules`, `lfs`) —
-  предложения amber dev/plans/S90.md §12, §14.
+- Поле `capabilities` и зависимость секцией (`version`, `source`, `key`, `submodules`, `lfs`) — предложения
+  amber dev/plans/S90.md §14.
 - Описание пакета для реестра: `description`, `authors`, `license` (были в прежнем примере `packages.md`).
 - Объявление `@compilationMode mode testing { }` из [режимов компиляции](compilation-modes.md): остаётся ли рядом
   с секцией `mode` конфигурации.
