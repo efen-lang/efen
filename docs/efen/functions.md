@@ -320,7 +320,7 @@ log 42
 debug true
 
 // Сложные выражения
-println "Result: " + result
+println "Result: ${result}"
 log x + y * 2
 show count > 0 && count < 100
 

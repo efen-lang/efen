@@ -298,7 +298,7 @@ const API_VERSION = "v1"
 const MAX_RETRIES = 3
 
 fn makeRequest {
-    let url = API_URL + "/" + API_VERSION
+    let url = "${API_URL}/${API_VERSION}"
     // Константы доступны
 }
 ```
@@ -359,8 +359,9 @@ materialized его в продукте. Если вычислить и заши
 ошибка компиляции; `const` не превращается молча в runtime `let`.
 
 ```efen
+const APP_NAME = "app"
 const SECONDS_PER_DAY = 60 * 60 * 24        // Вычислено в compile-time
-const CONFIG_PATH = "/etc/" + "app.conf"    // Вычислено в compile-time
+const CONFIG_PATH = "/etc/${APP_NAME}.conf"  // Вычислено в compile-time
 const IS_PRODUCTION = true && !false        // Вычислено в compile-time
 
 // Компилятор встроит готовые значения в бинарник
@@ -371,9 +372,11 @@ const IS_PRODUCTION = true && !false        // Вычислено в compile-tim
 В константах можно использовать compile-time выражения:
 
 ```efen
+const MAJOR = 1
+const MINOR = 0
 const BUFFER_SIZE = 1024 * 1024              // 1 МБ
 const MAX_USERS = BUFFER_SIZE / 16           // Вычислено из другой константы
-const VERSION_STRING = "v" + "1.0.0"         // Конкатенация строк
+const VERSION_STRING = "v${MAJOR}.${MINOR}"   // Интерполяция констант
 
 // Условные выражения
 const LOG_LEVEL = if DEBUG_MODE { "debug" } else { "info" }

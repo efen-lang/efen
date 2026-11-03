@@ -31,7 +31,7 @@
 macro LOG(msg) {
     // Генерирует сырой код, который напрямую вставляется
     let __temp = msg;
-    println("[LOG] " + __temp);
+    println("[LOG] ${__temp}");
 }
 
 // Проблемы:
@@ -538,8 +538,8 @@ meta fn generateGetters(fields: comptime [Identifier]) -> InlineClosure {
 
     for field in fields {
         let fieldName = field.toString()
-        let getterName = Identifier.create("get" + fieldName.capitalize())
-        let typeName = Identifier.create(fieldName + "Type")
+        let getterName = Identifier.create("get${fieldName.capitalize()}")
+        let typeName = Identifier.create("${fieldName}Type")
 
         let getter = efen::code {
             fn ${getterName} -> ${typeName} {
@@ -625,7 +625,7 @@ wrapWithCheck(user, efen::code {
 use efen::*
 
 meta fn createGetter(fieldName: Identifier) -> InlineClosure {
-    let getterName = Identifier.create("get" + fieldName.toString().capitalize())
+    let getterName = Identifier.create("get${fieldName.toString().capitalize()}")
 
     return inline {
         fn ${getterName} -> Auto {
@@ -1344,11 +1344,11 @@ meta fn log(level: comptime String, message: String) -> InlineClosure {
 }
 
 // Использование
-log("INFO", "User logged in: " + username)
+log("INFO", "User logged in: ${username}")
 
 // Компилируется в:
 // if Logger.isEnabled("INFO") {
-//     Logger.log("INFO", "main.efen", 42, "User logged in: " + username)
+//     Logger.log("INFO", "main.efen", 42, "User logged in: ${username}")
 // }
 ```
 
@@ -1604,8 +1604,8 @@ use efen::*
 
 meta fn generateAccessors(propertyName: comptime Identifier, type: Type) -> InlineClosure {
     let propStr = propertyName.toString()
-    let getterName = Identifier.create("get" + propStr.capitalize())
-    let setterName = Identifier.create("set" + propStr.capitalize())
+    let getterName = Identifier.create("get${propStr.capitalize()}")
+    let setterName = Identifier.create("set${propStr.capitalize()}")
 
     return inline {
         fn ${getterName} -> type {
@@ -1665,9 +1665,7 @@ meta fn check(condition: Expression, message: String) -> InlineClosure {
     return inline {
         if !${condition} {
             throw CheckError(
-                "${message}\n" +
-                "  at ${callSite}\n" +
-                "  in ${location.function ?? "global scope"}"
+                "${message}\n  at ${callSite}\n  in ${location.function ?? "global scope"}"
             )
         }
     }
@@ -2407,13 +2405,13 @@ logger("test")               // ✅ OK - вызываем функцию
 ///
 /// # Пример
 /// ```efen
-/// log("INFO", "User logged in: " + username)
+/// log("INFO", "User logged in: ${username}")
 /// ```
 ///
 /// # Компилируется в
 /// ```efen
 /// if Logger.isEnabled("INFO") {
-///     Logger.log("INFO", "main.efen", 42, "User logged in: " + username)
+///     Logger.log("INFO", "main.efen", 42, "User logged in: ${username}")
 /// }
 /// ```
 meta fn log(level: comptime String, message: String) -> InlineClosure {

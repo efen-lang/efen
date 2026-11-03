@@ -164,31 +164,27 @@ let path = r#"C:\Program Files\App"#
 // Альтернативный синтаксис с # для избежания конфликтов с "
 ```
 
-## Конкатенация строк
+## Склейка строк
 
-### Оператор +
+У строк нет оператора `+`: склейка всегда видна в коде. Новую строку из частей
+даёт интерполяция, а `append` дописывает в конец строки, которая уже есть:
 
 ```efen
 let first = "Hello"
 let second = "World"
-let result = first + " " + second  // "Hello World"
+let result = "${first} ${second}"     // "Hello World", новая строка
+
+var line = "Hello"
+line.append(" ")                      // дописывает на месте
+line.append(second)                   // "Hello World"
 ```
 
-### Метод concat
+`append` — `mut fn` строки: вызывается только на `var` и может выделить память,
+когда строке не хватает места. Список частей склеивает `String.concat`:
 
 ```efen
 let parts = ["Hello", "World", "!"]
 let result = String.concat(parts, " ")  // "Hello World !"
-```
-
-### StringBuilder для производительности
-
-```efen
-let builder = StringBuilder()
-builder.append("Hello")
-builder.append(" ")
-builder.append("World")
-let result = builder.toString()  // "Hello World"
 ```
 
 ## Строковые методы
@@ -480,9 +476,9 @@ text.encode("Windows-1251")              // Конвертация в Windows-12
 String.decode(bytes, "UTF-16")           // Декодирование из UTF-16
 ```
 
-## Неизменяемость строк
+## Новая строка или та же
 
-Строки в Efen неизменяемы (immutable):
+Методы строки, кроме `mut`, не меняют её, а возвращают новую:
 
 ```efen
 let text = "Hello"
@@ -495,32 +491,30 @@ println(text)                             // "Hello"
 println(upper)                            // "HELLO"
 ```
 
-Для изменяемых операций используйте StringBuilder:
+Менять строку на месте могут только `mut`-методы, и только у `var`:
 
 ```efen
-var builder = StringBuilder.from("Hello")
-builder.append(" World")
-builder.insert(5, ",")
-let result = builder.toString()           // "Hello, World"
+var text = "Hello"
+text.append(" World")                     // "Hello World"
+text.insert(5, ",")                       // "Hello, World"
 ```
 
 ## Производительность
 
-### Избегайте конкатенации в циклах
+### Дописывайте в цикле, а не пересоздавайте
 
 ```efen
-// Плохо - создаёт много промежуточных строк
+// Плохо - каждый шаг создаёт новую строку
 var result = ""
 for i in 1..1000 {
-    result = result + i.toString()
+    result = "${result}${i}"
 }
 
-// Хорошо - использует StringBuilder
-let builder = StringBuilder()
+// Хорошо - дописывает в ту же строку
+var result = ""
 for i in 1..1000 {
-    builder.append(i.toString())
+    result.append(i.toString())
 }
-let result = builder.toString()
 ```
 
 ### Используйте срезы вместо substring
@@ -535,13 +529,9 @@ let sub = text.substring(0, 5)
 
 ## Лучшие практики
 
-1. **Используйте интерполяцию вместо конкатенации**
+1. **Собирайте строку интерполяцией**
    ```efen
-   // Хорошо
    let msg = "Hello, ${name}!"
-
-   // Хуже
-   let msg = "Hello, " + name + "!"
    ```
 
 2. **Используйте raw-строки для путей и regex**
@@ -568,18 +558,18 @@ let sub = text.substring(0, 5)
        """
    ```
 
-5. **StringBuilder для множественных операций**
+5. **Дописывайте в одну строку через `append`**
    ```efen
-   let builder = StringBuilder()
-   builder.append("Line 1\n")
-   builder.append("Line 2\n")
-   builder.append("Line 3\n")
+   var text = ""
+   text.append("Line 1\n")
+   text.append("Line 2\n")
+   text.append("Line 3\n")
    ```
 
 ## Особенности
 
 1. Строки в Efen используют UTF-8 по умолчанию
-2. Строки неизменяемы (immutable)
+2. Строку меняют только `mut`-методы и только у `var`; оператора `+` у строк нет
 3. Интерполяция вычисляется во время выполнения
 4. Срезы строк не копируют данные
 5. Поддержка полного набора Unicode, включая emoji и сложные графемы

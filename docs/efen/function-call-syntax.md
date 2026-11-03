@@ -61,7 +61,7 @@ echo(x)
 
 ```efen
 echo x + 1                    // echo(x + 1)
-log "Result: " + result      // log("Result: " + result)
+log "Result: ${result}"      // log("Result: ${result}")
 show count > 0                // show(count > 0)
 echo user.name ?? "unknown"  // echo(user.name ?? "unknown")
 ```
