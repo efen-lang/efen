@@ -561,6 +561,9 @@ fn other(list: edit Vector<Shape>, spare: Shape) -> edit<list> Shape {
     return &spare
 }
 // ошибка: возвращено место вне источника list
+
+fn steal(list: mut Vector<Shape>) -> own<list> Shape
+// ошибка: владение местом не передаётся; отдать элемент — `-> own Shape` через `take`
 ```
 
 ### Не решено
@@ -572,7 +575,6 @@ fn other(list: edit Vector<Shape>, spare: Shape) -> edit<list> Shape {
 - Как `for` и контракты `Iterator`, `Iterable` переходят на курсор с номером
   ([курсор и место элемента](access-regions.md#курсор-и-место-элемента)).
 - Как `var` переставляется на место из вызова.
-- `-> own<x> T` — ошибка: владение не передаётся местом.
 
 ## Права как часть типа
 
