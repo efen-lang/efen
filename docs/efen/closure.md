@@ -621,7 +621,7 @@ error[reference.of-reference]: `&cur` takes a reference to a reference
 ```efen
 fn send(connection: own Connection)
 
-fn makeTask -> () -> Void {
+fn makeTask -> () own -> Void {
     let connection: Connection = connect()
 
     return () -> Void {
