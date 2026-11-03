@@ -109,7 +109,7 @@ public struct Audit {
     conforms compiler::Plugin
 
     fn register(entries: mut compiler::Entries) {
-        entries.inspectFunctions(code: "audit.foreign-call", level: .deny, run: checkForeignCalls)
+        entries.inspectFunctions(code: "audit.foreign-call", level: .deny, run: checkForeignCalls(..?))
     }
 
     fn checkForeignCalls(body: compiler::SealedBody, report: mut compiler::Diagnostics) {
@@ -143,7 +143,8 @@ public class reason {
 значение пакета) проходит по своим пакетам заново. Сбой плагина выбрасывает его экземпляр: в этой сборке плагин
 больше не вызывается, и его находки не сохраняются.
 
-Обработчик — метод плагина: `register` передаёт его по имени, и компилятор вызывает его на том же экземпляре,
+Обработчик — метод плагина: `register` передаёт его записью `checkForeignCalls(..?)`, без вызова, и компилятор
+вызывает его на том же экземпляре,
 поэтому метод видит поля плагина, а `mut fn` может их менять. Плагин подписывается в `register` на виды осмотра:
 каждая функция с телом, каждое объявление типа. Ещё три
 обработчика вызываются, когда осмотр закончен: у модуля, у пакета и у всей программы; последний есть только у
