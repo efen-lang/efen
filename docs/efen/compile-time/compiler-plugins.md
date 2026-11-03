@@ -105,7 +105,7 @@ public module
 use compiler
 
 /// Требует причину у каждого вызова функции C.
-public struct Audit {
+public class Audit {
     conforms compiler::Plugin
 
     fn register(entries: mut compiler::Entries) {
@@ -173,7 +173,7 @@ struct TaintSummary {
     var taintedArguments: Set<Int>
 }
 
-struct TaintAnalysis {
+class TaintAnalysis {
     conforms compiler::Analysis<Taint, TaintSummary>
 
     let bound = 64
@@ -185,7 +185,7 @@ struct TaintAnalysis {
     fn finish(facts: compiler::Facts<Taint>, report: mut compiler::Diagnostics) { … }
 }
 
-public struct TaintPlugin {
+public class TaintPlugin {
     conforms compiler::Plugin
 
     fn register(entries: mut compiler::Entries) {

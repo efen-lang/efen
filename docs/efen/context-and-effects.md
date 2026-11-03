@@ -817,7 +817,7 @@ public contract Logger {
 use log
 
 @default
-public struct ConsoleLogger {
+public class ConsoleLogger {
     conforms log::Logger
     static fn note(code: Int) { … }
 }
@@ -825,7 +825,7 @@ public struct ConsoleLogger {
 // log_file/lib.efen
 use log
 
-public struct FileLogger {
+public class FileLogger {
     conforms log::Logger
     static fn note(code: Int) { … }
 }
