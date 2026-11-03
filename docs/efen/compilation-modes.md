@@ -143,21 +143,14 @@ efen build --mode=release-debug
 
 ## Режимы определённые программистом
 
-Программисты могут определять собственные режимы компиляции. Основная форма — секция `mode` конфигурации сборки
-([конфигурация сборки](build-config.md)); как с ней соотносится объявление `@compilationMode` ниже, пока открыто.
+Программисты могут определять собственные режимы компиляции в секции `mode` конфигурации сборки
+([конфигурация сборки](build-config.md)):
 
 ```efen
-// Определение пользовательского режима
-@compilationMode("testing")
-mode testing {
-    optimizationLevel: 1
-    debugInfo: true
-    assertions: true
-    mockExternal: true
-
-    // Замена модулей для тестирования
-    replace std::net => mock::net
-    replace std::fs => mock::fs
+config server {
+    mode testing from debug {
+        assertions: true
+    }
 }
 ```
 

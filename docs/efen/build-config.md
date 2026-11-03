@@ -421,5 +421,3 @@ config server {
 - Поле `capabilities` и зависимость секцией (`version`, `source`, `key`, `submodules`, `lfs`) — предложения
   amber dev/plans/S90.md §14.
 - Описание пакета для реестра: `description`, `authors`, `license` (были в прежнем примере `packages.md`).
-- Объявление `@compilationMode mode testing { }` из [режимов компиляции](compilation-modes.md): остаётся ли рядом
-  с секцией `mode` конфигурации.
