@@ -109,14 +109,14 @@ public struct Audit {
     conforms compiler::Plugin
 
     fn register(entries: mut compiler::Entries) {
-        entries.inspect(code: "audit.foreign-call", level: .deny, run: checkForeignCalls)
+        entries.inspectFunctions(code: "audit.foreign-call", level: .deny, run: checkForeignCalls)
     }
-}
 
-fn checkForeignCalls(body: compiler::SealedBody, report: mut compiler::Diagnostics) {
-    for call in body.calls where call.target.isForeign {
-        if !call.attributes.has<reason>() {
-            report.add(at: call.span, "вызову функции C нужна причина: @reason(\"…\")")
+    fn checkForeignCalls(body: compiler::SealedBody, report: mut compiler::Diagnostics) {
+        for call in body.calls where call.target.isForeign {
+            if !call.attributes.has<reason>() {
+                report.add(at: call.span, message: "вызову функции C нужна причина: @reason(\"…\")")
+            }
         }
     }
 }
@@ -141,7 +141,9 @@ public class reason {
 текста. Метаданные живут вместе с владельцем, поэтому после правки плагин без изменяемых полей осматривает
 только изменённое; плагин с изменяемыми полями проходит по своим пакетам заново.
 
-Плагин подписывается в `register` на виды осмотра: каждая функция с телом, каждое объявление типа. Ещё три
+Обработчик — метод плагина: `register` передаёт его по имени, и компилятор вызывает его на том же экземпляре,
+поэтому метод видит поля плагина, а `mut fn` может их менять. Плагин подписывается в `register` на виды осмотра:
+каждая функция с телом, каждое объявление типа. Ещё три
 обработчика вызываются, когда осмотр закончен: у модуля, у пакета и у всей программы; последний есть только у
 пакета-программы. В них плагин сообщает о том, что собрал по пути, например о публичной функции, которую в
 пакете никто не вызвал.
