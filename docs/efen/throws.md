@@ -865,7 +865,7 @@ fn wrongForStoredCallback(register: (own () -> Void) -> Void) {
     }
 }
 
-fn correctForStoredCallback(register: (() -> Void) -> Void) {
+fn correctForStoredCallback(register: (own () -> Void) -> Void) {
     register => {
         try {
             critical()
