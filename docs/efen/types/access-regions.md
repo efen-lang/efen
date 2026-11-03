@@ -155,13 +155,13 @@ extend(v, v)          // ошибка: dst и src — одна память, а 
 сигнатуре (слова `not` и `maybe` условные):
 
 ```efen
-fn insertAfter(list: mut List<Item>, node: Item read<list>)        // node внутри list
+fn insertAfter(list: mut List<Item>, node: read<list> Item)        // node внутри list
 fn extend(dst: mut Vector<Int>, src: Vector<Int> not<dst>)         // src точно не часть dst
 fn copyWithin(dst: edit Array<Int>, src: Array<Int> maybe<dst>)    // src может быть частью dst
 ```
 
-С 2026-10-26 «точно не часть» — умолчание, и `not<dst>` можно не писать. Запись `node: Item read<list>`
-вместо прежней `node: &read<list> Item`: ссылочного типа у параметра больше нет.
+С 2026-10-26 «точно не часть» — умолчание, и `not<dst>` можно не писать. Право и источник у параметра
+стоят перед типом, как везде: `node: read<list> Item`.
 
 - **Внутри.** Origin у параметра называет другой параметр. Внутри функции
   компилятор знает звено «`node` указывает в `list.Items`» и проверяет операции над `list` по линии
