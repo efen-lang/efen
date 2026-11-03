@@ -115,12 +115,25 @@ public struct Audit {
 
 fn checkForeignCalls(body: compiler::SealedBody, report: mut compiler::Diagnostics) {
     for call in body.calls where call.target.isForeign {
-        if !call.attributes.has("reason") {
+        if !call.attributes.has<reason>() {
             report.add(at: call.span, "вызову функции C нужна причина: @reason(\"…\")")
         }
     }
 }
 ```
+
+Атрибут, который читает плагин, — класс пакета плагина с `conforms Attribute`; `@reason("…")` создаёт его
+экземпляр, как вызов конструктора, и имя атрибута разрешается так же, как имя функции:
+
+```efen
+/// Почему вызов функции C безопасен.
+public class reason {
+    conforms Attribute
+    let text: String
+}
+```
+
+Значение типа плагина компилятор создаёт без аргументов.
 
 ## C. Анализ потока данных
 
@@ -288,9 +301,6 @@ config server {
 
 Пока предложения:
 
-- как плагин, который читает атрибут оператора (`@reason("…")`), делает его обработанным: атрибут, который
-  не обработал никто, — ошибка ([декораторы](../decorators.md#ограничения));
-- как компилятор создаёт значение типа плагина (без аргументов или иначе);
 - форма объявления нового вида эффекта;
 - `plugins` внутри `mode`;
 - право вставки счётчика покрытия в функции, которые вызывают условия;
