@@ -28,10 +28,14 @@
 типа `Type`:
 
 ```efen
-fn identity<T>(value: T) -> T {
+fn identity<T>(value: own T) -> T {
     return value
 }
 ```
+
+Тело проверяется один раз, и `T` в нём — самый строгий тип: у него есть только то, что дают его ограничения. Поэтому
+`identity` берёт `value` во владение: вернуть читающий параметр без ограничения нельзя, это вернуло бы чужое значение.
+`T: ImplicitlyCopyable` тоже разрешил бы `return value`, но закрыл бы `identity` для `String`.
 
 Объявления `generic` предшествуют параметрам вызова, а объявления `param` идут
 после них подряд до остальных инструкций. Список в угловых скобках остаётся
@@ -49,7 +53,7 @@ fn identity<T>(value: T) -> T {
 ### Базовый синтаксис
 
 ```efen
-fn identity<T>(value: T) -> T {
+fn identity<T>(value: own T) -> T {
     return value
 }
 
