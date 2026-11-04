@@ -24,7 +24,7 @@
 ```efen
 aspect RefCountClassCompiler {
     conforms ClassDefinition
-    conforms RefCounted
+    conforms RefCount
 
     struct Header {
         var refCount: UInt

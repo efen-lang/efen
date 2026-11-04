@@ -584,14 +584,14 @@ provide {
 (как в [аспектах компиляции](aspects/compile-time/index.md#управление-памятью)):
 
 ```efen
-contract RefCounted {
+contract RefCount {
     mut fn retain
     mut fn release
 }
 
 aspect RefCountClassCompiler {
     conforms ClassDefinition
-    conforms RefCounted
+    conforms RefCount
 
     struct Header {
         var refCount: UInt

@@ -91,15 +91,19 @@ fn release(pool: mut Pool, connection: own Connection)
 
 ```efen
 class Config {
+    conforms RefCount
     var timeout: Int
 }
 
 shared struct Registry {
-    var current: Config                   // ошибка: Config — класс под ARC, не shared
+    var current: Config                   // ошибка: Config — класс со счётчиком, не shared
 }
 ```
 
-`shared class` под ARC ждёт решения о счётчике ссылок: копия ссылки в другом
+Класс без счётчика (класс по умолчанию, [классы](classes.md#управление-памятью)) переносим, как любое значение
+с одним владельцем, и подчиняется правилу `Movable` выше.
+
+`shared class` со счётчиком (`conforms RefCount`) ждёт решения о счётчике ссылок: копия ссылки в другом
 потоке требует атомарного счётчика. До тех пор многопоточная корутина его не берёт
 (см. [Области доступа](types/access-regions.md#корутины-spawn)).
 
