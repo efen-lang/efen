@@ -128,6 +128,9 @@ warning[W.access.edit-suffices]: `list` keeps its existing slots; mark it `edit`
 notice: `ensures` of `span` is not proved [#Proof]
 ```
 
+В группе и заметка `efen.unchecked`: строка `requires` или `ensures`, которую программа не может проверить при
+выполнении, с причиной ([условия функций](conditions.md#обычная-сборка-и-диагностики)).
+
 Заметку поднимают до предупреждения или ошибки флагом группы, как и любую
 диагностику:
 
