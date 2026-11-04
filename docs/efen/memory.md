@@ -79,8 +79,15 @@ contract MemoryStrategy {
 Например:
 
 ```efen
-let box1 = Box(value: 10) // Запрос владения
-let box2 = box1           // Запрос владения/retain
+class Counter {
+    conforms RefCount
+    var value: Int
+}
+
+let box1 = Box(value: 10)         // Запрос владения
+let box2 = box1                   // второе имя того же объекта, владелец один
+let counter1 = Counter(value: 10) // Запрос владения
+let counter2 = counter1           // retain: второй владелец
 ```
 
 Для объектов с подсчётом ссылок это увеличивает счётчик ссылок на 1.
@@ -103,7 +110,7 @@ useBox(box1)              // Заимствование для чтения
 Если функция собирается изменить объект, тогда возникает заимствование для записи:
 
 ```efen
-fn modifyBox(box: Box) {
+fn modifyBox(box: mut Box) {
     box.value += 1
 }
 let box1 = Box(value: 10) // Запрос владения
@@ -114,8 +121,9 @@ modifyBox(box1)           // Заимствование для записи
 
 Возникает, когда программист явно пишет `clone` у типа со счётчиком ссылок.
 ```efen
-let box1 = Box(value: 10) // Запрос владения
-let box2 = clone box1      // Клонирование: счётчик + 1
+let counter1 = Counter(value: 10) // Запрос владения
+let counter2 = clone counter1     // Клонирование: счётчик + 1
+let box2 = clone box1             // ошибка: у Box нет счётчика
 ```
 
 ### Освобождение (release)
@@ -141,7 +149,7 @@ let box2 = clone box1      // Клонирование: счётчик + 1
 Операция перемещения возникает, когда программист явным образом перемещает объект.
 ```efen
 let box1 = Box(value: 10)   // Запрос владения
-let box2 = box1.move()      // Перемещение
+let box2 = take box1        // Перемещение
 ```
 
 Перемещение передаёт владение от одного идентификатора другому, 
@@ -213,28 +221,20 @@ fn example {
 ## Подсчет ссылок
 
 > Черновик. Классы со счётчиком — пакет std ([роли lang, рантайма и std](runtime/lang-roles.md));
-> раздел перепишется, когда пакет будет написан. Форма `for compiler { … }` в контракте
-> пока не входит в язык.
+> раздел перепишется, когда пакет будет написан.
 
 `Efen` поддерживает подсчёт ссылок (reference counting) для управления временем жизни объектов.
 Название принято по традиции: считаются владельцы объекта; ссылка в Efen бывает только внутри функции
 ([владение](types/ownership.md#ссылки-только-внутри-функции)).
 Однако сам способ подсчёта ссылок может быть определён программистом.
 
-Класс со счётчиком пишет `conforms RefCount`; без этой строки счётчика у класса нет. Счётчик автоматический
-(ARC, Automatic Reference Counting): вызовы `retain` и `release` расставляет компилятор, их реализацию даёт аспект
-пакета std:
+Класс со счётчиком пишет `conforms RefCount`; без этой строки счётчика у класса нет. `RefCount` — пустой контракт:
+строка выбирает определение класса, аспект `RefCountClassCompiler` пакета std
+([контракты](contracts.md#поля-которые-требует-контракт)). Счётчик автоматический (ARC, Automatic Reference
+Counting): аспект реализует контракт `RefCountOperations` с методами `retain` и `release`, а их вызовы расставляет
+компилятор. Соответствие `Cloneable` классу тоже даёт аспект, поэтому `clone` у такого класса увеличивает счётчик:
 
 ```efen
-
-// Контракт подсчёта ссылок, описывает методы, которые должен реализовать аспект
-contract RefCount {
-    // Методы доступны только компилятору
-    for compiler {
-        mut fn retain
-        mut fn release
-    }
-}
 
 // Интерфейс - бинарная структура данных, 
 // которая гарантирует на низком уровне наличие поля refCount
@@ -247,14 +247,14 @@ interface RefCountInterface {
 aspect RefCountClassCompiler {
     implements RefCountInterface
 
-    // Соответствие контракту
-    conforms RefCount
+    // Методы, вызовы которых расставляет компилятор
+    conforms RefCountOperations
 
-    fn retain {
+    mut fn retain {
         self.refCount.fetchAdd(1)
     }
 
-    fn release {
+    mut fn release {
         let before = self.refCount.fetchSub(1)
 
         if unlikely(before == 0) {

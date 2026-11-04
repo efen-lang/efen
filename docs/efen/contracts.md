@@ -225,7 +225,9 @@ let wrong = clone tree     // ошибка: у `tree` нет счётчика с
 ```
 
 Тип разрешает `clone` контрактом `lang::Cloneable` с функцией `fn clone -> Self`, как `copy` разрешает
-`lang::Copyable`. Его реализуют классы со счётчиком ссылок из std и типы, чей layout доказывает общее владение;
+`lang::Copyable`. Класс со строкой `conforms RefCount` получает его от аспекта подсчёта ссылок
+([поля, которые требует контракт](#поля-которые-требует-контракт)); тип, чей layout доказывает общее владение,
+реализует его сам;
 generic-код пишет `T: Cloneable`. Прямой вызов `x.clone()` получает ту же диагностику, что `x.copy()`: пишется
 `clone x`.
 
@@ -602,25 +604,34 @@ provide {
 Контракт описывает функции, полей storage он не объявляет (поля `layout` контракта —
 [ниже](#layout-и-модель-в-контракте): в байтах их нет). Поле, которое нужно его
 функциям, в тип добавляет аспект: интерфейс storage не владеет
-([интерфейсы](interfaces.md)). Например, объект со счётчиком ссылок получает
-устройство с полем `refCount` от аспекта, а контракт перечисляет функции над ним
+([интерфейсы](interfaces.md)). Например, класс со счётчиком пишет пустой контракт `RefCount`, а устройство с полем
+`refCount` и функции над ним даёт аспект определения класса из std
 (как в [аспектах компиляции](aspects/compile-time/index.md#управление-памятью)):
 
 ```efen
-contract RefCount {
+contract RefCount {                  // пишет класс: conforms RefCount
+}
+
+contract RefCountOperations {        // реализует аспект; вызовы расставляет компилятор
     mut fn retain
     mut fn release
 }
 
 aspect RefCountClassCompiler {
     conforms ClassDefinition
-    conforms RefCount
+    conforms RefCountOperations
 
     struct Header {
         var refCount: UInt
     }
 }
 ```
+
+`conforms RefCount` у класса выбирает его определение — аспект `RefCountClassCompiler`
+([выбор определения класса](aspects/compile-time/class.md#выбор-определения-класса)). Требований у `RefCount` нет,
+поэтому класс ему соответствует без своих методов. `retain` и `release` (контракт `RefCountOperations`) даёт
+аспект, а вызовы расставляет компилятор; программа их не пишет и не вызывает. Соответствие `Cloneable` классу тоже
+даёт аспект: `clone x` увеличивает счётчик ([подсчёт ссылок](memory.md#подсчет-ссылок)).
 
 Ранняя форма шаблона структуры внутри контракта (`requires struct: struct<T>`,
 `@base struct <T> { … }`) в язык не входит: поля даёт аспект.
