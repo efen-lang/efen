@@ -259,8 +259,12 @@ evaluate(expression) // indirect variant: передаётся по ссылке
 ## Доступ метода к self
 
 Метод контракта пишет, меняет ли он `self`, тем же правом, что и параметр.
-`mut fn` может менять `self` целиком, включая структуру: добавить элемент,
-убрать его, записать `self` заново. `edit fn` меняет только значения внутри
+`own fn` забирает `self`: владение переходит к методу, как аргумент параметра
+`own`, и после вызова переменной-получателя больше нет. Получателя отдают явно,
+формой `(take x).m()`, как у замыкания `(take task)()`; `take x.m()` забирает
+результат вызова, а не `x`. `mut fn` может менять
+`self` целиком, включая структуру: добавить элемент, убрать его, записать `self`
+заново. `edit fn` меняет только значения внутри
 `self`, структура остаётся прежней. `read fn` только читает `self`. Метод без
 пометки тоже только читает: пометка `read` записывает умолчание явно, как у
 параметров.
@@ -270,7 +274,11 @@ contract Stack<T> {
     mut fn push(item: T)
     mut fn pop -> T?
     fn peek -> T?          // то же, что read fn peek -> T?
+    own fn drain -> [T]    // забирает стек, после вызова его нет
 }
+
+let items = (take stack).drain()   // забор пишут явно
+let items = stack.drain()          // ошибка: own fn требует take у получателя
 
 contract Cursors<T> {
     edit fn next(cursor: mut Cursor) -> edit T?
@@ -308,7 +316,10 @@ fn pair(items: edit Cursors<Item>, a: mut Cursor, b: mut Cursor) {
 не у вызывающего; так же ошибка — тело `edit fn`, которое меняет структуру
 `self`. Реализация может быть уже пометки, но не шире: метод `mut fn`
 реализуют `mut fn`, `edit fn` или `read fn`, метод `edit fn` — `edit fn` или
-`read fn`.
+`read fn`. Метод `own fn` реализует только `own fn`: вызывающий уже отдал
+объект, и реализация обязана его уничтожить или передать дальше. Пометка бывает
+параметром типа `Access`, и тогда одно объявление покрывает несколько прав
+([право доступа как параметр](generics.md#право-доступа-как-параметр)).
 
 Контракт остаётся такой границей и при сборке всей программы: его реализуют
 типы, которые автор контракта не видит. Методы классов при сборке всей
@@ -320,8 +331,8 @@ fn pair(items: edit Cursors<Item>, a: mut Cursor, b: mut Cursor) {
 значением типа записывается как `generic Name: Type`:
 
 ```efen
-contract Iterator<Item> {
-    fn next -> Item?
+contract ValueIterator<Item> {
+    mut fn next -> Item?
 }
 ```
 
@@ -330,24 +341,27 @@ contract Iterator<Item> {
 
 ```efen
 class StringIterator {
-    conforms Iterator<String>
+    conforms ValueIterator<String>
 }
 
 class AnotherStringIterator {
-    conforms Iterator<Item: String>
+    conforms ValueIterator<Item: String>
 }
 ```
+
+Параметр принимает тип вместе с правом, если объявление пишет шаблон `Access T`
+([право доступа как параметр](generics.md#право-доступа-как-параметр)).
 
 Параметр может требовать, чтобы переданный тип соответствовал другому
 контракту:
 
 ```efen
-contract Iterable<Item, Cursor: Iterator<Item>> {
+contract Producer<Item, Cursor: ValueIterator<Item>> {   // пример, не контракт lang
     fn iterator -> Cursor
 }
 ```
 
-`Cursor` здесь является конкретным типом результата. `Iterator<Item>` остаётся
+`Cursor` здесь является конкретным типом результата. `ValueIterator<Item>` остаётся
 compile-time ограничением и не используется как тип значения. Параметр может
 иметь значение по умолчанию: `generic Name: Type = DefaultType`. Кроме типов,
 `generic` принимает любое compile-time значение с указанным типом, включая
@@ -368,7 +382,7 @@ class IntList {
 
 Здесь сопоставление с `fn iterator -> Cursor` выводит
 `Cursor = IntListIterator`. Компилятор затем проверяет
-`IntListIterator conforms Iterator<Item: Int>`. Неоднозначный вывод является
+`IntListIterator conforms ValueIterator<Item: Int>`. Неоднозначный вывод является
 ошибкой и требует явного именованного аргумента.
 
 Generic-тип может объявить соответствие условно внутри `#if`. Ложное условие

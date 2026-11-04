@@ -92,12 +92,12 @@ Opaque-тип может быть generic. Его внутренний тип м
 Функция может скрыть конкретный тип результата без объявления общего имени:
 
 ```efen
-fn tokens(text: String) -> opaque Iterator<Item: Token> {
+fn tokens(text: String) -> opaque ValueIterator<Item: Token> {
     return TokenScanner(text: text)
 }
 ```
 
-Вызывающий код видит только соответствие `Iterator<Item: Token>`, а компилятор
+Вызывающий код видит только соответствие `ValueIterator<Item: Token>`, а компилятор
 сохраняет скрытый конкретный тип и может использовать статическую
 диспетчеризацию.
 
@@ -105,7 +105,7 @@ fn tokens(text: String) -> opaque Iterator<Item: Token> {
 них удовлетворяет опубликованным контрактам:
 
 ```efen
-fn tokens(fast: Bool) -> opaque Iterator<Item: Token> {
+fn tokens(fast: Bool) -> opaque ValueIterator<Item: Token> {
     if fast {
         return FastScanner()
     }
@@ -127,7 +127,7 @@ structural union `FastScanner | CompactScanner`. Это законно, толь
 
 ```efen
 opaque type TokenStream:
-    Iterator<Item: Token>
+    ValueIterator<Item: Token>
 = TokenScanner
 
 fn tokens(text: String) -> TokenStream

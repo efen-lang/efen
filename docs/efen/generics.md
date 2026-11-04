@@ -18,6 +18,7 @@
 - [Полиморфные функциональные типы](#полиморфные-функциональные-типы)
 - [Variadic generic-параметры](#variadic-generic-параметры)
 - [Pack значений](#pack-значений)
+- [Право доступа как параметр](#право-доступа-как-параметр)
 - [Сопоставление с типами](#сопоставление-с-типами)
 
 ## Дженерик-функции
@@ -298,6 +299,7 @@ generic Annotation: Attribute
 generic Policy: Strategy
 generic Source: Origin
 generic Size: Int
+generic Access: Access
 ```
 
 Один символ interface может участвовать в двух разных ролях. При
@@ -474,6 +476,144 @@ Array< Int >             // S: угловые скобки не прижаты
 Array<Array<Int> >       // S: угловые скобки не прижаты
 Box <Int>(42)            // сравнение Box < Int > (42): ошибка, цепочка сравнений
 ```
+
+## Право доступа как параметр
+
+Параметр типа `Access` принимает право доступа: `read`, `edit`, `mut` или
+`own`. Он объявляется как остальные compile-time параметры и записывается там,
+где обычно стоит слово права:
+
+```efen
+generic Access: Access
+generic Access: Access = read     // умолчание
+```
+
+`Access` объявлен в `lang::` как обычный enum, но это особый встроенный вид,
+как `Type` и `Origin`: компилятор знает его и читает значение как дескриптор
+доступа.
+
+```efen
+enum Access { read, edit, mut, own }
+```
+
+Сравнение (`#if Access == own`), `match` и проверка полноты ветвей работают по
+правилам для compile-time значений enum. `&` значением `Access` не бывает:
+пишут слово `mut`.
+
+Параметр обычно называют так же, как тип: `Access: Access`. Внутри объявления
+имя `Access` означает параметр, а тип доступен как `lang::Access`.
+
+Право из параметра пишется в поле, в типе и в результате. Все записи ниже
+читаются одинаково: имя параметра стоит вместо `read` или `edit`. Структура
+держит только данные, а `next` даёт стратегия ([структуры](structs.md)):
+
+```efen
+struct ArrayIterator<Item: Access T, Access: Access = read, Src: Origin>
+where Access == read || Access == edit {
+    let items: Access<Src> Array<T>     // поле: ссылка с правом Access на Src
+    var index: Size = 0
+}
+
+strategy ArrayStep<Item: Access T, Access: Access, Src: Origin>
+for ArrayIterator<Item, Src: Src>
+where Access == read || Access == edit {
+    conforms Iterator<Item, Src: Src>
+
+    mut fn next -> Access<Src> T? {     // ссылка на слот массива Src
+        if index == items.count { return null }
+        index += 1
+        return items[index - 1]
+    }
+}
+```
+
+Результат `next` записан с правом и источником явно: `Access<Src> T` — ссылка на
+слот массива `Src`. Без угловых скобок источником результата метода был бы `self`,
+то есть сам итератор ([место в результате функции](types/ownership.md#место-в-результате-функции)),
+а запись `-> Item?` без слова права дала бы копию. Поэтому следующий вызов `next`,
+хотя это `mut fn`, прошлый элемент не убивает: оба живут, пока не меняется
+структура `Src`.
+
+Шаблон `Item: Access T` раскладывает переданный аргумент на две части: `T` —
+тип без права, `Access` — право. Пишут при этом только `Item`, а `Access`
+выводится:
+
+```efen
+ArrayIterator<Item: edit Int, Src: numbers>    // T = Int, Access = edit
+ArrayIterator<Item: Int, Src: numbers>         // T = Int, Access = read: умолчание
+```
+
+Роль записи решает её позиция. В списке параметров сразу после имени объявления
+(`struct`, `contract`, `strategy`, `fn`) `Item: Access T` вводит новые имена `T`
+и `Access`. В любом другом месте — в `conforms`, в типе поля или результата —
+та же запись берёт уже объявленные имена. Новое имя, совпадающее с внешним
+generic-параметром, — ошибка.
+
+Аргумент без права берёт умолчание параметра `Access`, если `Access` не передан
+явно рядом: в `Iterable<Item: T, Access: mut>` право — `mut`. Параметр без
+умолчания требует права явно. Шаблон в списке параметров и параметр `Access` в
+том же списке — одно имя: шаблон вводит его, запись `Access: Access` задаёт его
+вид и умолчание. Право ссылки (`&`) в обычный `generic T: Type` не
+попадает; право указателя layout (`read Items.Item`) остаётся
+частью типа.
+
+Пометка метода тоже бывает параметром. Одно объявление покрывает все права,
+которые допускает его параметр:
+
+```efen
+Access fn iterator -> ArrayIterator<Item: Access T, Src: self>
+```
+
+Такая пометка даёт семейство методов, по одному на каждое допустимое право:
+`read fn iterator`, `edit fn iterator`. Методы с одним именем и разными
+пометками различаются как перегрузки. Если получателю подходят несколько,
+берётся самый узкий: у `v: edit Array<Int>` вызов `v.iterator()` берёт `read`.
+Более широкое право просят явно, той же формой, что и `take`:
+`(edit v).iterator()`, `(mut v).iterator()`, `(take v).iterator()`. Получатель
+без `take` метод `own fn` не выбирает.
+
+### Ограничение прав
+
+Допустимые права задаёт обычное условие `where`
+([ограничения параметров](#ограничения-параметров)):
+
+```efen
+strategy ArrayTraversal<T, Access: Access> for Array<T>
+where Access == read || Access == edit {      // own и mut не подходят
+    …
+}
+```
+
+Условие обязательно там, где тело подходит не для всех прав: иначе один
+параметр покрывает и `own`, и остальные права, и два объявления становятся
+одинаково применимыми.
+
+### Развилка по праву
+
+Тип, который зависит от права, выбирается `match` по параметру
+([сопоставление с типами](#сопоставление-с-типами)):
+
+```efen
+alias ArrayCursor<T, Access: Access, Src: Origin> = match Access   // ветви mut нет
+where Access != mut {
+    own:  DrainIterator<T>
+    read: ArrayIterator<Item: read T, Src: Src>
+    edit: ArrayIterator<Item: edit T, Src: Src>
+}
+```
+
+В теле право различает `#if`:
+
+```efen
+#if Access == own
+    return DrainIterator(items: take self)
+#elif Access == read || Access == edit
+    return ArrayIterator(items: self)
+#endif
+```
+
+Право входит в идентичность инстанциации: `ArrayIterator<Item: read Int, Src: numbers>`
+и `ArrayIterator<Item: edit Int, Src: numbers>` — разные типы.
 
 ## Конструкторы типов
 

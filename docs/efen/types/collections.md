@@ -152,7 +152,7 @@ for item in priorities {
 ```
 
 Потребляющий обход `for item in take values` доступен при `T: Movable` и выдаёт
-`T own` через `RangeTakeCursor<T>`. Cursor владеет storage и передаёт каждый
+`own T` через `RangeTakeCursor<T>`. Cursor владеет storage и передаёт каждый
 элемент ровно один раз; при досрочном выходе, `return` или исключении он
 уничтожает оставшиеся элементы. Срез `values[a..<b]` является читающим невладеющим
 `Slice` с origin исходного `Range`. Вызов `Range(slice)` создаёт отдельный
@@ -300,7 +300,8 @@ contract Steppable<T> {
 типы используют шаг один; для `Float` стандартный `Steppable` не объявляется.
 
 При `Lower != .unbounded` и `T: Steppable<T>` интервал предоставляет
-`Iterable<Item: own T>`. При отсутствующей нижней границе стандартного обхода
+`Iterable<Item: T>` с курсором `ValueIterator<Item: T>`: интервал читают, а
+значения приходят копиями. При отсутствующей нижней границе стандартного обхода
 нет: `for i in ..5` является ошибкой, хотя `..5` остаётся законным descriptor
 для среза и pattern.
 
@@ -431,91 +432,87 @@ var b = Array<Int>(repeating: 0, count: 5)   // то же самое
 типами runtime-значений:
 
 ```efen
-contract Iterator<Item> {
-    mut fn next -> Item?
+contract Iterator<Item: Access T, Access: Access = read, Src: Origin>
+where Access != own {
+    mut fn next -> Access<Src> T?      // ссылка на слот массива Src, не на итератор
 }
 
-contract Iterable<Item, Cursor: Iterator<Item>> {
-    fn iterator -> Cursor
+contract Iterable<Item: Access T, Access: Access = read, Cursor>
+where Cursor conforms Iterator<Item> || Cursor conforms ValueIterator<T> {
+    Access fn iterator -> Cursor
 }
 ```
 
-`Cursor` обязан быть конкретным типом, соответствующим `Iterator<Item>`.
-Аргументы contract можно передавать позиционно и по имени:
-`Iterator<String>` и `Iterator<Item: String>` равнозначны.
+Контракт не говорит, с чем связан курсор: это дело реализации. Стратегия
+возвращает курсор, тип которого сам несёт свой `Src`, например
+`ArrayIterator<Item: edit Int, Src: self>`. `Iterable` один на оба вида курсора: со ссылками на слоты (`Iterator`) и с копиями
+(`ValueIterator`, ниже). Какой вид у обхода, `for` узнаёт по типу курсора.
+
+Итератор, который не смотрит в коллекцию, соответствует отдельному контракту
+`ValueIterator`. У его значений нет слота в источнике, поэтому `next` отдаёт
+копию, а не ссылку, и параметра `Src` нет. Так устроены интервал `1..3`,
+генератор и итератор, который сам владеет массивом (`for x in take numbers`):
 
 ```efen
-class ArrayIterator<T> {
-    conforms Iterator<Item: T>
+contract ValueIterator<Item> {
+    mut fn next -> Item?      // копия значения, ссылки в источник нет
+}
 
-    private let items: [T]
-    private var index: Int = 0
+struct IntervalIterator {
+    var current: Int
+    let last: Int             // 1..3 включает 3
+    var done: Bool            // true и для пустого интервала
+}
 
-    fn next -> T? {
-        if index >= items.count() {
-            return null
-        }
+strategy IntervalStep for IntervalIterator {
+    conforms ValueIterator<Item: Int>
 
-        let value = items[index]
-        index += 1
+    mut fn next -> Int? {
+        if done { return null }
+        let value = current
+        if current == last { done = true } else { current += 1 }   // без overflow на Int.max
         return value
     }
 }
-
-class MyCollection<T> {
-    conforms Iterable<Item: T>
-
-    private var items: [T] = []
-
-    fn iterator -> ArrayIterator<T> {
-        return ArrayIterator<T>(items)
-    }
-}
 ```
 
-`Cursor` в этом соответствии выводится из результата `iterator()` и после
-вывода равен `ArrayIterator<T>`. Его можно указать явно по имени, если вывод
-неоднозначен.
+`Cursor` обязан быть конкретным типом, соответствующим `Iterator` или
+`ValueIterator`. Аргументы contract можно передавать позиционно и по имени:
+`ValueIterator<String>` и `ValueIterator<Item: String>` равнозначны. `Cursor` в
+соответствии выводится из результата `iterator()`; его можно указать явно по
+имени, если вывод неоднозначен. Коллекция подключает обход стратегией, по одной
+на набор прав ([стратегия с правом доступа](../strategies.md#стратегия-с-правом-доступа)).
 
-Тип элемента является полным типовым выражением. Один `Iterator` поэтому может
-выдавать значения и указатели layout с правом:
+Право заголовка `for` — это право на источник, с которым вызывается `iterator`,
+то есть параметр `Access` контракта `Iterable`. Его можно передать отдельно от
+элемента: `Iterable<Item: T, Access: mut>`. Ограничение без права,
+`C: Iterable<Item: Int>`, берёт умолчание `Access = read`.
+У курсора `Iterator` с тем же правом приходит элемент: ссылка на слот источника.
+У курсора `ValueIterator` элемент — значение, а право заголовка относится только
+к источнику: интервал читают (`for i in 1..5`), а числа приходят копиями.
 
-```efen
-Iterator<Item: T>
-Iterator<Item: read Items.Item>
-```
-
-Ссылка generic-аргументом быть не может, поэтому прежние
-`Iterator<Item: &read T>` и `Iterator<Item: &T>` убраны. Автор коллекции может дать
-место элемента методом коллекции, `fn next(at: &Position<self>) -> edit T?`
-([области доступа](access-regions.md#курсор-и-место-элемента)); как на эту форму
-переходит `for`, пока не решено.
-
-`for` выбирает операцию обхода по полному типу и правам исходного выражения.
-Тип `Item` задаёт найденная реализация `Iterable`; язык не требует, чтобы любой
-итератор возвращал ссылку. `Interval` или генератор может вычислять `T`, а
-стандартный изменяемый `Array` предоставляет три режима. Другие коллекции
-предоставляют только поддерживаемые ими режимы:
+`for` выбирает стратегию обхода по типу и праву исходного выражения. Другие
+коллекции предоставляют только поддерживаемые ими права:
 
 ```efen
 for item in collection {
-    // Для Array<T>: item — место элемента с правом read.
+    // Для Array<T>: item — ссылка read на слот collection.
 }
 
 for item in &collection {
-    // Для Array<T>: item — место элемента с правом edit: обход держит источник в edit.
+    // Для Array<T>: item — ссылка edit на слот collection.
 }
 
 for item in take collection {
-    // Для Array<T>: item имеет тип own T; collection потреблена.
+    // Для Array<T>: item — значение own T; collection потреблена.
 }
 ```
 
-Курсор обхода держит источник в режиме `edit` (см.
-[Ownership](ownership.md#аспекты-владения)): пока обход идёт, значения
+Курсор держит источник с правом заголовка (см.
+[Ownership](ownership.md#аспекты-владения)): при `&collection` значения
 элементов можно менять, а операция, способная сменить структуру источника
 (`append`, `remove`), является ошибкой. Операция через сам источник допустима, только если
-она не задевает место, на которое смотрит курсор, или задевает его без
+она не задевает слот, на который смотрит курсор, или задевает его без
 конфликта, например `append` связного списка во время чтения (см.
 [Области доступа](access-regions.md#итератор-как-область)).
 
@@ -536,7 +533,7 @@ for number in numbers {
 }
 
 // Эквивалентно:
-let iter = numbers.iterator()
+var iter = numbers.iterator()
 while let number = iter.next() {
     println(number)
 }
@@ -692,7 +689,7 @@ let set = numbers.toSet()
 
 ```efen
 class CountingIterator {
-    conforms Iterator<Item: Int>
+    conforms ValueIterator<Item: Int>
 
     private let start: Int
     private let end: Int
@@ -706,7 +703,7 @@ class CountingIterator {
         this.current = start
     }
 
-    fn next -> Int? {
+    mut fn next -> Int? {
         if this.current >= this.end {
             return null
         }
@@ -718,7 +715,7 @@ class CountingIterator {
 }
 
 // Использование
-let iter = CountingIterator(1, 5)
+var iter = CountingIterator(1, 5)
 
 while let value = iter.next() {
     println(value)  // 1, 2, 3, 4
@@ -746,7 +743,7 @@ class IntList {
 }
 
 class IntListIterator {
-    conforms Iterator<Item: Int>
+    conforms ValueIterator<Item: Int>
 
     private let items: [Int]
     private var index: Int = 0
@@ -757,7 +754,7 @@ class IntListIterator {
         this.items = items
     }
 
-    fn next -> Int? {
+    mut fn next -> Int? {
         if this.index >= this.items.count() {
             return null
         }
@@ -785,11 +782,11 @@ for value in list {
 
 ```efen
 class InfiniteCounter {
-    conforms Iterator<Item: Int>
+    conforms ValueIterator<Item: Int>
 
     private var current: Int = 0
 
-    fn next -> Int? {
+    mut fn next -> Int? {
         let value = this.current
         this.current += 1
         return value
