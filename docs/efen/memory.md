@@ -19,6 +19,8 @@
 ```efen
 
 class Box {
+    conforms Constructible
+
     var value: Int
 
     @constructor
@@ -176,6 +178,8 @@ fn example {
 
 ```efen
 class Box {
+    conforms Constructible
+
     implements Disposable
 
     var point: Point
@@ -226,43 +230,37 @@ fn example {
 `Efen` поддерживает подсчёт ссылок (reference counting) для управления временем жизни объектов.
 Название принято по традиции: считаются владельцы объекта; ссылка в Efen бывает только внутри функции
 ([владение](types/ownership.md#ссылки-только-внутри-функции)).
-Однако сам способ подсчёта ссылок может быть определён программистом.
+Способ подсчёта выбирает аспект, который реализует `ArcClass`; какие пакеты могут его дать, контракт перечисляет в `from`.
 
-Класс со счётчиком пишет `conforms ArcClass`; без этой строки счётчика у класса нет. `ArcClass` — пустой контракт:
-строка выбирает определение класса, аспект `ArcClassCompiler` пакета std
-([контракты](contracts.md#поля-которые-требует-контракт)). Счётчик автоматический (ARC, Automatic Reference
-Counting): аспект реализует контракт `ArcOperations` с методами `retain` и `release`, а их вызовы расставляет
-компилятор. Соответствие `Cloneable` классу тоже даёт аспект, поэтому `clone` у такого класса увеличивает счётчик:
+Класс со счётчиком пишет `conforms ArcClass`; без этой строки счётчика у класса нет. `ArcClass` — контракт без
+требований, который разрешает [реализацию извне](contracts.md#реализация-извне): поле счётчика и функции над ним
+даёт аспект, по умолчанию `ArcCounter` пакета std. Счётчик автоматический (ARC, Automatic Reference Counting):
+аспект реализует контракт `ArcOperations` с методами `retain` и `release`, а их вызовы расставляет компилятор.
+Счётчик не атомарный; общий для нескольких потоков — тема [общих классов](shared.md). Соответствие `Cloneable`
+классу тоже даёт аспект, поэтому `clone` у такого класса увеличивает счётчик:
 
 ```efen
+@default
+aspect ArcCounter {
+    implements ArcClass
 
-// Интерфейс - бинарная структура данных, 
-// которая гарантирует на низком уровне наличие поля refCount
-interface ArcInterface {    
-    // Приватное поле для хранения счётчика ссылок
-    // Доступно тольок тому, кто подключил интерфейс
-    private var refCount: AtomicInt    
-}
+    // Шаг построения класса и методы, вызовы которых расставляет компилятор
+    conforms ClassDefinitionHandler, ArcOperations
 
-aspect ArcClassCompiler {
-    implements ArcInterface
-
-    // Методы, вызовы которых расставляет компилятор
-    conforms ArcOperations
+    // Поле, которое аспект добавляет в класс; видно только аспекту
+    private var refCount: UInt
 
     mut fn retain {
-        self.refCount.fetchAdd(1)
+        refCount += 1
     }
 
     mut fn release {
-        let before = self.refCount.fetchSub(1)
-
-        if unlikely(before == 0) {
+        if unlikely(refCount == 0) {
             error("Release called on object with refCount 0")
         }
-
-        if before == 1 {
-            self.dispose()
+        refCount -= 1
+        if refCount == 0 {
+            // уничтожение объекта: деструкторы, поля, память (disposable.md)
         }
     }
 }

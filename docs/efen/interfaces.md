@@ -168,6 +168,8 @@ interface Counter {
 3. **Dependency injection**
    ```efen
    class App {
+       conforms Constructible
+
        var logger: own Logger  // Может быть любая реализация
        var database: own Database
 

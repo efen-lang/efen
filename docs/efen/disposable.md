@@ -7,11 +7,15 @@
 
 Пользовательский destructor класса с памятью Efen объявляется атрибутом, как
 конструктор: `@destructor fn deinit`, без параметров и результата, не больше
-одного в классе. Деструкторы класса над внешним значением —
+одного в классе. Деструктор есть только у класса с `conforms Destructible`
+([встроенные контракты](types/built-in-contracts.md#destructible)); без этой строки
+`@destructor` — ошибка компиляции. `implements Disposable` строки `Destructible` не
+требует. Деструкторы класса над внешним значением —
 [ниже](#внешние-деструкторы). Низкоуровневый этап — контракт `Disposable` с методом `fn dispose`.
 
 ```efen
 class File {
+    conforms Constructible, Destructible
     implements Disposable
 
     var handle: Int
@@ -57,7 +61,7 @@ destructor. Он не выражает автоматический выход �
 ## Внешние деструкторы
 
 У [класса над внешним значением](classes.md#класс-над-внешним-значением) деструктор — внешняя функция или метод с
-телом. Его роль пишут атрибутом у `own fn` класса:
+телом. Его роль пишут атрибутом у `own fn` класса; класс, как и любой другой, пишет `conforms Destructible`:
 
 - `@destructor` бывает у нескольких методов. Результат допустим и при неявном вызове отбрасывается. Лишние
   параметры — с умолчаниями (`value: mut Pointer? = null`, [сырая память](memory/pointer.md#память-пришедшая-из-c)).
@@ -70,6 +74,8 @@ destructor. Он не выражает автоматический выход �
 
 ```efen
 @abi(c) class sqlite3 {
+    conforms Destructible
+
     nocontext {
         @destructor own fn sqlite3_close_v2 -> Int32                                     // неявный
         @destructor own fn sqlite3_close(self { result == SQLITE_OK ==> take }) -> Int32  // только явный вызов
@@ -135,6 +141,7 @@ fn joinLater(t: own Thread) {
 }
 
 class Pool {                                     // класс без счётчика
+    conforms Destructible
     var workers: [own Thread]                    // Pool не ImplicitlyDestroyable
     @destructor(explicit) own fn joinAll {
         while let t = workers.removeLast() { (take t).pthread_join() }

@@ -235,6 +235,8 @@ Amber собирает программу целиком: компилятор �
 
 ```efen
 open class Walker {
+    conforms OpenClass
+
     open fn visit(v: mut Vector<Int>) { }
 }
 

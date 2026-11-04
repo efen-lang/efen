@@ -95,6 +95,8 @@ let nat: Nat = x.refine()  // Runtime проверка
 type Email: String { isValidEmail(value) }
 
 class User {
+    conforms Constructible
+
     var email: Email  // Всегда валидный email
 
     @constructor

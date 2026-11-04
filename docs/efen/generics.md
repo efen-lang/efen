@@ -116,6 +116,8 @@ let text = transformer.apply(42, (number) => String(number))
 
 ```efen
 class Box<T> {
+    conforms Constructible
+
     var value: T
 
     @constructor
@@ -157,6 +159,8 @@ echo intBox.getValue()  // 42
 
 ```efen
 open class Container<T> {
+    conforms OpenClass
+
     var items: [T] = []
 
     fn add(item: T) {

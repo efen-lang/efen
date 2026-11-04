@@ -17,35 +17,32 @@
 
 ## Управление памятью
 
-Аспект определения класса может выбрать представление объекта и предоставить
-реализации операций жизненного цикла. Класс со строкой `conforms ArcClass`
-получает определение `ArcClassCompiler`; аспект реализует контракт
-`ArcOperations` с методами `retain` и `release`
-([поля, которые требует контракт](../../contracts.md#поля-которые-требует-контракт)).
-Следующий код показывает идею, но не является утверждённой сигнатурой
-стандартной библиотеки:
+Аспект, который реализует контракт класса, может выбрать представление объекта и предоставить
+реализации операций жизненного цикла. Класс со строкой `conforms ArcClass` получает аспект `ArcCounter`
+(или другой, выбранный по правилам [реализации извне](../../contracts.md#реализация-извне)); аспект реализует
+контракт `ArcOperations` с методами `retain` и `release`. Он участвует в построении класса шагом
+`ClassDefinitionHandler`, а не заменяет определение корня. Следующий код показывает идею, но не является
+утверждённой сигнатурой стандартной библиотеки:
 
 ```efen
-aspect ArcClassCompiler {
-    conforms ClassDefinition
-    conforms ArcOperations
+@default
+aspect ArcCounter {
+    implements ArcClass
+    conforms ClassDefinitionHandler, ArcOperations
 
-    struct Header {
-        var refCount: UInt
-    }
+    private var refCount: UInt
 
-    meta fn primaryClassDefinition(target: lang::Class) in compiler {
-        // Добавить выбранное представление и реализации операций.
-    }
+    // Шаг плана построения кладёт в класс поле счётчика и реализации операций;
+    // имя операции регистрации compile-time API пока не закреплено.
 
     mut fn retain {
-        self.refCount += 1
+        refCount += 1
     }
 
     mut fn release {
-        self.refCount -= 1
-        if self.refCount == 0 {
-            self.deinit()
+        refCount -= 1
+        if refCount == 0 {
+            // уничтожение объекта: деструкторы, поля, память
         }
     }
 }

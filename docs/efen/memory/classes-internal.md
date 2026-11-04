@@ -14,6 +14,8 @@
 
 ```efen
 class Point {
+    conforms Constructible
+
     var x: Float = 0.0
     var y: Float = 0.0
     

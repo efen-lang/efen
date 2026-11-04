@@ -71,6 +71,8 @@ mutable traversal или `take values[index]`.
 
 ```efen
 class Range<T> {
+    conforms Constructible
+
     @constructor
     fn init(source: own Array<T>) -> Self
 
@@ -714,7 +716,7 @@ let set = numbers.toSet()
 
 ```efen
 class CountingIterator {
-    conforms ValueIterator<Item: Int>
+    conforms ValueIterator<Item: Int>, Constructible
 
     private let start: Int
     private let end: Int
@@ -768,7 +770,7 @@ class IntList {
 }
 
 class IntListIterator {
-    conforms ValueIterator<Item: Int>
+    conforms ValueIterator<Item: Int>, Constructible
 
     private let items: [Int]
     private var index: Int = 0

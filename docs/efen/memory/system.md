@@ -49,6 +49,8 @@ fn unmapX86(@in(rdi) memory: own Pointer, @in(rsi) bytes: Int) -> Int {
 
 ```efen
 public class File {
+    conforms Destructible
+
     representation Raw<Descriptor>              // объект — дескриптор
     @asm(x86_64, result: rax, overwrites: [rcx, r11, memory])
     @destructor own fn closeX86(@in(rdi) self) -> Int32 { … }

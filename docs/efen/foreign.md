@@ -335,6 +335,7 @@ const SQLITE_ROW = 100
 const SQLITE_STATIC: sqlite3_destructor_type = …    // макрос без параметров: константа типа C
 
 @abi(c) class sqlite3 {                             // сырое значение — sqlite3*, пустое значение — NULL
+    conforms Constructible, Destructible
     layout { var errmsg: CString }                  // строка, которую sqlite держит у себя
     nocontext {
         @constructor fn sqlite3_open(filename: read CString, self?) -> Int32
@@ -346,6 +347,7 @@ const SQLITE_STATIC: sqlite3_destructor_type = …    // макрос без п�
 }
 
 @abi(c) class sqlite3_stmt {                        // сырое значение — sqlite3_stmt*
+    conforms Constructible, Destructible
     layout {
         var db: mut sqlite3                         // запрос держит соединение
         var bound: [Int32: read CString]            // строки после SQLITE_STATIC
@@ -468,6 +470,7 @@ public fn prepareFirst(db: mut sqlite3, script: read String, next: out Int) -> o
 
 ```efen
 @c("pthread_t") @abi(c) class Thread {          // сырое значение — pthread_t: пустого значения нет, Thread? с тегом
+    conforms Constructible, Destructible
     shared layout { var start: own (() own -> Pointer?)? }
     nocontext {
         @constructor fn pthread_create(self { result == 0 ==> out },

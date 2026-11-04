@@ -39,6 +39,8 @@ interface PoolAllocator {
 use runtime::memory
 
 class HeapAllocator {
+    conforms Constructible
+
     implements Allocator
 
     @constructor
@@ -79,6 +81,8 @@ Arena (также известный как region/bump allocator) — быст�
 use runtime::memory
 
 class Arena {
+    conforms Constructible
+
     implements ArenaAllocator, Disposable
 
     private var buffer: Pointer
@@ -172,6 +176,8 @@ Pool allocator выделяет объекты фиксированного ра
 use runtime::memory
 
 class Pool {
+    conforms Constructible
+
     implements PoolAllocator, Disposable
 
     private var objectSize: Size
@@ -325,6 +331,8 @@ use runtime::memory
 
 @allocator(Arena)
 class TemporaryData {
+    conforms Constructible
+
     var value: Int
 
     @constructor
@@ -341,6 +349,8 @@ let data = TemporaryData(value: 42)
 
 ```efen
 class MyClass {
+    conforms Constructible
+
     // Указываем аллокатор для этого класса
     static let allocator = Pool(
         objectSize: sizeOf(MyClass.self),
@@ -363,6 +373,8 @@ class MyClass {
 ```efen
 // Fallback allocator: сначала пробует pool, потом heap
 class FallbackAllocator {
+    conforms Constructible
+
     implements Allocator
 
     private var primary: Allocator
