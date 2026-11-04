@@ -726,6 +726,16 @@ fn processSameElements where A.Item == B.Item, A.Item: Equatable {
 }
 ```
 
+`where` у отдельного метода обобщённого типа требует только для этого метода. Так коллекции std требуют
+[`ImplicitlyDestroyable`](disposable.md#implicitlydestroyable) только у методов, которые уничтожают элемент, не
+возвращая его; сам тип принимает любой `T`:
+
+```efen
+mut fn removeAll where T: ImplicitlyDestroyable
+mut fn removeLast -> own T?
+    ensures result == null ==> count == 0
+```
+
 Блок после `generic` и `where` являются обязательными условиями: ложное условие
 запрещает инстанциацию. Они отличаются от `#if`, который условно формирует
 состав уже законной инстанциации.
