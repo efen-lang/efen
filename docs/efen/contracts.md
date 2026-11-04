@@ -599,7 +599,8 @@ provide {
 
 ## Поля, которые требует контракт
 
-Контракт описывает функции, полей он не объявляет. Поле, которое нужно его
+Контракт описывает функции, полей storage он не объявляет (поля `layout` контракта —
+[ниже](#layout-и-модель-в-контракте): в байтах их нет). Поле, которое нужно его
 функциям, в тип добавляет аспект: интерфейс storage не владеет
 ([интерфейсы](interfaces.md)). Например, объект со счётчиком ссылок получает
 устройство с полем `refCount` от аспекта, а контракт перечисляет функции над ним
@@ -623,3 +624,73 @@ aspect RefCountClassCompiler {
 
 Ранняя форма шаблона структуры внутри контракта (`requires struct: struct<T>`,
 `@base struct <T> { … }`) в язык не входит: поля даёт аспект.
+
+## `layout` и модель в контракте
+
+Контракт может объявить `layout { var … }` и [модели](conditions.md#модель-model) у методов. Поля такого `layout` — не
+поля storage: их нет в байтах, их пишут только модели и читает только FLOW
+([`layout` в теле класса](memory/addresses.md#layout-в-теле-класса)). Обобщённый код над контрактом берёт модель
+метода как сводку вызова; каждая реализация проверяется там, где написан `conforms`, как пометки `edit fn`. `layout`
+и модели входят в объявление контракта. При выполнении они ничего не стоят: вызов остаётся статическим, таблицы
+методов нет.
+
+```efen
+contract Sink {                                  // хранит буферы между write и flush
+    layout { var kept: [read [UInt8]] }
+    mut fn write(data: read [UInt8])
+    model { self.kept.append(data) }
+    mut fn flush
+    model { self.kept.clear() }
+}
+
+fn dump<S: Sink>(out: mut S, lines: read [String]) {
+    for line in lines {
+        let buf = line.utf8()
+        out.write(data: buf)
+        out.flush()                              // без него ошибка: buf умирает, пока out его держит
+    }
+}
+
+public class File {
+    conforms Sink
+    representation Raw<Descriptor>
+    mut fn write(data: read [UInt8]) { … }       // копирует: удержаний нет, модель Sink уточнена
+    mut fn flush { }
+}
+```
+
+**Реализация сравнивается с моделью по удержаниям, а не по полям.** Удержание определяют метод, который его положил,
+путь параметра и право; имена полей — учёт каждого объявления. После каждого метода удержания реализации входят в
+удержания модели: реализация не кладёт ничего сверх модели, не берёт более широкого права и не держит того, что
+модель снимает. Реализация, которая копирует, не держит ничего и уточняет любую модель.
+
+`shared layout` реализации ([общая память](shared.md#shared-layout)) уточняет только `shared layout` контракта.
+Реализация без `shared` под общим объявлением уже его и допустима.
+
+```efen
+contract AsyncSink {                             // ядро читает буферы, когда захочет
+    shared layout { var kept: [read [UInt8]] }
+    mut fn write(data: read [UInt8])
+    model { self.kept.append(data) }
+    mut fn drain
+    model { self.kept.clear() }
+}
+
+class Ring {
+    conforms AsyncSink
+    representation Raw<Descriptor>
+    shared layout { var inflight: [read [UInt8]] }   // своё имя поля: сравниваются удержания
+    mut fn write(data: read [UInt8])
+    model { self.inflight.append(data) }       // то же удержание, что у AsyncSink.write
+    {
+        …
+    }
+    mut fn drain
+    model { self.inflight.clear() }
+    {
+        …
+    }
+}
+```
+
+Контракт, у которого `write` всегда копирует, `layout` и моделей не объявляет: это другой контракт.
