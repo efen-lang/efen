@@ -117,6 +117,10 @@ shared struct Registry {
 ([корутины `spawn`](types/access-regions.md#корутины-spawn)), пока режим не кончится (слот завершения корутины, конец
 `with`, деструктор объекта `shared layout`) или удержание не снимут.
 
+В примере модуль sqlite доказал последовательный режим библиотеки, и `sqlite3` не
+[`ThreadBound`](#привязка-к-потоку-threadbound). В режиме `NOMUTEX` первая ошибка — уже `take s` в корутину:
+`sqlite3_stmt` держит `mut sqlite3` полем `layout` и поэтому тоже привязан к потоку.
+
 ```efen
 fn race(db: mut sqlite3, q: read String) {
     var name = "Alice"
@@ -126,7 +130,7 @@ fn race(db: mut sqlite3, q: read String) {
     with makeTaskGroup() {                                   // MultiThreadConcurrency
         let h = spawn { capture st = take s; st!.sqlite3_step() }   // области h: read name, mut db
         name[0] = "B"                                        // ошибка: h читает name в другом потоке
-        db.sqlite3_exec(…)                                   // ошибка: h держит mut db
+        sqlite3_exec(db: db, …)                              // ошибка: h держит mut db
         await(take h)                                        // st уничтожен внутри h: удержания кончились
         name[0] = "B"                                        // можно
     }
@@ -166,20 +170,38 @@ fn race(db: mut sqlite3, q: read String) {
 
 ### Привязка к потоку `ThreadBound`
 
-Значение типа с `conforms ThreadBound` нельзя трогать из другого потока: оно не попадает в многопоточную корутину, в
-тело `offload`, в поле `shared` и в объект `shared layout`. Значение, которое содержит такое значение (поле, элемент,
-захват замыкания), подчиняется тому же запрету. По умолчанию тип свободен. `ThreadBound` — встроенный пустой контракт
-([контракты](contracts.md#threadbound)); его пишет любой тип, не только класс над внешним значением.
+Значение типа `ThreadBound` нельзя трогать из другого потока: оно не попадает в многопоточную корутину (ни захватом,
+ни заимствованным именем), в тело `offload`, в поле `shared` и в объект `shared layout`. По умолчанию тип свободен.
+`ThreadBound` — встроенный пустой контракт ([контракты](contracts.md#threadbound)).
+
+Соответствие вычисляется, как у [`ImplicitlyDestroyable`](disposable.md#implicitlydestroyable). Тип — `ThreadBound`,
+если у него есть поле, элемент, захват замыкания или поле `layout` типа `ThreadBound`: удержание `read T` или
+`edit T`, зависимость `mut U` или `read U`, значение `own T`. Строку `conforms ThreadBound` пишет только тип, который
+привязан к потоку сам по себе, — обычно класс над внешним значением, но не только он.
+
+Обобщённое тело, которое отправляет значение параметра типа `T` в другой поток, получает в сводку требование
+«`T` не `ThreadBound`». Инстанциация проверяет его, как условие `where`
+([ограничения параметров](generics.md#ограничения-параметров)); тело проверяется один раз. `Movable` такого
+требования не даёт: `take` значения `ThreadBound` в своём потоке допустим, а заимствованное имя попадает в корутину
+без `take`.
 
 ```efen
-@abi(c) class sqlite3 {
-    conforms ThreadBound                     // sqlite в режиме NOMUTEX
+@abi(c) class GLContext {
+    conforms ThreadBound                     // контекст GL живёт в потоке, который его сделал
     …
 }
 
-with makeTaskGroup() {
-    spawn { capture d = take db; … }         // ошибка: sqlite3 привязан к потоку
+class Renderer {
+    var context: own GLContext               // Renderer — ThreadBound через поле
 }
+
+fn runAside<T: Movable>(value: own T) {      // сводка: T не ThreadBound
+    with makeTaskGroup() {
+        spawn { capture v = take value; … }
+    }
+}
+
+runAside(value: take renderer)               // ошибка: Renderer привязан к потоку полем context
 ```
 
 ## Карта параллельности
