@@ -122,15 +122,16 @@ syscall.CloseHandle(handle)
 
 ### 6. Thread Local Storage (TLS)
 
-Поточно-локальное хранилище:
+Данные, свои у каждого потока, — [контекст потока](../context-and-effects.md#контексты-процесса-и-потока) или
+`static`-поле класса:
 
 ```efen
-use runtime::tls
-
-@threadLocal var counter: Int = 0
+static thread context Counters {
+    var counter: Int = 0
+}
 
 fn incrementCounter {
-    counter += 1  // Каждый поток имеет свою копию
+    %Counters::counter += 1  // каждый поток имеет свою копию
 }
 ```
 
