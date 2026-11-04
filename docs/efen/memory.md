@@ -80,7 +80,7 @@ contract MemoryStrategy {
 
 ```efen
 class Counter {
-    conforms RefCount
+    conforms ArcClass
     var value: Int
 }
 
@@ -209,7 +209,7 @@ fn example {
 
 ## Абстракции без подсчета ссылок
 
-Класс по умолчанию не использует подсчёт ссылок: счётчик появляется только строкой `conforms RefCount`
+Класс по умолчанию не использует подсчёт ссылок: счётчик появляется только строкой `conforms ArcClass`
 ([классы](classes.md#управление-памятью)). Без счётчика объект тонкий, заголовка у него нет.
 На такие абстракции действуют проверки владения (ownership checks).
 То есть компилятор гарантирует, что правила владения не нарушаются, 
@@ -228,27 +228,27 @@ fn example {
 ([владение](types/ownership.md#ссылки-только-внутри-функции)).
 Однако сам способ подсчёта ссылок может быть определён программистом.
 
-Класс со счётчиком пишет `conforms RefCount`; без этой строки счётчика у класса нет. `RefCount` — пустой контракт:
-строка выбирает определение класса, аспект `RefCountClassCompiler` пакета std
+Класс со счётчиком пишет `conforms ArcClass`; без этой строки счётчика у класса нет. `ArcClass` — пустой контракт:
+строка выбирает определение класса, аспект `ArcClassCompiler` пакета std
 ([контракты](contracts.md#поля-которые-требует-контракт)). Счётчик автоматический (ARC, Automatic Reference
-Counting): аспект реализует контракт `RefCountOperations` с методами `retain` и `release`, а их вызовы расставляет
+Counting): аспект реализует контракт `ArcOperations` с методами `retain` и `release`, а их вызовы расставляет
 компилятор. Соответствие `Cloneable` классу тоже даёт аспект, поэтому `clone` у такого класса увеличивает счётчик:
 
 ```efen
 
 // Интерфейс - бинарная структура данных, 
 // которая гарантирует на низком уровне наличие поля refCount
-interface RefCountInterface {    
+interface ArcInterface {    
     // Приватное поле для хранения счётчика ссылок
     // Доступно тольок тому, кто подключил интерфейс
     private var refCount: AtomicInt    
 }
 
-aspect RefCountClassCompiler {
-    implements RefCountInterface
+aspect ArcClassCompiler {
+    implements ArcInterface
 
     // Методы, вызовы которых расставляет компилятор
-    conforms RefCountOperations
+    conforms ArcOperations
 
     mut fn retain {
         self.refCount.fetchAdd(1)

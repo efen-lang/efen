@@ -18,17 +18,17 @@
 ## Управление памятью
 
 Аспект определения класса может выбрать представление объекта и предоставить
-реализации операций жизненного цикла. Класс со строкой `conforms RefCount`
-получает определение `RefCountClassCompiler`; аспект реализует контракт
-`RefCountOperations` с методами `retain` и `release`
+реализации операций жизненного цикла. Класс со строкой `conforms ArcClass`
+получает определение `ArcClassCompiler`; аспект реализует контракт
+`ArcOperations` с методами `retain` и `release`
 ([поля, которые требует контракт](../../contracts.md#поля-которые-требует-контракт)).
 Следующий код показывает идею, но не является утверждённой сигнатурой
 стандартной библиотеки:
 
 ```efen
-aspect RefCountClassCompiler {
+aspect ArcClassCompiler {
     conforms ClassDefinition
-    conforms RefCountOperations
+    conforms ArcOperations
 
     struct Header {
         var refCount: UInt

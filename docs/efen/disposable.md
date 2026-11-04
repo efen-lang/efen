@@ -142,7 +142,7 @@ class Pool {                                     // класс без счётч
 }
 
 class Registry {
-    conforms RefCount
+    conforms ArcClass
     var worker: own Thread                       // ошибка: managed-слот требует ImplicitlyDestroyable
 }
 ```

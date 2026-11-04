@@ -28,24 +28,26 @@ contract TypeContract {
 }
 ```
 
-## RefCount
+## ArcClass
 
-Пустой контракт `lang::`. Класс со счётчиком владельцев пишет `conforms RefCount`; строка выбирает определение
-класса `RefCountClassCompiler` из std, и этот аспект даёт объекту заголовок со счётчиком, методы `retain` и `release`
+Пустой контракт `lang::`. Класс со счётчиком владельцев пишет `conforms ArcClass`; строка выбирает определение
+класса `ArcClassCompiler` из std, и этот аспект даёт объекту заголовок со счётчиком, методы `retain` и `release`
 и соответствие `Cloneable` ([поля, которые требует контракт](../contracts.md#поля-которые-требует-контракт)).
+ARC здесь — Automatic Reference Counting: вызовы `retain` и `release` расставляет компилятор. Счётчик не атомарный;
+счётчик, общий для нескольких потоков, — тема `shared class` ([общие классы](../shared.md)).
 
 ```efen
-contract RefCount {
+contract ArcClass {
 }
 ```
 
-## RefCountOperations
+## ArcOperations
 
 Контракт, который реализует аспект подсчёта ссылок, а не класс. Вызовы `retain` и `release` расставляет компилятор;
 программа их не пишет ([подсчёт ссылок](../memory.md#подсчет-ссылок)).
 
 ```efen
-contract RefCountOperations {
+contract ArcOperations {
     mut fn retain
     mut fn release
 }
