@@ -659,7 +659,7 @@ static thread context Depth {
 
 ```efen
 let s = strerror(errnum: e)
-await(job)                        // может проснуться на другом потоке
+await(take job)                   // может проснуться на другом потоке
 print(s)                          // ошибка: s умерла в точке ожидания
 
 print(strerror(errnum: e))        // тоже ошибка: print может ждать
@@ -863,7 +863,7 @@ fn spread(values: [Int]) -> Int {
     with makeTaskGroup() {                    // рантайм: тип соответствует MultiThreadConcurrency
         let low = spawn { minimum(values) }
         let high = maximum(values)
-        return high - await(low)
+        return high - await(take low)
     }                                         // здесь корутин группы больше нет
 }
 ```
@@ -886,7 +886,7 @@ fn spread(values: [Int]) -> Int {
 fn load -> Data {
     with makeTaskGroup() {
         let a = spawn { fetch("a") }       // бросает NetworkError
-        return parse(await(a))
+        return parse(await(take a))
     }
 }
 
@@ -924,7 +924,7 @@ fn dispatch(r: Request) -> Response {
     conforms RedirectHandler
 
     let c = spawn { route(r) }                 // c: Coroutine<() -> Response throws Redirect>
-    return await(c)                            // Redirect вылетает здесь; право проверяется у dispatch
+    return await(take c)                       // Redirect вылетает здесь; право проверяется у dispatch
 }
 ```
 

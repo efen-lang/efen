@@ -39,7 +39,7 @@
 
 `tail` объявлен как `var tail: read Items.Item?`: `var` разрешает менять само
 поле, а `read` относится к сохранённому невладеющему указателю. Запись
-`tail!.next` использует отдельное `write`-право реализации на `Items`; она не
+`tail!.next` использует отдельное право `mut` реализации на layout `Items`; она не
 получает это право из `read`-указателя.
 
 `chained from self.head by Item.next` создаёт compiler-known конечный order,
