@@ -107,9 +107,11 @@ destructor. Он не выражает автоматический выход �
 
 Где соответствие требуется:
 
-- Обобщённый метод, который уничтожает элемент, не возвращая его (`removeAll`, `remove(k)` без результата,
-  перезапись по индексу, `truncate`, отброшенный результат `replace`), объявляет `where T: ImplicitlyDestroyable`
+- Обобщённый метод, который уничтожает элемент, не возвращая его (`removeAll`, `remove(k)`, который не возвращает
+  элемент, перезапись по индексу, `truncate`), объявляет `where T: ImplicitlyDestroyable`
   ([дженерики](generics.md#ограничения-параметров), [коллекции](types/collections.md#методы-которые-уничтожают-элементы)).
+  Метод, который возвращает элемент (`replace`, `removeLast`), требования не несёт; отброшенный результат
+  несоответствующего типа — ошибка в точке вызова по правилу выше.
   Сам тип коллекции принимает любой `T`; его неявное уничтожение допустимо там, где FLOW доказал, что он пуст.
 - `managed`-слот (поле класса со счётчиком, элемент коллекции внутри него): у последнего освобождения нет выхода,
   на котором программа расходовала бы значение.
@@ -127,8 +129,10 @@ fn runTwo(job: edit Job) {
     while let w = ts.removeLast() { (take w).pthread_join() }   // можно: элемент возвращён, программа его расходует
 }                                                // ts доказанно пуст: ensures result == null ==> count == 0
 
-let f = () own -> Void { capture u = take t; (take u).pthread_join() }   // f не ImplicitlyDestroyable
-(take f)()                                       // обязателен на каждом обычном пути
+fn joinLater(t: own Thread) {
+    let f = () -> Void { capture u = take t; (take u).pthread_join() }   // вид own выведен; f не ImplicitlyDestroyable
+    (take f)()                                   // обязателен на каждом обычном пути
+}
 
 class Pool {                                     // класс без счётчика
     var workers: [own Thread]                    // Pool не ImplicitlyDestroyable
