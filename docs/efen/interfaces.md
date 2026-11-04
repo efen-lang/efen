@@ -168,13 +168,13 @@ interface Counter {
 3. **Dependency injection**
    ```efen
    class App {
-       var logger: Logger  // Может быть любая реализация
-       var database: Database
+       var logger: own Logger  // Может быть любая реализация
+       var database: own Database
 
        @constructor
-       fn init(logger: Logger, db: Database) -> Self {
-           self.logger = logger
-           self.database = db
+       fn init(logger: own Logger, db: own Database) -> Self {
+           self.logger = take logger
+           self.database = take db
        }
    }
    ```

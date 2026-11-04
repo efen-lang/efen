@@ -417,40 +417,6 @@ const CONFIG_MAP = ["host": "localhost", "port": 8080]
 // ERROR_CODES[0] = 200  // Ошибка компиляции!
 ```
 
-## Константы и ссылочные типы
-
-При работе со ссылочными типами константа означает, что сама ссылка не может быть изменена, но объект может быть изменяемым:
-
-```efen
-class Config {
-    var port: Int
-    var host: String
-}
-
-const config = Config(port: 8080, host: "localhost")
-
-// Можно изменить свойства объекта
-config.port = 9000  // OK
-
-// Но нельзя заменить саму ссылку
-config = Config(port: 3000, host: "127.0.0.1")  // Ошибка!
-```
-
-Для полной неизменяемости используйте `let` с неизменяемыми свойствами:
-
-```efen
-class ImmutableConfig {
-    let port: Int
-    let host: String
-}
-
-const config = ImmutableConfig(port: 8080, host: "localhost")
-
-// Нельзя изменить ни ссылку, ни свойства
-config.port = 9000   // Ошибка!
-config = ...         // Ошибка!
-```
-
 ## Публичные и приватные константы
 
 Константы могут иметь модификаторы доступа:

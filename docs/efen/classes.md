@@ -488,7 +488,7 @@ public class File {
 ```
 
 В одном классе можно смешивать методы с телом и внешние методы. Наследования и `open fn` у такого класса нет,
-`conforms` есть. Сырое значение читается только в модуле класса, через representation; форма такого чтения не
+`conforms` есть; `implements` у него не описан. Сырое значение читается только в модуле класса, через representation; форма такого чтения не
 решена.
 
 ### Внешние методы
@@ -598,7 +598,7 @@ let twice = File.adopt(raw: 3)                   // проверочная сб�
     }
 }
 
-fn countUsers(db: mut sqlite3) -> Int throws SqliteError {
+fn countUsers(db: mut sqlite3, query: read String) -> Int throws SqliteError {
     var name = "Alice"
     var s: sqlite3_stmt? = null                  // пуст перед вызовом
     let rc = sqlite3_stmt.sqlite3_prepare_v2(db: db, sql: query.cString, length: -1, self: s)
