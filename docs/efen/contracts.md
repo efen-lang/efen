@@ -262,6 +262,23 @@ evaluate(expression) // indirect variant: передаётся по ссылке
 который пишет `copy x` явно, требует `Copyable`, а не
 `ImplicitlyCopyable`.
 
+### `ThreadBound`
+
+`ThreadBound` — встроенный пустой контракт, как `Movable`: значение такого типа привязано к потоку. Его пишет любой
+тип строкой `conforms ThreadBound`; по умолчанию тип свободен. Значение `ThreadBound` не попадает в многопоточную
+корутину, в тело `offload`, в поле `shared` и в объект `shared layout`
+([общая память](shared.md#привязка-к-потоку-threadbound)).
+
+```efen
+contract ThreadBound {
+}
+
+@abi(c) class sqlite3 {
+    conforms ThreadBound          // соединение sqlite в режиме NOMUTEX
+    …
+}
+```
+
 ## Доступ метода к self
 
 Метод контракта пишет, меняет ли он `self`, тем же правом, что и параметр.
