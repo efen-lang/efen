@@ -302,9 +302,9 @@ for function in Nodes.of<Function>() { ... }
 for base in Nodes.fields<BaseNode>() { ... }
 ```
 
-`Nodes.of<T>()` возвращает `KindView<T, Nodes>`; его читающий cursor выдаёт
-`&read<Nodes> T`. `Nodes.fields<BaseNode>()` возвращает
-`FieldView<BaseNode, Nodes>` с элементами `&read<Nodes> BaseNode` и использует
+`Nodes.of<T>()` возвращает `KindView<T, Nodes>`; его читающий курсор выдаёт
+`read<Nodes> T`. `Nodes.fields<BaseNode>()` возвращает
+`FieldView<BaseNode, Nodes>`, чей курсор выдаёт `read<Nodes> BaseNode`, и использует
 общие columns. Оба view сохраняют identity и origin исходного населения, не
 копируют значения и не создают нового населения.
 

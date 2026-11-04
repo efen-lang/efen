@@ -509,7 +509,7 @@ layout {
     }
 
     struct Pool {
-        own var classes: Classes.Area? { value == null || value.count == CLASSES } = null
+        var classes: own Classes.Area? { value == null || value.count == CLASSES } = null
     }
 }
 ```
@@ -549,7 +549,7 @@ let table: Classes.Area { value.count == CLASSES } = memory as Classes.Area
 
 Статус: предложено в Amber S74.8c1b, не утверждено.
 
-Владеющее поле `own var classes: Classes.Area? { value == null || value.count == CLASSES }` хранит область. `pool.classes![i].size` читает и пишет элемент на
+Владеющее поле `var classes: own Classes.Area? { value == null || value.count == CLASSES }` хранит область. `pool.classes![i].size` читает и пишет элемент на
 месте: поле не забирается, `!` утверждает, что оно не пусто. Пустое поле останавливает программу при выполнении.
 
 ```efen
@@ -655,7 +655,7 @@ fn smallFree(memory: own Pointer?) {
   и состояния. Вызов из Efen и значение такой функции — ошибка.
 - Приведение `(address(m) & ~(A - 1)) as S.Item` разрешено в любом пакете; `A` — выравнивание
   элемента набора `S`, `m` — параметр `@abi(c)` или имя, привязанное к нему. Другой текст — ошибка.
-- Куча живёт между вызовами C в `static own var pool: Pool? = null` класса (пишет любой пакет). Функция `@abi(c)`
+- Куча живёт между вызовами C в `static var pool: own Pool? = null` класса (пишет любой пакет). Функция `@abi(c)`
   берёт её (`take Heap.pool`) и кладёт обратно (`Heap.pool = take pool`) до выхода; другие функции её не называют.
 - Обычная сборка проверяет заголовок найденного блока: вид, класс, `used > 0`, начало места (`index`) и место ниже
   границы нарезки. Двойное освобождение она не ловит, как и модель ред. 6.
@@ -680,7 +680,7 @@ fn smallFree(memory: own Pointer?) {
 - уточнение типа поля заголовка условием вида (`next: own FreeBlock?`);
 - цикл, который берёт несколько элементов: нужен инвариант по `taken`;
 - происхождение `Pointer` через границу контракта (`tryAllocate -> own Pointer?`);
-- нет в спецификации, сделано в компиляторе: `@abi(c)` на функции с телом, `static own var`, приведение
+- нет в спецификации, сделано в компиляторе: `@abi(c)` на функции с телом, `static var x: own T`, приведение
   `(address(m) & ~(A - 1)) as S.Item`, проверка адресов из C в отладочной сборке;
 - как отображение покидает множество блоков при `unmap`.
 - структурное условие `tree from self.root by Item.left, Item.right` — пара к `chained` для дерева.

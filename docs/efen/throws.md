@@ -92,6 +92,7 @@ Throwable                      контракт: reason(), трассы
 │  ├─ DivisionByZeroError      .program
 │  ├─ NullUnwrapError          .program      x! на null
 │  ├─ BoundsError              .program      индекс или диапазон вне коллекции
+│  ├─ OverlapError             .program      пишущие аргументы одного вызова пересеклись
 │  ├─ AllocationError          .environment
 │  └─ StackExhaustedError      .environment
 ├─ Cancellation                SpecialThrowable; .cancellation  отмена корутины
@@ -124,6 +125,9 @@ Throwable                      контракт: reason(), трассы
   контракта ждёт отдельного решения.
 - **Непроверенный индекс бросает `BoundsError`.** Индекс или диапазон, который FLOW не доказал, проверяется во время
   выполнения, и выход за границы — сбой, как переполнение, а не остановка программы.
+- **Пересечение пишущих аргументов бросает `OverlapError`.** Два пишущих аргумента одного вызова, непересечение
+  которых FLOW не доказал, проверяются при вызове сравнением интервалов адресов; пересечение — сбой
+  ([диапазон как цель права](types/access-regions.md#диапазон-как-цель-права)).
 
 - **Причина по умолчанию.** Класс, который не объявил `reason()`, берёт его у предка; корни `Exception` и `Fault`
   возвращают `.unknown`. Сбой возвращает любую причину, кроме `.cancellation`. Корень пакета
@@ -222,7 +226,7 @@ fn handler nothrows {
 код бизнес-уровня не может предотвратить в месте, где он случился. Сбои, которые
 бросает сам компилятор, объявлены в файлах `lang::`
 ([что компилятор берёт у рантайма](runtime/lang-roles.md)): `AllocationError`,
-`OverflowError`, `DivisionByZeroError`, `NullUnwrapError`, `BoundsError`.
+`OverflowError`, `DivisionByZeroError`, `NullUnwrapError`, `BoundsError`, `OverlapError`.
 Свой сбой объявляет подклассом любой модуль; он нужен низкоуровневым библиотекам
 (хранение данных, драйверы), чтобы сказать «данные испорчены» сквозь `nothrows`:
 

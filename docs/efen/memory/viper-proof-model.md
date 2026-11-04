@@ -169,7 +169,8 @@ ReplaceRefinement(rep,kind)    -- proof witness concrete representation
 Uninit(p: Place, T)            -- slot существует и допускает construction
 Init(p: Place, v: T)           -- в slot живёт полностью созданное значение
 ReadCell(p, q)                 -- дробь q, 0 < q <= 1
-WriteCell(p)                   -- полное исключительное право
+WriteCell(p)                   -- полное исключительное право модели для кода representation;
+                               -- на области доступа снаружи не переносится
 LoanRead(loan, p, q)
 LoanWrite(loan, p)
 AreaStable(a, q)               -- доля запрета смены epoch

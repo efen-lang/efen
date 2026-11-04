@@ -189,7 +189,7 @@ class Circle {
 ```efen
 contract Serializable {
     fn serialize -> String
-    fn deserialize(data: String)
+    mut fn deserialize(data: String)
 }
 
 class User {

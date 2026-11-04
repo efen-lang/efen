@@ -82,7 +82,7 @@ storage предоставляет операции и capabilities:
 ```text
 read(identity, field) -> T
 write(identity, field, T)
-borrow(identity, field) -> ref T    // логический origin-bound lens
+borrow(identity, field) -> read<identity> T    // ссылка в поле элемента; источник — identity
 
 Readable
 Writable
