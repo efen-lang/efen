@@ -352,7 +352,7 @@ with makeTaskGroup() {
     let user = spawn { loadUser(id) }
     let orders = spawn { loadOrders(id) }
     let avatar = spawn {                             // стартует, как только готов user
-        capture user = take user                     // дескриптор user теперь у корутины avatar
+        capture user = take user                     // корутина avatar забирает дескриптор user
         loadAvatar(await(take user))
     }
     show(await(take avatar), await(take orders))
