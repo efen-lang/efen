@@ -98,6 +98,14 @@ struct Block {
 }
 ```
 
+`p.alignment == N` в условии значит: адрес `p` кратен `N`. Память, выровненная сильнее, этому условию тоже
+удовлетворяет: `System.map(bytes:aligned:)` с `aligned: PAGE` может вернуть адрес, кратный `BLOCK`.
+
+```efen
+fn smallSlot(pool: mut Pool, size: Int) -> own Pointer?
+    ensures result == null || (result.size >= size && result.alignment == 16)
+```
+
 Шаг структуры, которая кончается полем `area`, равен её `@align`, как в C.
 
 ## Встраивание первым полем — наследование по началу
