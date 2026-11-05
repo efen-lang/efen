@@ -143,6 +143,39 @@ efen build -Werror Proof    # и ошибками
 переполнение, деление на ноль или индекс вне границ, которые видны точно, — ошибка; те, что FLOW не смог исключить, —
 заметка `Proof`, и условие проверяется при выполнении вместе с этой операцией.
 
+### Ошибки условий и объявлений
+
+Правило одно ([условия значений и `invariants`](conditions.md#условия-значений-и-invariants)): условие на одно
+значение — `{ }` в конце его строки-объявления, условие на несколько значений — строка `invariants`, у функции —
+только `requires` и `ensures`. Каждое нарушение — ошибка с подсказкой, куда перенести строку. Исправление не
+машинное: перенос меняет время проверки ([когда условие проверяется](conditions.md#когда-условие-проверяется)),
+поэтому это не диагностика стиля `S`. Группы — `Declaration` и `Proof`.
+
+| Код | Когда | Подсказка |
+|---|---|---|
+| `condition.reads-other-state` | `{ }` у строки читает что-то кроме собственной памяти `value` и констант | перенести строку в `invariants` |
+| `condition.belongs-to-line` | строка `invariants` читает только собственную память одного имени, у которого в этом теле своя строка-объявление | перенести её к этой строке как `{ }` |
+| `condition.second-invariants` | второй блок `invariants` в одном теле | соединить строки в один блок |
+| `condition.function-block` | `{ }` прямо за типом параметра, результата или у строки `param` | строка `requires` или `ensures` |
+| `generic.own-parameter-requires` | `requires T conforms C` про параметр `T`, которого объявила эта же функция | `<T: C>` или `generic T: C` ([ограничения параметров](generics.md#ограничения-параметров)) |
+| `access.write-without-mark` | тело пишет параметр, `self` или окружение `in Env`, у которых нет пометки права, то есть `read` | нужное слово: `edit`, `mut`, `own`, `take` |
+
+```text
+error[condition.reads-other-state]: the condition of `head` reads `value.next`, which is written without writing `head`
+  --> mm/list.efen:4:28
+  help: move the line to `invariants { }` of `List`
+
+error[condition.belongs-to-line]: line 2 of `invariants` reads only `capacity`
+  --> std/ring.efen:9:9
+  help: write it at the declaration: `let capacity: Int { value > 0 }`
+
+error[access.write-without-mark]: `append` writes `self`, but the method has no access mark and is `read fn`
+  --> std/queue.efen:12:5
+  help: mark the method `edit fn` or `mut fn`
+```
+
+Строку `invariants` диагностика называет номером и текстом: имени у неё нет.
+
 ### Группа `Trust`
 
 Заметка `efen.trust` — пакет рискованный: в нём есть места, которые сборка принимает на веру, а не доказывает
