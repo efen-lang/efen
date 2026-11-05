@@ -44,6 +44,7 @@
 - [Typestate](typestate.md) описывает допустимые состояния значения.
 - [Ownership](ownership.md) определяет владение, заимствования, `origin` и
   передачу через `take`.
+- [Неизменяемость](../immutability.md) описывает слот `immutable T` и `readonly class`.
 - [Области доступа](access-regions.md) описывают права `read`, `edit` и
   полное право, итераторы и курсоры как области и их связь с layout.
 - [Disposable](../disposable.md) описывает освобождаемые ресурсы.
