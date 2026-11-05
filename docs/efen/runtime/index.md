@@ -131,7 +131,7 @@ static thread context Counters {
 }
 
 fn incrementCounter {
-    %Counters::counter += 1  // каждый поток имеет свою копию
+    %Counters.counter += 1  // каждый поток имеет свою копию
 }
 ```
 
