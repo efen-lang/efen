@@ -608,11 +608,11 @@ provide {
 [ниже](#layout-и-модель-в-контракте): в байтах их нет). Поле, которое нужно его
 функциям, в тип добавляет аспект — [реализация извне](#реализация-извне): интерфейс storage не владеет
 ([интерфейсы](interfaces.md)). Например, класс со счётчиком пишет пустой контракт `ArcClass`, а поле `refCount` и
-функции над ним даёт аспект из std:
+функции над ним даёт аспект из runtime:
 
 ```efen
 contract ArcClass {             // пишет класс: conforms ArcClass
-    allow implementations from std
+    allow implementations from runtime, std
 }
 
 contract ArcOperations {        // реализует аспект; вызовы расставляет компилятор
@@ -643,7 +643,7 @@ aspect ArcCounter {
 
 ```efen
 contract ArcClass {
-    allow implementations from std
+    allow implementations from runtime, std
 }
 
 contract Tracing {
@@ -684,7 +684,7 @@ error[E....]: `Config` implements part of `Tracing`
 - **Выбор реализации**, от сильного к слабому:
   1. `use Аспект` в корне иерархии — выбор окончательный для этой иерархии;
   2. запись `provide` программы, затем рабочего пространства, затем глобальной конфигурации; ключ такой записи —
-     контракт с `allow implementations`, значение — аспект: `provide { ArcClass: std::ArcCounter }`
+     контракт с `allow implementations`, значение — аспект: `provide { ArcClass: runtime::ArcCounter }`
      ([конфигурация сборки](build-config.md)). Это не связывание эффекта: функции, в которых компилятор вызывает
      методы аспекта, эффекта не получают. Библиотека, секции пакетов и `provides` слоя такую запись не пишут;
   3. `default Аспект` в строке `allow implementations` контракта;

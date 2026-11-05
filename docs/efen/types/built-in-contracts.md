@@ -31,14 +31,14 @@ contract TypeContract {
 ## ArcClass
 
 Контракт `lang::` без требований. Класс со счётчиком владельцев пишет `conforms ArcClass`. Реализацию даёт аспект
-извне ([реализация извне](../contracts.md#реализация-извне)), по умолчанию `ArcCounter` из std: поле счётчика,
+извне ([реализация извне](../contracts.md#реализация-извне)), по умолчанию `ArcCounter` из runtime: поле счётчика,
 методы `retain` и `release` и соответствие `Cloneable`.
 ARC здесь — Automatic Reference Counting: вызовы `retain` и `release` расставляет компилятор. Счётчик не атомарный;
 счётчик, общий для нескольких потоков, — тема `shared class` ([общие классы](../shared.md)).
 
 ```efen
 contract ArcClass {
-    allow implementations from std
+    allow implementations from runtime, std
 }
 ```
 
@@ -71,11 +71,11 @@ contract Destructible {
 Контракт `lang::` без требований. Корень иерархии с `open class` пишет `conforms OpenClass`; без этой строки `open`
 у корня — ошибка компиляции, наследники соответствуют ему через корень. Описатель класса в объекте, по которому
 работают переопределённые методы, интерфейсные таблицы наследников и `catch` по классу, даёт аспект извне
-([реализация извне](../contracts.md#реализация-извне)), по умолчанию из std.
+([реализация извне](../contracts.md#реализация-извне)), по умолчанию `ClassDescriptor` из runtime.
 
 ```efen
 contract OpenClass {
-    allow implementations from std
+    allow implementations from runtime, std
 }
 ```
 
