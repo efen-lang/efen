@@ -93,7 +93,7 @@ api fn apiFunction {
 `Efen` поддерживает параметры типа (generics) для функций, позволяя создавать универсальные алгоритмы:
 
 ```efen
-fn identity<T>(value: T) -> T {
+fn identity<T: Movable>(value: own T) -> T {
     return value
 }
 
@@ -185,7 +185,7 @@ fn multiply -> Int {
 записывается отдельным ключевым словом `generic` и предшествует всем `param`:
 
 ```efen
-fn identity<T>(value: T) -> T {
+fn identity<T: Movable>(value: own T) -> T {
     return value
 }
 ```
