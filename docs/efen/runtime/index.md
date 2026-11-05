@@ -123,7 +123,7 @@ syscall.CloseHandle(handle)
 ### 6. Thread Local Storage (TLS)
 
 Данные, свои у каждого потока, — [контекст потока](../context-and-effects.md#контексты-процесса-и-потока) или
-`static`-поле класса:
+поле `thread let` или `thread var` класса:
 
 ```efen
 static thread context Counters {

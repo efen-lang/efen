@@ -1463,7 +1463,7 @@ let age = inRange(userInput, 0, 150, "age")
 ```efen
 meta fn memoize<K, V>(keyFn: inline -> K, valueFn: inline -> V) -> InlineClosure {
     return inline {
-        static var cache: [K: V] = [:]
+        thread var cache: [K: V] = [:]
 
         let key = keyFn()
         if let cached = cache[key] {

@@ -352,7 +352,7 @@ class MyClass {
     conforms Constructible
 
     // Указываем аллокатор для этого класса
-    static let allocator = Pool(
+    thread let allocator = Pool(
         objectSize: sizeOf(MyClass.self),
         poolSize: 100
     )
