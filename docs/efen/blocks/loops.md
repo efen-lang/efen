@@ -106,6 +106,46 @@ for number in numbers where number % 2 == 0 {
 }
 ```
 
+### Имя курсора в заголовке
+
+Курсор — объект, который ведёт обход и умеет менять коллекцию на ходу: `removing()` удаляет текущий элемент,
+`draining()` забирает элементы и добавляет новые ([области доступа](../types/access-regions.md#итератор-как-структура)).
+Заголовок даёт ему имя так же, как `if let`:
+
+```efen
+for item in let cursor = items.removing() {
+    if item.dead { cursor.remove(take item) }
+}
+
+for job in let queue = jobs.draining() {
+    if job.depth > 0 { queue.append(Job(depth: job.depth - 1)) }
+    run(take job)
+}
+```
+
+- Имя видно в заголовке после `=` и в теле. Курсором владеет цикл: выход итератора выполняется при любом выходе из
+  цикла (`break`, `return`, исключение), и после `}` коллекция снова открыта.
+- Источник необязательного типа разворачивается, как в `if let`: при `null` цикл не выполняется ни разу.
+
+  ```efen
+  let maybe: Vector<Job>? = load()
+  for job in let queue = maybe?.draining() { … }   // maybe == null: тело не выполняется
+  ```
+
+- `var` вместо `let` — ошибка: `let` запрещает перепривязку, а не изменение, и `cursor.remove` с ним разрешён.
+- Слово права рядом с `let` не пишется: право задаёт сигнатура метода курсора (`mut fn removing`). Записи
+  `for x in mut let c = …` и `for x in let c = mut v` — ошибки.
+- Замыкание имя курсора не захватывает.
+
+Без имени в заголовке курсор пишут явно, через `while let`; тогда им владеет внешний блок, а не цикл:
+
+```efen
+let cursor = items.removing()
+while let item = cursor.next() {
+    if item.dead { cursor.remove(take item) }
+}
+```
+
 ## Цикл while
 
 Цикл `while` выполняется, пока условие истинно. Проверка условия происходит
