@@ -1000,7 +1000,7 @@ meta fn logAndMeasure(name: String, body: InlineClosure) -> InlineClosure {
 ### Базовый синтаксис
 
 ```efen
-meta fn functionName(params...) -> InlineClosure {
+meta fn functionName(…) -> InlineClosure {
     // Compile-time код для генерации замыкания
     return inline {
         // Runtime код, который будет встроен
