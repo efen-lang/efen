@@ -2,7 +2,7 @@
 
 [Корень репозитория](../../README.md) · [Словарь](glossary.md) · [Amber HIR](https://github.com/efen-lang/amber/blob/main/design/README.md)
 
-Efen — компилируемый язык с программируемыми compile-time абстракциями. Эта
+Efen — компилируемый язык с программируемыми абстракциями времени компиляции. Эта
 документация описывает проект языка: наличие конструкции в ней не означает, что
 компилятор уже её реализует.
 
@@ -12,29 +12,29 @@ Efen — компилируемый язык с программируемыми
 |---|---|
 | Понять модель языка | [Абстракции](abstractions.md) → [типы и данные](types/README.md) → [функции](functions.md) → [классы](classes.md) |
 | Написать обычный код | [Философия и синтаксис](philosophy.md) → [вызовы](function-call-syntax.md) → [управляющие конструкции](blocks/README.md) → [ошибки](throws.md) |
-| Работать с данными и ресурсами | [Типы и данные](types/README.md) → [ownership](types/ownership.md) → [memory guide](memory/README.md) |
-| Расширить поведение типа | [Контракты](contracts.md) → [interfaces](interfaces.md) → [стратегии](strategies.md) |
-| Писать метапрограммирование | [Аспекты](aspects/README.md) → [Compile-time API](compile-time/README.md) → [метафункции](compile-time/metafunctions.md) |
-| Понять toolchain | [Режимы компиляции](compilation-modes.md) → [диалекты](dialects.md) → [Amber](https://github.com/efen-lang/amber/blob/main/design/README.md) |
+| Работать с данными и ресурсами | [Типы и данные](types/README.md) → [владение и доступ](types/ownership.md) → [память и компоновка](memory/README.md) |
+| Расширить поведение типа | [Контракты](contracts.md) → [интерфейсы](interfaces.md) → [стратегии](strategies.md) |
+| Писать метапрограммирование | [Аспекты](aspects/README.md) → [API времени компиляции](compile-time/README.md) → [метафункции](compile-time/metafunctions.md) |
+| Понять устройство компилятора и сборки | [Режимы компиляции](compilation-modes.md) → [диалекты](dialects.md) → [Amber](https://github.com/efen-lang/amber/blob/main/design/README.md) |
 | Понять модули и архитектурные границы | [Пакеты](packages.md) → [видимость](visibility.md) → [слои](layers.md) |
-| Работать с ambient-зависимостями и ошибками | [Контексты и эффекты](context-and-effects.md) → [`throws`](throws.md) → [code regions](code-regions.md) |
+| Работать с контекстными зависимостями и ошибками | [Контексты и эффекты](context-and-effects.md) → [`throws`](throws.md) → [области кода](code-regions.md) |
 
 ## Карта разделов
 
 | Раздел | Что внутри |
 |---|---|
 | [Выражения и поток](blocks/README.md) | [функции](functions.md), [вызовы](function-call-syntax.md), [замыкания](closure.md), [генераторы](generators.md), [flow](flow.md), [`is`](is.md), [деструктуризация](destructuring.md), [условия функций](conditions.md), [операторы](operators.md), [комментарии](comments.md), [условная компиляция](сonditional_compilation.md) |
-| [Типы и данные](types/README.md) | Формы данных, коллекции, generics, ownership и typestate |
-| [Абстракции](abstractions.md) | [классы](classes.md), [структуры](structs.md), [контракты](contracts.md), [interfaces](interfaces.md), [superpolymorphism](superpolymorphism.md) |
-| [Расширение поведения](contracts.md) | Контракты, interfaces, superpolymorphism и стратегии |
-| [Метапрограммирование](aspects/README.md) | Аспекты, построение класса, member resolver, metadata, декораторы и Compile-time API |
+| [Типы и данные](types/README.md) | Формы данных, коллекции, параметры типов, владение и состояния |
+| [Абстракции](abstractions.md) | [классы](classes.md), [структуры](structs.md), [контракты](contracts.md), [интерфейсы](interfaces.md), [делегирование реализации](superpolymorphism.md) |
+| [Расширение поведения](contracts.md) | Контракты, интерфейсы, делегирование реализации и стратегии |
+| [Метапрограммирование](aspects/README.md) | Аспекты, построение класса, разрешение имён членов, метаданные, декораторы и Compile-time API |
 | [Модули и архитектура](packages.md) | Пакеты, модули, пространства имён, видимость и слои |
 | [Конфигурация сборки](build-config.md) | `config`: зависимости, рантайм и аллокатор, платформа, режимы, уровни |
 | [Сертификация](certification.md) | Кто ручается за плагины, которые компилятор не может проверить: сертификаты, уровни, несколько центров |
 | [Подпись библиотек](signing.md) | Только владелец ключа автора выпускает версию: ключи в конфигурации, потолок возможностей, готовые файлы, git |
-| [Контексты, эффекты и ошибки](context-and-effects.md) | Ambient-зависимости, `throws`, `try/catch`, `guard`, code regions и [общая память](shared.md) |
-| [Память и представление](memory/README.md) | Владение, representation, layout, примеры и proof boundary |
-| [Toolchain и интеграция](compile-time/README.md) | Режимы компиляции, диалекты, runtime API и Amber |
+| [Контексты, эффекты и ошибки](context-and-effects.md) | Контекстные зависимости, `throws`, `try/catch`, `guard`, области кода и [общая память](shared.md) |
+| [Память и представление](memory/README.md) | Владение, представление в памяти, компоновка, примеры и границы доказательств |
+| [Компилятор и интеграция](compile-time/README.md) | Режимы компиляции, диалекты, API среды выполнения и Amber |
 | [Библиотеки на C](foreign.md) | Модуль по заголовку C, пометка `@fill`, сверка с заголовком, проверочная сборка |
 
 ## Ориентиры и границы
@@ -42,18 +42,18 @@ Efen — компилируемый язык с программируемыми
 - [Словарь](glossary.md) определяет термины; его стоит предпочесть совпадению
   слов в старом примере.
 - [Философия языка](philosophy.md) объясняет канонический синтаксис. Первую
-  букву имени регулирует грамматика: типы, состояния, populations `set` и
+  букву имени регулирует грамматика: типы, состояния, множества элементов `set` и
   контексты начинаются с заглавной; значения, функции, поля, значения `enum`
-  и cases `variant` — со строчной. Неявный receiver называется `self`, а его
+  и случаи `variant` — со строчной. Неявный получатель вызова называется `self`, а его
   лексический тип — `Self`.
 - [Исследования](../research/README.md) — сравнительные и внешние материалы;
   они ненормативны.
 - Принятые межрепозиторные решения и план реализации ведутся в Amber:
-  [decision log](https://github.com/efen-lang/amber/blob/main/dev/DECISIONS.md)
-  и [plan](https://github.com/efen-lang/amber/blob/main/dev/PLAN.md).
+  [журнал решений](https://github.com/efen-lang/amber/blob/main/dev/DECISIONS.md)
+  и [план](https://github.com/efen-lang/amber/blob/main/dev/PLAN.md).
 - Актуальная очередь ещё не решённых тем поверхности Efen находится в
   [`dev/language-design-questions.md`](../../dev/language-design-questions.md).
-  Историческое обсуждение и review не переопределяют текущие языковые документы.
+  Историческое обсуждение и результаты рецензирования не переопределяют текущие языковые документы.
 
 ## Как проверить утверждение
 
@@ -61,7 +61,7 @@ Efen — компилируемый язык с программируемыми
 |---|---|
 | Как конструкция должна вести себя? | Тематический документ в `docs/efen/` |
 | Что означает термин? | [Словарь](glossary.md) |
-| Почему решение принято или отменено? | [Amber decision log](https://github.com/efen-lang/amber/blob/main/dev/DECISIONS.md) |
-| Что ещё нужно спроектировать или реализовать? | [Очередь вопросов Efen](../../dev/language-design-questions.md) и [Amber plan](https://github.com/efen-lang/amber/blob/main/dev/PLAN.md) |
-| Как семантика хранится в HIR? | [Amber HIR guide](https://github.com/efen-lang/amber/blob/main/design/hir/README.md) |
-| Реализовано ли это? | Нужны код и runtime/compiler tests; одной документации недостаточно |
+| Почему решение принято или отменено? | [Журнал решений Amber](https://github.com/efen-lang/amber/blob/main/dev/DECISIONS.md) |
+| Что ещё нужно спроектировать или реализовать? | [Очередь вопросов Efen](../../dev/language-design-questions.md) и [План Amber](https://github.com/efen-lang/amber/blob/main/dev/PLAN.md) |
+| Как семантика хранится в HIR? | [Описание HIR в Amber](https://github.com/efen-lang/amber/blob/main/design/hir/README.md) |
+| Реализовано ли это? | Нужны реализация и тесты компилятора и среды выполнения; одной документации недостаточно |

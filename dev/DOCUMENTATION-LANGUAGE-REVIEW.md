@@ -31,9 +31,10 @@
 
 ## Текущий шаг
 
-Завершён редакционный проход по всему разделу «Типы и данные»: **20 из 112**
-статей. Следующая группа — «Основы и абстракции», начиная с `README.md`,
-`abstractions.md`, `contracts.md`, `classes.md` и `structs.md`.
+Завершены группы «Типы и данные» и «Основы и абстракции»: **33 из 112**
+статей. Следующая группа — выражения, функции и управление выполнением:
+сначала `blocks/README.md`, `blocks/if.md`, `blocks/guard.md`, затем остальные
+статьи группы по списку.
 
 В `types/ownership.md` добавлены диаграмма общей модели, таблица прав
 `read`/`edit`/`mut`/`out`/`own`, сравнение `copy`/`clone`/`take` и правила
@@ -61,6 +62,29 @@
 право метода якобы выводилось из тела. Теперь указан действующий порядок —
 методы объявляют `edit fn` или `mut fn`, без пометки используется `read`.
 Вывод сводки действий из тела сохраняется и не смешивается с правом метода.
+
+### Основы и абстракции
+
+Прочитаны целиком все 13 статей группы. Согласованы определения класса,
+структуры, контракта и интерфейса; убраны безусловные обещания бинарной
+совместимости и отсутствия затрат. Статья об абстракциях объясняет,
+что программируется в реализации и какие правила исходного кода сохраняются.
+
+Переработаны объяснения представлений, параметров типов, пакетов параметров,
+стратегий и неизменяемости. В примерах явно указаны права изменяющих методов,
+владение сохраняемыми аргументами и отличие массива от растущего вектора.
+Неполный пример CoW заменён объяснением требований к реализации типа.
+
+Устаревшие формы условного владения и записи в `classes.md`, `disposable.md`
+и связанных пояснениях приведены к `ensures taken(...)` / `ensures written(...)`
+по уже принятой [таблице перехода](../docs/efen/conditions.md#условия-функции-только-requires-и-ensures).
+Это синхронизация документации с действующей записью, а не новое решение языка.
+Статьи о внешнем коде будут отдельно проверены в группе памяти.
+
+Исправлены записи словаря о правах методов, `thread` и `static`, размеченных
+и структурных объединениях. Сохранены адреса переименованных разделов,
+проверены ссылки и блоки Markdown. В `types/access-regions.md` добавлен
+отсутствовавший заголовок для существующей ссылки на временные значения.
 
 ### Вопросы, которые нельзя решить одной редактурой
 
@@ -102,19 +126,19 @@
 
 | Документ | Статус |
 |---|---|
-| [README.md](../docs/efen/README.md) | Ожидает |
-| [abstractions.md](../docs/efen/abstractions.md) | Ожидает |
-| [classes.md](../docs/efen/classes.md) | Ожидает |
-| [contracts.md](../docs/efen/contracts.md) | В работе |
-| [disposable.md](../docs/efen/disposable.md) | Ожидает |
-| [generics.md](../docs/efen/generics.md) | Ожидает |
-| [glossary.md](../docs/efen/glossary.md) | В работе |
-| [immutability.md](../docs/efen/immutability.md) | Ожидает |
-| [interfaces.md](../docs/efen/interfaces.md) | Ожидает |
-| [representations.md](../docs/efen/representations.md) | Ожидает |
-| [strategies.md](../docs/efen/strategies.md) | Ожидает |
-| [structs.md](../docs/efen/structs.md) | Ожидает |
-| [type-aliases.md](../docs/efen/type-aliases.md) | Ожидает |
+| [README.md](../docs/efen/README.md) | Проверена |
+| [abstractions.md](../docs/efen/abstractions.md) | Проверена |
+| [classes.md](../docs/efen/classes.md) | Проверена |
+| [contracts.md](../docs/efen/contracts.md) | Проверена |
+| [disposable.md](../docs/efen/disposable.md) | Проверена |
+| [generics.md](../docs/efen/generics.md) | Проверена |
+| [glossary.md](../docs/efen/glossary.md) | Проверена |
+| [immutability.md](../docs/efen/immutability.md) | Проверена |
+| [interfaces.md](../docs/efen/interfaces.md) | Проверена |
+| [representations.md](../docs/efen/representations.md) | Проверена |
+| [strategies.md](../docs/efen/strategies.md) | Проверена |
+| [structs.md](../docs/efen/structs.md) | Проверена |
+| [type-aliases.md](../docs/efen/type-aliases.md) | Проверена |
 
 ## 3. Выражения, функции и управление выполнением
 
