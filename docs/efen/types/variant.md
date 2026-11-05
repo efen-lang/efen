@@ -18,9 +18,9 @@ variant ServerResponse {
 let response = ServerResponse.failure(code: 404, message: "Not Found")
 ```
 
-В нормативном тексте `variant` называется типом, а `pending`, `success` и
-`failure` — его **конструкторами** или **случаями**. Это устраняет двусмысленность
-слова «вариант».
+В этом примере `ServerResponse` — тип с тремя случаями: `pending`, `success`
+и `failure`. Запись `ServerResponse.failure(code: 404, message: "Not Found")`
+создаёт значение случая `failure` и задаёт его поля.
 
 ## Семантика sum of products
 
