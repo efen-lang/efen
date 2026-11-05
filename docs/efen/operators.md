@@ -336,8 +336,8 @@ a is B is C                      // ошибка компиляции
 
 ```efen
 let result = [1, 2, 3]
-    |> map((x) => x * 2)
-    |> filter((x) => x > 3)
+    |> map => item * 2
+    |> filter => item > 3
 ```
 
 #### `<|`

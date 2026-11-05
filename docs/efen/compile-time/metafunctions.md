@@ -143,8 +143,8 @@ withLogging => {
 
 1. Внутри строкового литерала `${...}` — всегда интерполяция во время выполнения.
    Вставка кода в строки не заходит.
-2. Вставка кода пишется только со скобками — `${code}`. Голое `$name` —
-   плейсхолдер замыкания, а не вставка.
+2. Вставка кода пишется только со скобками — `${code}`; голое `$name` — не вставка.
+   Значение метакода попадает в строку через вставку в переменную: `let text = ${message}`, затем `"${text}"`.
 
 **Важно:** Placeholders работают **только внутри inline closure**. Это безопасно, потому что:
 - ✅ Код встраивается в изолированную область видимости closure
@@ -1662,11 +1662,15 @@ meta fn check(condition: Expression, message: String) -> InlineClosure {
     // location указывает на место ВЫЗОВА check(), не на его определение
     let callSite = location.toString()
 
+    let function = location.function ?? "global scope"
+
     return inline {
         if !${condition} {
-            throw CheckError(
-                "${message}\n  at ${callSite}\n  in ${location.function ?? "global scope"}"
-            )
+            // значения метакода входят в код вставкой; в строке ${…} — интерполяция во время выполнения
+            let message = ${message}
+            let callSite = ${callSite}
+            let function = ${function}
+            throw CheckError("${message}\n  at ${callSite}\n  in ${function}")
         }
     }
 }

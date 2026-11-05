@@ -172,7 +172,7 @@ variant epoll_data_t {
    ```c
    struct Value {
        int kind;
-       union { int number; char *text; } as;
+       union { int number; char *text; } value;
    };
    ```
 
@@ -180,11 +180,11 @@ variant epoll_data_t {
    @abi(c)
    struct Value {
        kind: Int32
-       as: Value_as { kind == 1 ==> as is .number, kind == 2 ==> as is .text }
+       value: Value_value { kind == 1 ==> value is .number, kind == 2 ==> value is .text }
    }
    ```
 
-   Запись в `kind` меняет структуру значения и разрешена только вместе с записью нового случая в `as`. Метка, которую
+   Запись в `kind` меняет структуру значения и разрешена только вместе с записью нового случая в `value`. Метка, которую
    условие не называет (новая версия библиотеки добавила `kind == 3`), не даёт читать ни один случай; `match` по
    такому значению обязан иметь ветку для неназванных меток. Шаблон общего начала (`SDL_Event`, где `type` лежит в
    каждом случае и жив всегда) записывается так же, но `type` остаётся в каждом случае: вынос общего поля сдвинул
