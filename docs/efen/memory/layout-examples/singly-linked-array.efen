@@ -55,13 +55,13 @@ aspect List<Target> {
         }
 
         public fn read(index: Size) -> Target
-            where Target: Copyable
+            requires Target conforms Copyable
         {
             return itemAt(index).Target
         }
 
         public fn replace(index: Size, value: own Target) -> Target
-            where Target: Movable
+            requires Target conforms Movable
         {
             let item = itemAt(index)
             let previous = replace(item.Target, value)
@@ -70,7 +70,7 @@ aspect List<Target> {
         }
 
         public fn append(value: own Target)
-            where Target: Movable
+            requires Target conforms Movable
         {
             let nextLength = self.length + 1
             let item = Items.allocate(
@@ -90,7 +90,7 @@ aspect List<Target> {
         }
 
         public fn insert(index: Size, value: own Target)
-            where Target: Movable
+            requires Target conforms Movable
         {
             if index > self.length {
                 throw BoundsError(index, self.length)
@@ -120,7 +120,7 @@ aspect List<Target> {
         }
 
         public fn remove(index: Size) -> Target
-            where Target: Movable
+            requires Target conforms Movable
         {
             if index >= self.length {
                 throw BoundsError(index, self.length)

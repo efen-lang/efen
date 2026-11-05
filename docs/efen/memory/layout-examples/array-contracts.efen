@@ -1,14 +1,18 @@
 contract IndexedSequence<Element> {
     fn count -> Size
-    fn read(index: Size) -> Element where Element: Copyable
+    fn read(index: Size) -> Element
+        requires Element conforms Copyable
     fn replace(index: Size, value: own Element) -> Element
-        where Element: Movable
+        requires Element conforms Movable
 }
 
 contract ResizableSequence<Element> {
-    fn append(value: own Element) where Element: Movable
-    fn insert(index: Size, value: own Element) where Element: Movable
-    fn remove(index: Size) -> Element where Element: Movable
+    fn append(value: own Element)
+        requires Element conforms Movable
+    fn insert(index: Size, value: own Element)
+        requires Element conforms Movable
+    fn remove(index: Size) -> Element
+        requires Element conforms Movable
 }
 
 struct Array {

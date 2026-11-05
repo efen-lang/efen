@@ -29,7 +29,7 @@ aspect Contiguous<Target> {
             count: Size,
             make: (Size) -> Target
         ) -> Self
-            where Target: Movable
+            requires Target conforms Movable
         {
             self.root = null
             self.capacity = count
@@ -65,13 +65,13 @@ aspect Contiguous<Target> {
         }
 
         public fn read(index: Size) -> Target
-            where Target: Copyable
+            requires Target conforms Copyable
         {
             return itemAt(index).Target
         }
 
         public fn replace(index: Size, value: own Target) -> Target
-            where Target: Movable
+            requires Target conforms Movable
         {
             let item = itemAt(index)
             let previous = replace(item.Target, value)
