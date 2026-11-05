@@ -53,20 +53,20 @@ strategy MyAllocator<Type> {
     conforms Allocator<Type>
 
     fn allocate(size: Size<Type>) -> Pointer<Type> {
-        return memory::Manager.allocate(size);
+        return memory::Manager.allocate(size)
     }
 
     fn deallocate(pointer: Pointer<Type>) {
-        memory::Manager.deallocate(pointer);
-    }    
+        memory::Manager.deallocate(pointer)
+    }
 }
 
-class MyObject 
-{
-    var data: Int;
+class MyObject {
+    conforms Constructible
+    var data: Int
 
-    fn init {
-        self.data = data;
+    @constructor fn init(data: Int) -> Self {
+        self.data = data
     }
 }
 

@@ -36,7 +36,7 @@ aspect AspectName
     }
 
     // Aspect can be
-    applied for classes, interfaces, strategies, aspects;
+    applied for classes, interfaces, strategies, aspects
 
     // Requirements
     
@@ -77,8 +77,8 @@ aspect AspectName
 
 ```efen
 class MyClass {
-    use AspectName;
-    // Class implementation
+    use AspectName
+    // реализация класса
 }
 ```
 
@@ -86,20 +86,20 @@ class MyClass {
 
 ```efen
 aspect Queue<Item> {
-    array items: Item[] = [];
-    required method enqueue(item: Item);
-    required method dequeue -> Item;
+    var items: Vector<Item> = []
+    required method enqueue(item: own Item)
+    required method dequeue -> Item?
 }
 
 class IntQueue {
-    use Queue<Int>;
-    
-    method enqueue(item: Int) {
-        items.push(item);
+    use Queue<Int>
+
+    mut fn enqueue(item: own Int) {
+        items.append(take item)
     }
-    
-    method dequeue -> Int {
-        return items.pop();
+
+    mut fn dequeue -> Int? {
+        return items.removeLast()
     }
 }
 ```

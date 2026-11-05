@@ -141,159 +141,22 @@ class Arena {
 **Пример использования:**
 
 ```efen
-fn processRequests(requests: [Request]) {
-    // Создаем arena для обработки одного батча запросов
-    let arena = Arena(size: 1024 * 1024)  // 1 MB
-
-    for request in requests {
-        // Все временные данные выделяются в arena
-        let tempData = allocateInArena(arena, size: request.dataSize)
-        processRequest(request, tempData)
-
-        // Не нужно освобождать каждый tempData
-    }
-
-    // Вся память освобождается одним вызовом
-    arena.clear()
-}
-```
-
-### Pool Allocator
-
-Pool allocator выделяет объекты фиксированного размера из предварительно выделенного пула.
-
-**Преимущества:**
-- O(1) выделение и освобождение
-- Нет фрагментации
-- Отличная кеш-локальность
-- Идеален для объектов одного типа
-
-**Недостатки:**
-- Только фиксированный размер объектов
-- Может тратить память если пул не полностью используется
-
-```efen
-use runtime::memory
-
-class Pool {
+@allocator(Pool)
+class Node {
     conforms Constructible
 
-    implements PoolAllocator, Disposable
-
-    private var objectSize: Size
-    private var poolSize: Size
-    private var buffer: Pointer
-    private var freeList: Pointer
+    var value: Int
+    var next: Node?
 
     @constructor
-    fn init(objectSize: Size, poolSize: Size) -> Self {
-        self.objectSize = objectSize
-        self.poolSize = poolSize
-
-        // Выделяем память для всего пула
-        let totalSize = objectSize * poolSize
-        self.buffer = malloc(totalSize)
-
-        // Инициализируем free list
-        initializeFreeList()
-    }
-
-    private fn initializeFreeList {
-        self.freeList = self.buffer
-
-        // Связываем все блоки в список
-        var current = self.buffer
-        for i in 0..<poolSize - 1 {
-            let next = current + objectSize
-            *(current as *Pointer) = next
-            current = next
-        }
-
-        // Последний блок указывает на null
-        *(current as *Pointer) = null
-    }
-
-    fn acquire -> Pointer {
-        if self.freeList == null {
-            error("Pool exhausted")
-        }
-
-        let ptr = self.freeList
-        self.freeList = *(ptr as *Pointer)
-        return ptr
-    }
-
-    fn release(ptr: Pointer) {
-        // Возвращаем блок в начало free list
-        *(ptr as *Pointer) = self.freeList
-        self.freeList = ptr
-    }
-
-    fn allocate(size: Size) -> Pointer {
-        if size != self.objectSize {
-            error("Pool can only allocate objects of size ${objectSize}")
-        }
-        return acquire()
-    }
-
-    fn reallocate(ptr: Pointer, size: Int) -> Pointer {
-        error("Pool does not support realloc")
-    }
-
-    fn deallocate(ptr: Pointer) {
-        release(ptr)
-    }
-
-    fn dispose {
-        free(self.buffer)
+    fn init(value: Int) -> Self {
+        self.value = value
+        self.next = null
     }
 }
-```
 
-**Пример использования:**
-
-```efen
-// Пул для Node объектов в linked list
-struct Node {
-    value: Int
-    next: Node?
-}
-
-let nodePool = Pool(
-    objectSize: sizeOf(Node.self),
-    poolSize: 1000
-)
-
-fn createLinkedList(values: [Int]) -> Node? {
-    var head: Node? = null
-    var tail: Node? = null
-
-    for value in values {
-        // Быстрое выделение из пула
-        let nodePtr = nodePool.acquire()
-        let node = Node(value: value, next: null)
-        memcpy(nodePtr, &node, sizeOf(Node.self))
-
-        if head == null {
-            head = nodePtr as *Node
-            tail = head
-        } else {
-            tail!.next = nodePtr as *Node
-            tail = tail!.next
-        }
-    }
-
-    return head
-}
-
-fn destroyLinkedList(head: Node?) {
-    var current = head
-    while current != null {
-        let next = current!.next
-        nodePool.release(current as Pointer)
-        current = next
-    }
-}
+// Каждый Node выделяется из пула и возвращается в него при уничтожении
+let head = Node(value: 1)
 ```
 
 ### Stack Allocator
@@ -469,20 +332,18 @@ fn parseJSON(json: String) -> JSONValue {
 ### 2. Используйте Pool для объектов одного типа
 
 ```efen
-// Игровой движок: пул для entity объектов
-class GameWorld {
-    private let entityPool = Pool(
-        objectSize: sizeOf(Entity.self),
-        poolSize: 10000
-    )
+// Игровой движок: entity выделяются из пула
+@allocator(Pool)
+class Entity {
+    conforms Constructible
 
-    fn spawnEntity -> Entity {
-        let ptr = entityPool.acquire()
-        return ptr as *Entity
-    }
+    var x: Float
+    var y: Float
 
-    fn despawnEntity(entity: Entity) {
-        entityPool.release(entity as Pointer)
+    @constructor
+    fn init(x: Float, y: Float) -> Self {
+        self.x = x
+        self.y = y
     }
 }
 ```
