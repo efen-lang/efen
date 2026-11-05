@@ -725,7 +725,7 @@ next = script.count - (rest?.count ?? 0)    // rest — ссылка на script
 
 ```efen
 fn head(values: edit Vector<Int>, n: Int) -> edit<values> [Int] {
-    return &values[0 ..< n]
+    return &values[0..<n]
 }
 
 var nums = [1, 2, 3, 4]
