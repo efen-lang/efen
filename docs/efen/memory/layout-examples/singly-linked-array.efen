@@ -1,9 +1,7 @@
 aspect List<Target> {
     conforms Representation<Target>
     layout {
-        set Items: Item {
-            chained from self.head by Item.next
-        }
+        set Items: Item
 
         struct Item {
             Target
@@ -12,18 +10,17 @@ aspect List<Target> {
 
         struct Self {
             var head: own Items.Item? = null
+            var tail: read Items.Item? = null
+            var length: Size = 0
+            ghost var nodes: Sequence<Items.Item> = Sequence()
 
-            var tail: read Items.Item? = null {
-                (self.head == null) == (value == null)
-
-                if value != null {
-                    value reachable from self.head by Item.next
-                    value.next == null
-                }
-            }
-
-            var length: Size = 0 {
-                value == Items.count
+            invariants {
+                head == nodes.first
+                forall i in 0 ..< nodes.count - 1: nodes[i].next == nodes[i + 1]
+                nodes.count == 0 || nodes.last!.next == null
+                nodes.count == Items.count
+                tail == nodes.last
+                length == nodes.count
             }
         }
     }
@@ -79,6 +76,7 @@ aspect List<Target> {
             let item = Items.allocate(
                 Item(take value, next: null)
             )
+            ghost nodes = nodes + Sequence(item)
 
             if self.tail == null {
                 self.head = take item
@@ -107,6 +105,7 @@ aspect List<Target> {
             let item = Items.allocate(
                 Item(take value, next: null)
             )
+            ghost nodes = nodes[0 ..< index] + Sequence(item) + nodes[index ..< nodes.count]
 
             if index == 0 {
                 item.next = take self.head
@@ -128,6 +127,7 @@ aspect List<Target> {
             }
 
             var victim: own Items.Item
+            ghost nodes = nodes[0 ..< index] + nodes[index + 1 ..< nodes.count]
 
             if index == 0 {
                 victim = take self.head!
