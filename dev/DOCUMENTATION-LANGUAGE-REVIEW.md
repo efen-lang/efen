@@ -31,13 +31,34 @@
 
 ## Текущий шаг
 
-Завершить раздел «Типы и данные», затем перейти к основам и абстракциям.
-Проверены 10 из 112 статей; остальные правки в разделе типов пока проходят проверку.
-Определение контракта и связанные термины в словаре исправляются вместе с типами.
+В разделе типов проверены 18 из 20 статей. Всего проверены **18 из 112**.
+Следующие документы — `types/collections.md` и `types/access-regions.md`.
+Затем начинается группа «Основы и абстракции».
 
-Дополнительно прорабатывается общая модель в `types/ownership.md`: диаграмма,
-права `read`/`edit`/`mut`/`out`/`own`, операции `copy`/`clone`/`take`
-и ограничения параллельного доступа. Отрисовка диаграммы проверена Mermaid CLI.
+В `types/ownership.md` добавлены диаграмма общей модели, таблица прав
+`read`/`edit`/`mut`/`out`/`own`, сравнение `copy`/`clone`/`take` и правила
+параллельного доступа. Отрисовка диаграммы проверена Mermaid CLI.
+
+## Журнал проверки
+
+### Следующий проход по типам
+
+Полностью прочитаны и отредактированы ещё восемь статей: встроенные контракты,
+константы, словари, опциональные типы, владение, SIMD, строки и состояния типов.
+Исправлены тяжёлые формулировки, оставшиеся английские заголовки и примеры,
+которые противоречили собственному объяснению. Старые адреса переименованных
+разделов сохранены; ссылки проверяются после каждой группы правок.
+
+### Вопросы, которые нельзя решить одной редактурой
+
+- В `types/strings.md` изменение строки разрешено только у `var`, а общая
+  модель в `types/ownership.md` допускает запись через `let`, если это разрешает
+  тип. Требуется подтвердить, является ли ограничение строк отдельным правилом.
+  До решения оба правила сохранены в своих документах.
+- Пример `TypeContract` в `types/built-in-contracts.md` содержит имена элементов
+  `TypeKind` с заглавной буквы, тогда как статья о перечислениях требует строчную.
+  Требуется сверить пример с действующей моделью метаданных. Имена не переименованы
+  редакторской правкой.
 
 ## 1. Типы и данные
 
@@ -46,21 +67,21 @@
 | [types/README.md](../docs/efen/types/README.md) | Проверена |
 | [types/access-regions.md](../docs/efen/types/access-regions.md) | В работе |
 | [types/basic-types.md](../docs/efen/types/basic-types.md) | Проверена |
-| [types/built-in-contracts.md](../docs/efen/types/built-in-contracts.md) | В работе |
+| [types/built-in-contracts.md](../docs/efen/types/built-in-contracts.md) | Проверена |
 | [types/collections.md](../docs/efen/types/collections.md) | В работе |
-| [types/constants.md](../docs/efen/types/constants.md) | В работе |
-| [types/dictionaries.md](../docs/efen/types/dictionaries.md) | В работе |
+| [types/constants.md](../docs/efen/types/constants.md) | Проверена |
+| [types/dictionaries.md](../docs/efen/types/dictionaries.md) | Проверена |
 | [types/enum.md](../docs/efen/types/enum.md) | Проверена |
 | [types/function-type.md](../docs/efen/types/function-type.md) | Проверена |
-| [types/optional.md](../docs/efen/types/optional.md) | В работе |
-| [types/ownership.md](../docs/efen/types/ownership.md) | В работе |
+| [types/optional.md](../docs/efen/types/optional.md) | Проверена |
+| [types/ownership.md](../docs/efen/types/ownership.md) | Проверена |
 | [types/projection.md](../docs/efen/types/projection.md) | Проверена |
 | [types/refinement-types.md](../docs/efen/types/refinement-types.md) | Проверена |
-| [types/simd.md](../docs/efen/types/simd.md) | В работе |
-| [types/strings.md](../docs/efen/types/strings.md) | В работе |
+| [types/simd.md](../docs/efen/types/simd.md) | Проверена |
+| [types/strings.md](../docs/efen/types/strings.md) | Проверена |
 | [types/tuples.md](../docs/efen/types/tuples.md) | Проверена |
 | [types/type.md](../docs/efen/types/type.md) | Проверена |
-| [types/typestate.md](../docs/efen/types/typestate.md) | В работе |
+| [types/typestate.md](../docs/efen/types/typestate.md) | Проверена |
 | [types/value-parameterized-types.md](../docs/efen/types/value-parameterized-types.md) | Проверена |
 | [types/variant.md](../docs/efen/types/variant.md) | Проверена |
 
