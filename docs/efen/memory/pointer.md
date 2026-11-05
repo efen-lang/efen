@@ -611,7 +611,7 @@ layout {
 типа, по форме [уточнённых типов](../types/refinement-types.md):
 
 ```efen
-let table: Classes.Area { value.count == CLASSES } = memory as Classes.Area
+let table: Classes.Area = memory as Classes.Area { value.count == CLASSES }
 ```
 
 - у необязательного поля — `{ value == null || value.count == N }`, у остальных — `{ value.count == N }`;
@@ -641,7 +641,7 @@ let table: Classes.Area { value.count == CLASSES } = memory as Classes.Area
 
 Статус: предложено в Amber S74.8c1b, не утверждено.
 
-Владеющее поле `var classes: own Classes.Area? { value == null || value.count == CLASSES }` хранит область. `pool.classes![i].size` читает и пишет элемент на
+Владеющее поле `var classes: own Classes.Area? = null { value == null || value.count == CLASSES }` хранит область. `pool.classes![i].size` читает и пишет элемент на
 месте: поле не забирается, `!` утверждает, что оно не пусто. Пустое поле останавливает программу при выполнении.
 
 ```efen
@@ -666,7 +666,7 @@ fn growPool(pool: mut Pool) -> Bool {
         return false
     }
 
-    let region: Blocks.Area { value.count == REGION_BLOCKS } = memory as Blocks.Area
+    let region: Blocks.Area = memory as Blocks.Area { value.count == REGION_BLOCKS }
     for element in take region {
         pool.firstFreeBlock = newFreeBlock(memory: take element, next: take pool.firstFreeBlock)
     }

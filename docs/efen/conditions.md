@@ -828,7 +828,7 @@ fn growPool(pool: mut Pool) -> Bool {
         return false
     }
 
-    let region: Blocks.Area { value.count == REGION_BLOCKS } = memory as Blocks.Area
+    let region: Blocks.Area = memory as Blocks.Area { value.count == REGION_BLOCKS }
     for element in take region {
         pool.firstFreeBlock = newFreeBlock(memory: take element, next: take pool.firstFreeBlock)
         assume pool.blocks < MAX_BLOCKS && pool.pooled < MAX_BLOCKS
