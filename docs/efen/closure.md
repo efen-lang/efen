@@ -479,7 +479,7 @@ with env {                                     // обычный контекс�
 ### Что пишет программист
 
 ```efen
-fn markBest(items: &[Task]) {
+fn markBest(items: mut [Task]) {
     var cur = &items[0]
     scan(count: items.count, visit: (i: Int) -> Void {
         if items[i].priority > cur.priority {
@@ -538,7 +538,7 @@ error[flow.structure]: `items.append` may move the elements of `items`, and `cur
 **Смена структуры вызываемой функцией, пока замыкание живо:**
 
 ```efen
-fn scanAndGrow(items: &[Task], visit: (Int) -> Void) {
+fn scanAndGrow(items: mut [Task], visit: (Int) -> Void) {
     items.append(Task())
     visit(0)
 }
@@ -557,7 +557,7 @@ error[flow.capture]: the closure keeps a place in `items`, and `scanAndGrow` may
 **Замыкание, которое переживает функцию:**
 
 ```efen
-fn makeSelector(items: &[Task]) -> () -> Void {
+fn makeSelector(items: mut [Task]) -> () -> Void {
     var cur = &items[0]
     return () -> Void {
         cur = &items[1]                // ошибка
