@@ -76,8 +76,8 @@ Case variant type в образце пишется с точкой, его по�
 
 ```efen
 variant Result<T, E> {
-    ok { value: T }
-    err { error: E }
+    ok { let value: T }
+    err { let error: E }
 }
 
 match result {
@@ -103,8 +103,8 @@ match result {
 
 ```efen
 variant Response {
-    ok { user: User }
-    err { message: String }
+    ok { let user: User }
+    err { let message: String }
 }
 
 match response {

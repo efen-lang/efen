@@ -470,7 +470,7 @@ error: field `letters` is written under two different locks
 
 ```efen
 variant Grant {
-    reused { connection: Connection }
+    reused { let connection: Connection }
     reserved
 }
 

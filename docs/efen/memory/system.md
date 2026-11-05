@@ -92,8 +92,8 @@ fn mapX86(@in(rsi) bytes: Int) -> MapResult
 
 ```efen
 variant MapResult {
-    mapped { memory: own Pointer }
-    failed { code: Int { value >= -4095 && value <= -1 } }
+    mapped { let memory: own Pointer }
+    failed { let code: Int { value >= -4095 && value <= -1 } }
 }
 ```
 

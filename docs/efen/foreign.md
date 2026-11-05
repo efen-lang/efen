@@ -155,10 +155,10 @@ struct tcphdr {
 ```efen
 @abi(c)
 variant epoll_data_t {
-    ptr { ptr: @fill void* }
-    fd { fd: Int32 }
-    u32 { u32: UInt32 }
-    u64 { u64: UInt64 }
+    ptr { let ptr: @fill void* }
+    fd { let fd: Int32 }
+    u32 { let u32: UInt32 }
+    u64 { let u64: UInt64 }
 }
 ```
 

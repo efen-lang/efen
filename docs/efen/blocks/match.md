@@ -237,8 +237,8 @@ match direction {
 
 ```efen
 variant Barcode {
-    upc { system: Int, manufacturer: Int, product: Int, check: Int }
-    qrCode { code: String }
+    upc { let system: Int, let manufacturer: Int, let product: Int, let check: Int }
+    qrCode { let code: String }
 }
 
 let productCode = Barcode.upc(system: 8, manufacturer: 85909, product: 51226, check: 3)

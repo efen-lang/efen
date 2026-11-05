@@ -109,7 +109,7 @@ if value is let n? {
 ```efen
 variant Status {
     success
-    error { message: String }
+    error { let message: String }
 }
 
 let s = Status.error(message: "Ошибка сети")

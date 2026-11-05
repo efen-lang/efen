@@ -7,8 +7,8 @@
 ```efen
 variant ServerResponse {
     pending
-    success { data: String }
-    failure { code: Int, message: String }
+    success { let data: String }
+    failure { let code: Int, let message: String }
 }
 
 let response = ServerResponse.failure(code: 404, message: "Not Found")
@@ -26,8 +26,8 @@ Variant type является алгебраическим типом данны
 
 ```efen
 variant Result<T, E> {
-    ok { value: T }
-    err { error: E }
+    ok { let value: T }
+    err { let error: E }
 }
 ```
 
@@ -36,8 +36,8 @@ variant Result<T, E> {
 
 ```efen
 variant Side {
-    left { value: Int }
-    right { value: Int }
+    left { let value: Int }
+    right { let value: Int }
 }
 
 let a = Side.left(value: 1)
@@ -55,8 +55,8 @@ let b = Side.right(value: 1) // b отличается от a
 
 ```efen
 variant Barcode {
-    upc { system: Int, manufacturer: Int, product: Int, check: Int }
-    qrCode { code: String }
+    upc { let system: Int, let manufacturer: Int, let product: Int, let check: Int }
+    qrCode { let code: String }
 }
 
 let product = Barcode.upc(
@@ -117,8 +117,8 @@ match response {
 
 ```efen
 variant Result<T, E> {
-    ok { value: T }
-    err { error: E }
+    ok { let value: T }
+    err { let error: E }
 }
 
 fn divide(a: Int, b: Int) -> Result<Float, String> {
@@ -142,15 +142,15 @@ alias Option<T> = T?
 
 ```efen
 indirect variant Expression {
-    number { value: Int }
-    addition { left: Expression, right: Expression }
-    multiplication { left: Expression, right: Expression }
+    number { let value: Int }
+    addition { let left: Expression, let right: Expression }
+    multiplication { let left: Expression, let right: Expression }
 }
 ```
 
 ```efen
 variant Expression {
-    number { value: Int }
+    number { let value: Int }
     indirect addition { left: Expression, right: Expression }
     indirect multiplication { left: Expression, right: Expression }
 }
@@ -193,8 +193,8 @@ Variant type может объявлять методы и вычисляемы�
 variant Message {
     conforms Equatable
 
-    text { content: String }
-    image { url: String, width: Int, height: Int }
+    text { let content: String }
+    image { let url: String, let width: Int, let height: Int }
 }
 ```
 
@@ -216,9 +216,9 @@ variant Character {
         heavy
     }
 
-    warrior { weapon: Weapon, armor: Armor }
-    mage { weapon: Weapon }
-    archer { weapon: Weapon }
+    warrior { let weapon: Weapon, let armor: Armor }
+    mage { let weapon: Weapon }
+    archer { let weapon: Weapon }
 }
 ```
 
@@ -231,12 +231,12 @@ variant Character {
 
 ```efen
 open indirect variant Expression {
-    number { value: Int }
-    addition { left: Expression, right: Expression }
+    number { let value: Int }
+    addition { let left: Expression, let right: Expression }
 }
 
 variant ExtraExpression: Expression {
-    negation { operand: Expression }
+    negation { let operand: Expression }
 }
 
 fn evaluate(expr: Expression) -> Int {
@@ -302,7 +302,7 @@ open variant Shape {
 }
 
 variant FileShape: Shape {
-    file { handle: File }      // ошибка: File не Copyable, а Shape копируется неявно
+    file { let handle: File }      // ошибка: File не Copyable, а Shape копируется неявно
 }
 ```
 
@@ -334,8 +334,8 @@ enum Direction {
 }
 
 variant Side {
-    left { value: Int }
-    right { value: Int }
+    left { let value: Int }
+    right { let value: Int }
 }
 
 alias Scalar = Int | Float
@@ -375,8 +375,8 @@ type Errno: Int32 { value >= -4095 && value <= -1 }
 
 public variant OpenResult {
     representation Packed<Int32>              // одно слово, диапазоны не пересекаются
-    opened { file: own File }                 // диапазон Descriptor
-    failed { code: Errno }
+    opened { let file: own File }                 // диапазон Descriptor
+    failed { let code: Errno }
 }
 
 match File.openX86(dir: AT_FDCWD, path: "log".cString, flags: O_RDONLY, mode: 0) {

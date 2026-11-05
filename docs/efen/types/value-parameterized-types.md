@@ -92,9 +92,9 @@ let kind = readUserKind()
 
 ```efen
 variant ClassifiedUser {
-    root { value: User<root> }
-    admin { value: User<admin> }
-    other { value: User<other> }
+    root { let value: User<root> }
+    admin { let value: User<admin> }
+    other { let value: User<other> }
 }
 ```
 

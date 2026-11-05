@@ -31,7 +31,7 @@ let destination: Direction = .east
 // Ошибка: error хранит payload, поэтому это должен быть variant.
 enum Status {
     ready
-    error { message: String }
+    error { let message: String }
 }
 ```
 
@@ -40,7 +40,7 @@ enum Status {
 ```efen
 variant Status {
     ready
-    error { message: String }
+    error { let message: String }
 }
 ```
 
@@ -384,8 +384,8 @@ enum Direction {
 }
 
 variant Result<T, E> {
-    ok { value: T }
-    err { error: E }
+    ok { let value: T }
+    err { let error: E }
 }
 
 alias ID = Int | String

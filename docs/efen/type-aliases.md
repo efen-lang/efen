@@ -173,8 +173,8 @@ alias Response = (Success | Error | Pending)
 
 ```efen
 variant Side {
-    left { value: Int }
-    right { value: Int }
+    left { let value: Int }
+    right { let value: Int }
 }
 ```
 
