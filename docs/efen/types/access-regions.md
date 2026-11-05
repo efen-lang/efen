@@ -506,9 +506,9 @@ fn remove(at: mut Position<self>) -> own T?        // забирает элем�
 итератора массива — указатели layout:
 
 ```efen
-struct ArrayIterator<Item: Access T, Access: Access = read, Src: Origin> {
-    current: Items.Position<Src>    // позиция в области Src.Items, может стоять за последним элементом
-    left: Size                      // сколько элементов осталось; конец — current + left
+struct ArrayIterator<Item: Access T, Src: Origin> {
+    var current: Items.Position<Src>    // позиция в области Src.Items, может стоять за последним элементом
+    var left: Size                      // сколько элементов осталось; конец — current + left
 }
 ```
 
@@ -569,9 +569,9 @@ updateAll(items) => { item.hp += 1 }   // то же самое
 «что разрешено телу» нет:
 
 ```efen
-struct IndexIter<Item: Access T, Access: Access = read, Src: Origin> {
-    array: Access<Src> Array<T>     // только слот самого вектора
-    index: Size
+struct IndexIter<Item: Access T, Src: Origin> {
+    let array: Access<Src> Array<T>     // только слот самого вектора
+    var index: Size
 }
 ```
 
@@ -579,7 +579,7 @@ struct IndexIter<Item: Access T, Access: Access = read, Src: Origin> {
 ([коллекции](collections.md#итераторы)):
 
 ```efen
-strategy IndexStep<Item: Access T, Access: Access, Src: Origin>
+strategy IndexStep<Item: Access T, Src: Origin>
 for IndexIter<Item, Src: Src> {
     conforms Iterator<Item, Src: Src>
 
