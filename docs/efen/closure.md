@@ -176,8 +176,8 @@ let getRandomNumber = () -> Int {
 
 Использование замыканий как аргументов функций:
 ```efen
-fn processArray(arr: Array<Int>, transform: (Int) -> Int) -> Array<Int> {
-    let result = []
+fn processArray(arr: Array<Int>, transform: (Int) -> Int) -> Vector<Int> {
+    var result: Vector<Int> = []
     for item in arr {
         result[] = transform(item)
     }
@@ -962,8 +962,8 @@ numbers.map => item * 2
 // ❌ S: единственное замыкание в скобках пишется хвостовой формой
 users.filter((user) => user.age > 18 && user.isActive && !user.isBanned)
 
-// ✅ Понятно с явными параметрами
-users.filter((user) => user.age > 18 && user.isActive && !user.isBanned)
+// ✅ Хвостовая форма
+users.filter => item.age > 18 && item.isActive && !item.isBanned
 ```
 
 ### 4. Передавайте ленивое вычисление явным замыканием
