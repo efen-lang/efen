@@ -31,9 +31,9 @@
 
 ## Текущий шаг
 
-В разделе типов проверены 18 из 20 статей. Всего проверены **18 из 112**.
-Следующие документы — `types/collections.md` и `types/access-regions.md`.
-Затем начинается группа «Основы и абстракции».
+Завершён редакционный проход по всему разделу «Типы и данные»: **20 из 112**
+статей. Следующая группа — «Основы и абстракции», начиная с `README.md`,
+`abstractions.md`, `contracts.md`, `classes.md` и `structs.md`.
 
 В `types/ownership.md` добавлены диаграмма общей модели, таблица прав
 `read`/`edit`/`mut`/`out`/`own`, сравнение `copy`/`clone`/`take` и правила
@@ -48,6 +48,19 @@
 Исправлены тяжёлые формулировки, оставшиеся английские заголовки и примеры,
 которые противоречили собственному объяснению. Старые адреса переименованных
 разделов сохранены; ссылки проверяются после каждой группы правок.
+
+### Завершение раздела типов
+
+Прочитаны целиком `types/collections.md` и `types/access-regions.md`.
+В коллекциях добавлен краткий выбор формы хранения, пояснено различие между
+методом `take(n)` и передачей владения, исправлены описание ленивых вычислений
+и примеры итераторов. В областях доступа объяснение начинается с источника,
+права и времени действия; уточнены правила `edit`, роли и выход за границы.
+
+Сверка с `classes.md` выявила устаревшее утверждение в `ownership.md`:
+право метода якобы выводилось из тела. Теперь указан действующий порядок —
+методы объявляют `edit fn` или `mut fn`, без пометки используется `read`.
+Вывод сводки действий из тела сохраняется и не смешивается с правом метода.
 
 ### Вопросы, которые нельзя решить одной редактурой
 
@@ -65,10 +78,10 @@
 | Документ | Статус |
 |---|---|
 | [types/README.md](../docs/efen/types/README.md) | Проверена |
-| [types/access-regions.md](../docs/efen/types/access-regions.md) | В работе |
+| [types/access-regions.md](../docs/efen/types/access-regions.md) | Проверена |
 | [types/basic-types.md](../docs/efen/types/basic-types.md) | Проверена |
 | [types/built-in-contracts.md](../docs/efen/types/built-in-contracts.md) | Проверена |
-| [types/collections.md](../docs/efen/types/collections.md) | В работе |
+| [types/collections.md](../docs/efen/types/collections.md) | Проверена |
 | [types/constants.md](../docs/efen/types/constants.md) | Проверена |
 | [types/dictionaries.md](../docs/efen/types/dictionaries.md) | Проверена |
 | [types/enum.md](../docs/efen/types/enum.md) | Проверена |
