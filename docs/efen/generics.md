@@ -41,13 +41,17 @@ fn identity<T: Movable>(value: own T) -> T {
 `String`.
 
 Объявления `generic` предшествуют параметрам вызова, а объявления `param` идут
-после них подряд до остальных инструкций. Список в угловых скобках остаётся
+после них подряд до остальных инструкций. Имена из строк `generic` и `param` видны во всём объявлении, и в
+заголовке тоже: в цели стратегии (`strategy ArrayTraversal for Array<T>`), в типах параметров и результата, в
+строках `requires` и `ensures`. Список в угловых скобках остаётся
 допустимой короткой формой generic-параметров объявления. Формы не смешиваются:
 если объявление использует `generic` в теле, угловых скобок в его заголовке нет;
 если использует `param`, нет круглых скобок параметров.
 
 Полная форма обязательна, если выполняется хотя бы одно условие: параметров
-больше трёх, есть `where`, есть значение по умолчанию или есть pack `...`.
+больше трёх (generic и параметры вызова считаются порознь; образец `Item: Access T` — один параметр), есть значение
+по умолчанию, есть pack `...`, у параметра есть условие `{ }` или несколько контрактов. Внутри `<…>` блока `{ }`
+нет.
 Иначе канонична короткая форма; простое ограничение `<T: Comparable>` остаётся в
 заголовке. Отклонение в любую сторону получает диагностику стиля
 `S.generic-parameter-layout`. У объявлений без тела, например `alias`, есть
@@ -245,8 +249,8 @@ fn compare<T: Comparable<T>>(left: T, right: T) -> Int {
 }
 
 // Множественные ограничения
-fn process where T: Readable, T: Writable {
-    generic T: Type
+fn process {
+    generic T: Readable, Writable
     param data: T
 
     // T должен соответствовать обоим контрактам
@@ -496,8 +500,9 @@ Box <Int>(42)            // сравнение Box < Int > (42): ошибка, �
 
 ```efen
 generic Access: Access
-generic Access: Access = read     // умолчание
 ```
+
+Аргумент без права значит `read`, как везде в языке: умолчания у параметра `Access` нет.
 
 `Access` объявлен в `lang::` как обычный enum, но это особый встроенный вид,
 как `Type` и `Origin`: компилятор знает его и читает значение как дескриптор
@@ -519,16 +524,20 @@ enum Access { read, edit, mut, own }
 держит только данные, а `next` даёт стратегия ([структуры](structs.md)):
 
 ```efen
-struct ArrayIterator<Item: Access T, Access: Access = read, Src: Origin>
-where Access == read || Access == edit {
+struct ArrayIterator<Item: Access T, Src: Origin> {
     let items: Access<Src> Array<T>     // поле: ссылка с правом Access на Src
-    var index: Size = 0
+    var index: Int = 0 { value >= 0 }
+
+    invariants {
+        index <= items.count
+        Access == read || Access == edit
+    }
 }
 
-strategy ArrayStep<Item: Access T, Access: Access, Src: Origin>
-for ArrayIterator<Item, Src: Src>
-where Access == read || Access == edit {
+strategy ArrayStep<Item: Access T, Src: Origin>
+for ArrayIterator<Item, Src: Src> {
     conforms Iterator<Item, Src: Src>
+    invariants { Access == read || Access == edit }
 
     mut fn next -> Access<Src> T? {     // ссылка на слот массива Src
         if index == items.count { return null }
@@ -551,7 +560,7 @@ where Access == read || Access == edit {
 
 ```efen
 ArrayIterator<Item: edit Int, Src: numbers>    // T = Int, Access = edit
-ArrayIterator<Item: Int, Src: numbers>         // T = Int, Access = read: умолчание
+ArrayIterator<Item: Int, Src: numbers>         // T = Int, Access = read: без пометки
 ```
 
 Роль записи решает её позиция. В списке параметров сразу после имени объявления
@@ -560,11 +569,10 @@ ArrayIterator<Item: Int, Src: numbers>         // T = Int, Access = read: умо
 та же запись берёт уже объявленные имена. Новое имя, совпадающее с внешним
 generic-параметром, — ошибка.
 
-Аргумент без права берёт умолчание параметра `Access`, если `Access` не передан
-явно рядом: в `Iterable<Item: T, Access: mut>` право — `mut`. Параметр без
-умолчания требует права явно. Шаблон в списке параметров и параметр `Access` в
-том же списке — одно имя: шаблон вводит его, запись `Access: Access` задаёт его
-вид и умолчание. Право ссылки (`&`) в обычный `generic T: Type` не
+Аргумент без права значит `read`: пометки нет — право `read`, как у параметра функции. Если `Access` передан явно
+рядом (`Iterable<Item: T, Access: mut>`), право берётся оттуда. Шаблон сам вводит `Access`: строки
+`Access: Access` рядом с ним не пишут, и умолчания у него нет. Ограничение права — строка `invariants`, она читает только параметры
+generic и проверяется при сборке. Право ссылки (`&`) в обычный `generic T: Type` не
 попадает; право указателя layout (`read Items.Item`) остаётся
 частью типа.
 
@@ -585,12 +593,13 @@ Access fn iterator -> ArrayIterator<Item: Access T, Src: self>
 
 ### Ограничение прав
 
-Допустимые права задаёт обычное условие `where`
-([ограничения параметров](#ограничения-параметров)):
+Допустимые права задаёт обычное условие ([ограничения параметров](#ограничения-параметров)): у параметра со своей
+строкой — `{ }` у неё, у права из образца — строка `invariants`:
 
 ```efen
-strategy ArrayTraversal<T, Access: Access> for Array<T>
-where Access == read || Access == edit {      // own и mut не подходят
+strategy ArrayTraversal for Array<T> {
+    generic T: Type
+    generic Access: Access { value == read || value == edit }      // own и mut не подходят
     …
 }
 ```
@@ -605,8 +614,7 @@ where Access == read || Access == edit {      // own и mut не подходя�
 ([сопоставление с типами](#сопоставление-с-типами)):
 
 ```efen
-alias ArrayCursor<T, Access: Access, Src: Origin> = match Access   // ветви mut нет
-where Access != mut {
+alias ArrayCursor<T, Access: Access, Src: Origin> = match Access {   // ветви mut нет: ArrayCursor<…, Access: mut> — ошибка
     own:  DrainIterator<T>
     read: ArrayIterator<Item: read T, Src: Src>
     edit: ArrayIterator<Item: edit T, Src: Src>
@@ -712,22 +720,27 @@ generic F<T>: Type {
 
 ```efen
 class Matrix {
-    generic Rows: Int { Rows > 0 }
-    generic Columns: Int { Columns > 0 }
+    generic Rows: Int { value > 0 }
+    generic Columns: Int { value > 0 }
 }
 ```
 
-`where` выражает связь нескольких параметров или требование всего объявления:
+Условие одного параметра — `{ }` у его строки, предмет — `value`. Связь нескольких параметров у типа — строка
+[`invariants`](conditions.md#условия-значений-и-invariants), у функции — строка `requires`. `T conforms C` — обычное
+логическое выражение. Слова `where` нет.
 
 ```efen
 class SquareMatrix {
-    generic Rows: Int { Rows > 0 }
-    generic Columns: Int { Columns > 0 }
+    generic Rows: Int { value > 0 }
+    generic Columns: Int { value > 0 }
 
-    where Rows == Columns
+    invariants { Rows == Columns }
 }
 
-fn processSameElements where A.Item == B.Item, A.Item: Equatable {
+fn processSameElements
+    requires A.Item == B.Item
+    requires A.Item conforms Equatable
+{
     generic A: Iterable
     generic B: Iterable
     param left: A
@@ -737,17 +750,23 @@ fn processSameElements where A.Item == B.Item, A.Item: Equatable {
 }
 ```
 
-`where` у отдельного метода обобщённого типа требует только для этого метода. Так коллекции std требуют
+Строка `requires` про один параметр, который объявила эта же функция, — ошибка с подсказкой перенести условие к его
+строке (`generic T: C`). Про параметр типа у метода и про связанный тип (`A.Item`) — законно: своей строки у них в
+этой функции нет.
+
+`requires` у отдельного метода обобщённого типа требует только для этого метода. Так коллекции std требуют
 [`ImplicitlyDestroyable`](disposable.md#implicitlydestroyable) только у методов, которые уничтожают элемент, не
 возвращая его; сам тип принимает любой `T`:
 
 ```efen
-mut fn removeAll where T: ImplicitlyDestroyable
+mut fn removeAll
+    requires T conforms ImplicitlyDestroyable
 mut fn removeLast -> own T?
     ensures result == null ==> count == 0
 ```
 
-Блок после `generic` и `where` являются обязательными условиями: ложное условие
+Условие у строки `generic`, строки `invariants` и `requires`, которые читают только параметры generic, —
+обязательные условия, их проверяют при сборке: ложное условие
 запрещает инстанциацию. Они отличаются от `#if`, который условно формирует
 состав уже законной инстанциации.
 
@@ -834,12 +853,10 @@ Tuple<...Elements>
 Variadic-параметр можно ограничить контрактом:
 
 ```efen
-generic ...Errors: Type
-where ...Errors: Throwable
+generic ...Errors: Throwable
 ```
 
-Раскрытие `...Errors` в `where` создаёт ограничение для каждого аргумента:
-каждый переданный тип должен быть совместим с `Exception`. Внутри `Errors`
+Контракт у pack — ограничение каждого аргумента: каждый переданный тип должен быть совместим с `Throwable`. Внутри `Errors`
 остаётся массивом типов. Поэтому отдельное слово `each` не требуется. Справа от
 `:` contract означает `conforms`, а класс или интерфейс — совместимость типа.
 

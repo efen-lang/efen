@@ -68,8 +68,7 @@ compiler не доказал их.
 projection PoolEditor for Pool {
     var idle, openCount
     let maxConnections
-} {
-    mutex is Mutex.Held
+    invariants { mutex is Mutex.Held }
 }
 
 with pool.mutex {

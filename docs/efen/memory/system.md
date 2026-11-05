@@ -66,7 +66,12 @@ public class File {
 
 ```efen
 @asm(x86_64, result: rax, overwrites: [rcx, rdi, rdx, r8, r9, r10, r11, memory])
-fn mapX86(@in(rsi) bytes: Int) -> MapResult { mapped: memory.size == bytes && memory.alignment == 4096 && memory is Pointer.Zeroed } {
+fn mapX86(@in(rsi) bytes: Int) -> MapResult
+    ensures match result {
+        .mapped.{ let memory }: memory.size == bytes && memory.alignment == 4096 && memory is Pointer.Zeroed
+        .failed: true
+    }
+{
     mov eax, 9
     xor edi, edi
     mov edx, 3
@@ -83,12 +88,12 @@ fn mapX86(@in(rsi) bytes: Int) -> MapResult { mapped: memory.size == bytes && me
 
 ## Вариант в одно слово
 
-Случай варианта может нести условия на своих полях:
+Поле случая варианта может нести условие, как любое поле, — `{ }` в конце его объявления:
 
 ```efen
 variant MapResult {
     mapped { memory: own Pointer }
-    failed { code: Int } { code >= -4095 && code <= -1 }
+    failed { code: Int { value >= -4095 && value <= -1 } }
 }
 ```
 

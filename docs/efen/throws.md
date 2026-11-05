@@ -311,8 +311,7 @@ Generic-функция может переносить точный pack иск�
 fn map(items: [T], transform: (T) -> U throws ...Errors) -> [U] throws ...Errors {
     generic T: Type
     generic U: Type
-    generic ...Errors: Type
-    where ...Errors: Throwable
+    generic ...Errors: Throwable
 
     // ...
 }

@@ -21,14 +21,14 @@
 /// A fixed number of numbers of one type, operated on together.
 struct Simd {
     generic Element: SimdElement
-    generic Lanes: Int { Lanes > 0 }
+    generic Lanes: Int { value > 0 }
 
     representation vector
 }
 
 /// One truth value per lane.
 struct Mask {
-    generic Lanes: Int { Lanes > 0 }
+    generic Lanes: Int { value > 0 }
 
     representation vectorMask
 }

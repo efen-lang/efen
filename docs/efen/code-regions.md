@@ -12,7 +12,7 @@
 ## Основной синтаксис
 
 ```efen
-region preserve file: Open {
+region preserve(file: Open) {
     file.close()
     file.open()
 }
@@ -32,7 +32,7 @@ region preserve file: Open {
 Если состояние не указано, компилятор фиксирует состояние, известное при входе:
 
 ```efen
-region preserve file {
+region preserve(file) {
     file.close()
     file.open()
 }
@@ -44,14 +44,10 @@ region preserve file {
 
 ## Несколько гарантий
 
-Краткая запись подходит для одного объекта. Несколько объектов перечисляются в
-блоке гарантий:
+Несколько объектов перечисляются в скобках через запятую, как один:
 
 ```efen
-region preserve {
-    file: Open
-    socket: Connected
-} {
+region preserve(file: Open, socket: Connected) {
     file.close()
     socket.disconnect()
 
@@ -75,7 +71,7 @@ region preserve {
 Следующий код не компилируется:
 
 ```efen
-region preserve file: Open {
+region preserve(file: Open) {
     file.close()
 
     if cancelled {
@@ -101,7 +97,7 @@ error[region.unpreserved-state]: region must preserve `file: Open`
 состояние при `throw` уже восстановлено:
 
 ```efen
-region preserve file: Open {
+region preserve(file: Open) {
     file.close()
 
     try {
@@ -121,7 +117,7 @@ region preserve file: Open {
 `defer` можно использовать для восстановления состояния:
 
 ```efen
-region preserve file: Open {
+region preserve(file: Open) {
     file.close()
     defer {
         file.open()
@@ -154,8 +150,8 @@ region preserve file: Open {
 Регионы можно вкладывать:
 
 ```efen
-region preserve file: Open {
-    region preserve socket: Connected {
+region preserve(file: Open) {
+    region preserve(socket: Connected) {
         sendFile(file, socket)
     }
 }
@@ -254,7 +250,7 @@ fn open state Closed >> Open
 Регион описывает композиционную гарантию для последовательности переходов:
 
 ```efen
-region preserve file: Open {
+region preserve(file: Open) {
     file.close() // Open >> Closed
     file.open()  // Closed >> Open
 }

@@ -25,8 +25,7 @@ shared struct Pool {
 projection PoolEditor for Pool {
     var idle, openCount
     let maxConnections
-} {
-    mutex is Mutex.Held
+    invariants { mutex is Mutex.Held }
 }
 
 fn release(pool: mut Pool, connection: own Connection)
@@ -182,7 +181,7 @@ fn race(db: mut sqlite3, q: read String) {
 привязан к потоку сам по себе, — обычно класс над внешним значением, но не только он.
 
 Обобщённое тело, которое отправляет значение параметра типа `T` в другой поток, получает в сводку требование
-«`T` не `ThreadBound`». Инстанциация проверяет его, как условие `where`
+«`T` не `ThreadBound`». Инстанциация проверяет его, как условие параметра
 ([ограничения параметров](generics.md#ограничения-параметров)); тело проверяется один раз. `Movable` такого
 требования не даёт: `take` значения `ThreadBound` в своём потоке допустим, а заимствованное имя попадает в корутину
 без `take`.
@@ -434,14 +433,12 @@ shared struct Inbox {
 
 projection FirstEditor for Inbox {
     var letters
-} {
-    first is Mutex.Held
+    invariants { first is Mutex.Held }
 }
 
 projection SecondEditor for Inbox {
     var letters
-} {
-    second is Mutex.Held
+    invariants { second is Mutex.Held }
 }
 ```
 
@@ -537,7 +534,7 @@ fn acquire(pool: mut Pool) -> own Connection
 - **реализацию `waitFor` компилятор тоже проверяет**: каждый вызов `condition()`
   стоит внутри `with self`. Замыкание вызывается много раз, поэтому
   оно не может забрать (`take`) захваченное значение;
-- **`T` не бывает optional** (ограничение `where T: NonOptional`). `null` значит «ждём дальше», поэтому `waitFor`, который
+- **`T` не бывает optional** (строка `generic T: NonOptional`). `null` значит «ждём дальше», поэтому `waitFor`, который
   вернул бы `Job?`, — ошибка с подсказкой обернуть результат в variant. Иначе потребитель закрытой очереди, которому нужен ответ «очередь
   закрыта», ждал бы вечно;
 - **замыкание захватывает общую структуру по полям**. `waitFor` держит
@@ -575,10 +572,8 @@ fn acquire(pool: mut Pool) -> own Connection
 
 ```efen
 mut fn waitFor(condition: () -> T? under self throws ...Errors) -> T state Lock.Free in Suspending throws ...Errors {
-    generic T: Type
-    generic ...Errors: Type
-    where T: NonOptional
-    where ...Errors: Throwable
+    generic T: NonOptional
+    generic ...Errors: Throwable
 
     while true {
         var ticket: Ticket
@@ -603,10 +598,8 @@ mut fn waitFor(condition: () -> T? under self throws ...Errors) -> T state Lock.
 ```efen
 shared struct Condition {
     mut fn waitFor(mutex: mut Mutex.Free, condition: () -> T? under mutex throws ...Errors) -> T in Suspending throws ...Errors {
-        generic T: Type
-        generic ...Errors: Type
-        where T: NonOptional
-        where ...Errors: Throwable
+        generic T: NonOptional
+        generic ...Errors: Throwable
 
         // как у Mutex, но очередь своя; mutex выводится Free и на выходе
     }
@@ -812,8 +805,7 @@ shared struct Cache {
 
 projection CacheEditor for Cache {
     var connections
-} {
-    mutex is Mutex.Held
+    invariants { mutex is Mutex.Held }
 }
 
 fn replace(cache: mut Cache, key: String, fresh: own Connection)
@@ -881,7 +873,8 @@ fn replace(cache: mut Cache, key: String, fresh: own Connection)
 
 ## Инвариант
 
-Общая структура может объявить инвариант.
+Общая структура может объявить инвариант — строки блока
+[`invariants`](conditions.md#условия-значений-и-invariants).
 Пусть у `Pool` из примера выше есть ещё поле `busy`, а `PoolEditor` его пишет:
 
 ```efen
@@ -892,7 +885,7 @@ shared struct Pool {
     var openCount: Int
     let maxConnections: Int
 
-    invariant counted {
+    invariants {
         idle.count + busy == openCount
     }
 }
@@ -1019,12 +1012,14 @@ type AtomicInt: Int {
 ```efen
 shared struct Ring {
     let capacity: Int { value > 0 }
-    var head: AtomicInt { value >= previous }    // сколько забрал читатель
-    var tail: AtomicInt { value >= previous }    // сколько положил писатель
-    var slots: [Job?] { count == capacity }
+    var head: AtomicInt = AtomicInt(0) { value >= previous(value) }    // сколько забрал читатель
+    var tail: AtomicInt = AtomicInt(0) { value >= previous(value) }    // сколько положил писатель
+    var slots: [Job?]
 
-    invariant bounded {
-        head <= tail && tail <= head + capacity
+    invariants {
+        slots.count == capacity
+        head <= tail
+        tail <= head + capacity
     }
 }
 
@@ -1049,9 +1044,11 @@ projection Consumer for Ring {
 - чужой счётчик может быть устаревшим, но тогда свой раздел только меньше, а не
   больше. Это довод Лэмпорта для кольца с одним писателем и одним читателем.
 
-«Только растёт» записано условием поля `{ value >= previous }`: `previous` — значение поля до записи. Условие и инвариант кольца
-компилятор проверяет при каждой записи счётчика: блокировки, на отпускании
-которой проверялся бы инвариант, у кольца нет.
+«Только растёт» записано условием поля `{ value >= previous(value) }`: `previous(value)` — значение поля до записи
+([`previous`](conditions.md#previousx)). Условие поля компилятор проверяет при каждой записи счётчика. Строки
+`head <= tail` и `tail <= head + capacity` читают два атомарных поля, которые пишут разные роли: прочесть их порознь
+при выполнении — гонка, поэтому они только доказываются, из монотонности счётчиков и разделов ролей, а
+недоказанная строка — `unchecked`.
 
 Счётчики 64-битные: при миллиарде операций в секунду они переполнятся через 292
 года, а переполнение — `OverflowError`. `Int` 64-битный на 64-битных
@@ -1186,11 +1183,11 @@ FLOW; потом кольцо снова целиком у владельца.
 | пометка `ordered` у эффекта | [исключение](#исключение-ordered) |
 | пометка функции C как неждущей, пометка доверенного состояния | [эффекты](#эффекты-ожидания), [доступ](#доступ-через-projection) |
 | `requires pool.mutex is Mutex.Free` ([условия функций](conditions.md)) | [мьютекс](#мьютекс-и-with) |
-| `invariant name { }` у структуры | [инвариант](#инвариант) |
+| блок `invariants { }` у структуры | [инвариант](#инвариант) |
 | `slots[a ..< b]` в поле projection | [роли](#роли) |
 | ожидание `waitFor` с замыканием «результат или `null`», `notifyOne` после `}`, очередь `Condition` с мьютексом аргументом | [ожидание](#ожидание-условия) |
 | параметр-тело блока `() -> T? under self`, контракт `NonOptional` для `T` у `waitFor` | [ожидание](#ожидание-условия) |
-| условие поля `{ value >= previous }` | [роли](#роли) |
+| условие поля `{ value >= previous(value) }` | [роли](#роли) |
 | `without` у класса, модуля и пакета | [эффекты](#эффекты-ожидания) |
 | метод `spinUntil` | [гарантии](#гарантии) |
 | `shared layout` у класса без счётчика, интерфейса и контракта | [`shared layout`](#shared-layout) |

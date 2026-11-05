@@ -72,7 +72,7 @@ strategy for Pair<Int, Bool> {           // только для Pair<Int, Bool>:
 }
 ```
 
-Без объявления `strategy<T, U>` имя в цели — обычный тип: `strategy for Pair<T, U>` ищет типы `T` и `U` и без
+Без объявления `strategy<T, U>` или строки `generic` в теле имя в цели — обычный тип: `strategy for Pair<T, U>` ищет типы `T` и `U` и без
 них является ошибкой. Именованная generic-
 стратегия может получить конкретную цель через `provide`:
 
@@ -344,20 +344,20 @@ provide JsonDocument for Documents::Document
 заголовка `for` или вызова. Право вызова — самое узкое из подходящих или
 записанное явно, `(edit v).iterator()`, а не объявленное право получателя ([стратегия с правом
 доступа](#стратегия-с-правом-доступа)). Свои права стратегия
-перечисляет в `where` или пишет право прямо в `conforms`, без параметра:
+ограничивает условием параметра `Access` или пишет право прямо в `conforms`, без параметра:
 `strategy ArrayDrain<T> for Array<T> { conforms Iterable<Item: T, Access: own> … }`.
 Если право не записано, а у контракта есть
-параметр `Access`, действует его умолчание: `conforms Iterable<Item: Int>` — это `read`.
+параметр `Access`, право — `read`, как везде без пометки: `conforms Iterable<Item: Int>` — это `read`.
 Стратегия контракта без параметра `Access` (`Hashable`) подходит под любое право. Выбора отдельно для каждого метода нет, поэтому `equals` и `hash`
 одного `Hashable` всегда приходят из одной стратегии.
 
 Алгоритм выбора расширяется тем же механизмом стратегий. `Resolve<Contract>` —
 встроенная compile-time абстракция Efen; контракт в её имени называет род
-выбираемых стратегий, а `where` задаёт, для каких целей правило применимо:
+выбираемых стратегий, а строка `invariants` задаёт, для каких целей правило применимо:
 
 ```efen
-strategy for Resolve<Allocator<let T>>
-where target is Box<T> {
+strategy for Resolve<Allocator<let T>> {
+    invariants { target is Box<T> }
     // какой Allocator взять для Box<T>
 }
 ```
@@ -401,20 +401,23 @@ strategy OptionalOrThrow<T> for T {
 текст стратегии даёт поведение для нескольких прав:
 
 ```efen
-strategy ArrayTraversal<T, Access: Access> for Array<T>
-where Access == read || Access == edit {
+strategy ArrayTraversal for Array<T> {
+    generic T: Type
+    generic Access: Access { value == read || value == edit }
     conforms Iterable<Item: Access T>
     Access fn iterator -> ArrayIterator<Item: Access T, Src: self> { … }
 }
 
-strategy ArrayMutTraversal<T, Access: Access> for Array<T>
-where Access == mut {
+strategy ArrayMutTraversal for Array<T> {
+    generic T: Type
+    generic Access: Access { value == mut }
     conforms Iterable<Item: Access T>              // элемент — ссылка mut
     Access fn iterator -> IndexIter<Item: Access T, Src: self> { … }
 }
 
-strategy ArrayDrain<T, Access: Access> for Array<T>
-where Access == own {
+strategy ArrayDrain for Array<T> {
+    generic T: Type
+    generic Access: Access { value == own }
     conforms Iterable<Item: T, Access: Access>   // элемент — значение, забирается
     Access fn iterator -> DrainIterator<T> { … }
 }

@@ -492,14 +492,14 @@ fn evens(limit: Int) -> Int {
 типами runtime-значений:
 
 ```efen
-contract Iterator<Item: Access T, Access: Access = read, Src: Origin>
-where Access != own {
+contract Iterator<Item: Access T, Src: Origin> {
     mut fn next -> Access<Src> T?      // ссылка на слот массива Src, не на итератор
+    invariants { Access != own }
 }
 
-contract Iterable<Item: Access T, Access: Access = read, Cursor>
-where Cursor conforms Iterator<Item> || Cursor conforms ValueIterator<T> {
+contract Iterable<Item: Access T, Cursor> {
     Access fn iterator -> Cursor
+    invariants { Cursor conforms Iterator<Item> || Cursor conforms ValueIterator<T> }
 }
 ```
 
@@ -546,7 +546,7 @@ strategy IntervalStep for IntervalIterator {
 Право заголовка `for` — это право на источник, с которым вызывается `iterator`,
 то есть параметр `Access` контракта `Iterable`. Его можно передать отдельно от
 элемента: `Iterable<Item: T, Access: mut>`. Ограничение без права,
-`C: Iterable<Item: Int>`, берёт умолчание `Access = read`.
+`C: Iterable<Item: Int>`, — это `read`: без пометки право `read`.
 У курсора `Iterator` с тем же правом приходит элемент: ссылка на слот источника.
 У курсора `ValueIterator` элемент — значение, а право заголовка относится только
 к источнику: интервал читают (`for i in 1..5`), а числа приходят копиями.
