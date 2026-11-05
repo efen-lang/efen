@@ -7,12 +7,13 @@
 
 layout IntList {
 
-    // A logical declaration of the population: no memory of its own, and the
-    // optional reachability invariant; termination is a separate proof goal.
-    set Nodes: Node {
-        invariant reachable(n) {
-            n in head.next*             // each node hangs on the one chain
-        }
+    // A logical declaration of the population: no memory of its own.
+    set Nodes: Node
+
+    // Each node hangs on the one chain: the chain from `head` holds every node.
+    invariants {
+        let nodes = Nodes.chain(from: head, by: Node.next, until: null)
+        forall n in Nodes: nodes.contains(n)
     }
 
     struct Node {

@@ -6,10 +6,11 @@
 
 layout List<T: Equatable> {
 
-    set Nodes: Node {
-        invariant reachable(n) {
-            n in head.next*
-        }
+    set Nodes: Node
+
+    invariants {
+        let nodes = Nodes.chain(from: head, by: Node.next, until: null)
+        forall n in Nodes: nodes.contains(n)
     }
 
     struct Node {

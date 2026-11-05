@@ -16,10 +16,14 @@ layout HashMap<Key: Hashable, Value> {
     type Buckets: Size { value is 2^n }
     type Mask: Size { value is 2^n - 1 }
 
-    set Entries: Entry {
-        invariant reachable(e) {
-            e in buckets[e.home].next*            // an entry hangs in its own bucket
-        }
+    set Entries: Entry
+
+    // An entry hangs in its own bucket, and a bucket's chain holds only its own entries, so no two buckets share
+    // a node.
+    invariants {
+        forall e in Entries: Entries.chain(from: buckets[e.home], by: Entry.next, until: null).contains(e)
+        forall e in Entries: e.next == null || e.next!.home == e.home
+        forall b in buckets.indices: buckets[b] == null || buckets[b]!.home == b
     }
 
     struct Entry {

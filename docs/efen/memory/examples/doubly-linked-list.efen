@@ -7,10 +7,12 @@
 
 layout Deque<T> {
 
-    set Nodes: Node {
-        invariant reachable(n) {
-            n in head.next*
-        }
+    set Nodes: Node
+
+    invariants {
+        let nodes = Nodes.chain(from: head, by: Node.next, until: null)
+        forall n in Nodes: nodes.contains(n)
+        tail == nodes.last
     }
 
     struct Node {
@@ -21,9 +23,7 @@ layout Deque<T> {
     inverse prev of next          // declares the field `prev`, kept in step with `next`
 
     var head: own Nodes.pointer?
-    var tail: read Nodes.pointer? {
-        (head == null) == (tail == null) && (tail == null || tail.next == null)
-    }
+    var tail: read Nodes.pointer?
 
     fn pushFront(value: T) {
         var node = Nodes.create(value: value, next: null)

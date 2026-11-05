@@ -154,7 +154,7 @@ struct LargeBlock {
 - `x.taken` — множество номеров мест, выданных сейчас ([иерархия владения](#что-значит-own-блока)):
   `x.taken.count`, `x.taken.isEmpty`, `x.taken.contains(k)`. `x.taken.count` считает места: диапазон из `n` мест
   добавляет `n`;
-- призрачные поля вида — например, последовательность свободных мест ([ниже](#цепочка-свободных-мест)).
+- цепочки и призрачные поля вида — например, цепочка свободных мест ([ниже](#цепочка-свободных-мест)).
 
 Строка может быть `forall k in a ..< b: P` и `if c { … }` (импликация), как в
 [компоновке](addresses.md#декларативные-условия):
@@ -222,39 +222,35 @@ let block = spare as SlotBlock(slots: Slot(size: s))
 ## Цепочка свободных мест
 
 Свободные места блока связаны номерами: поле вида хранит номер первого, поле элемента — номер следующего. Условие
-вида записывает это [призрачной последовательностью](../conditions.md#призрачные-поля-и-последовательности) и
-местными законами:
+вида называет эту [цепочку](../conditions.md#цепочка) и пишет законы о её местах:
 
 ```efen
 struct SlotBlock {
     Header                                  // used, frontier, firstFreeSlot, kind
     @align(LINE) area slots: Slot
-    ghost var freeSlots: Sequence<Int> = Sequence()
 
     invariants {
         frontier <= slots.count
         forall k in frontier ..< slots.count: !slots.taken.contains(k)
+
+        let freeSlots = slots.chain(from: firstFreeSlot, by: Slot.next, until: NONE)
         forall k in freeSlots: 0 <= k && k < frontier && !slots.taken.contains(k)
-        firstFreeSlot == (freeSlots.first ?? NONE)
-        forall i in 0 ..< freeSlots.count - 1: Int(slots[freeSlots[i]].next) == freeSlots[i + 1]
-        freeSlots.count == 0 || Int(slots[freeSlots.last!].next) == NONE
         freeSlots.count == frontier - slots.taken.count
     }
 }
 ```
 
-Строки по порядку: каждое место последовательности свободно и ниже границы; первое — `firstFreeSlot`; каждое
-следующее — `next` предыдущего; у последнего `next == NONE`; мест столько же, сколько всех невыданных ниже границы.
-Повторов нет: путь, который дошёл до `NONE`, не ходит по кругу. Значит, невыданные места ниже границы `frontier` —
-ровно места цепочки, а выше границы места ещё не выдавались. Код, который снимает или возвращает место, меняет и
-последовательность: `ghost block.freeSlots = block.freeSlots[1 ..< block.freeSlots.count]` при снятии,
-`ghost block.freeSlots = Sequence(k) + block.freeSlots` при возврате.
+Строки по порядку: выше границы места ещё не выдавались; `freeSlots` — места от `firstFreeSlot` по `next` до `NONE`;
+каждое из них свободно и ниже границы; их столько же, сколько всех невыданных ниже границы. Повторов в цепочке нет,
+значит, невыданные места ниже границы `frontier` — ровно места цепочки. Призрачных строк в коде нет: снятие головы
+и возврат в голову компилятор видит по записям `firstFreeSlot` и `next` и сам знает, какие места теперь на цепочке.
 
 `firstFreeSlot` и `frontier` — целые `var` вида, `Slot.next` — поле элемента. Вне смены вида граница только растёт на
 единицу, а начало цепочки меняется только снятием (`firstFreeSlot = slots[k].next` при `k == firstFreeSlot`) и
 возвратом (`slots[k].next = firstFreeSlot`, затем `firstFreeSlot = k`).
 
-Строки с `freeSlots` при выполнении не вычисляются: недоказанная получает заметку `efen.unchecked`.
+Строки с `freeSlots` при выполнении не вычисляются: недоказанная получает заметку `efen.unchecked`, а проверка
+границы у `lend` остаётся в программе.
 
 ## Эквивалентность разной разметки одних байтов
 
@@ -382,7 +378,6 @@ fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock) -> own Pointer
     if block.firstFreeSlot != NONE {
         k = Int(block.firstFreeSlot)
         block.firstFreeSlot = Int(block.slots[k].next)   // k снят с цепочки: не взят
-        ghost block.freeSlots = block.freeSlots[1 ..< block.freeSlots.count]
     } else {
         k = Int(block.frontier)                // k >= frontier: не взят
         block.frontier = block.frontier + 1
@@ -403,12 +398,12 @@ fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock) -> own Pointer
 ```efen
 fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock, slot: own block.slots.Item)
     requires block.used > 0
+    requires block.slots.taken.contains(block.slots.index(slot))
 {
     let k = block.slots.index(slot)
     block.slots[k] = take slot             // байтов не копирует: slot и есть место k
     block.slots[k].next = UInt16(block.firstFreeSlot)
-    block.firstFreeSlot = k
-    ghost block.freeSlots = Sequence(k) + block.freeSlots
+    block.firstFreeSlot = k                // k встал в голову freeSlots
     block.used = block.used - 1            // Δused == −1 == число возвратов
     if block.used > 0 {
         if !block.linked { relinkBlock(entry, block) }

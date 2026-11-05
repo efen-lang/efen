@@ -32,7 +32,7 @@
 | Гарантия | Как отражается в коде |
 |---|---|
 | Арифметика, cleanup, loans и initialized state | Невидимый compiler mechanism поверх обычного кода |
-| Конечная форма списка | Призрачная последовательность `ghost var nodes: Sequence<Items.Item>` и её законы в `invariants` |
+| Конечная форма списка | Цепочка `Items.chain(from: head, by: Item.next, until: null)` и её законы в `invariants` |
 | Атомарная замена одного места | Compiler-known `replace(place, value)` |
 | Связь chunks, slots и `Items` | Generated ghost goal из descriptor operations, representation и контракта Array |
 | Произвольная невыводимая многооперационная граница | Может потребовать будущего свойства `region` |
@@ -348,8 +348,7 @@ Items.allocate(
 `invariants` в теле `struct Self`, поскольку `Self` держит всю структуру и его точки восстановления — операции
 списка.
 
-Форма цепочки задаётся [призрачной последовательностью](../conditions.md#призрачные-поля-и-последовательности) и
-местными законами. Список с хвостом:
+Форму цепочки задаёт [цепочка](../conditions.md#цепочка) `chain` и законы о её элементах. Список с хвостом:
 
 ```efen
 layout {
@@ -364,13 +363,10 @@ layout {
         var head: own Items.Item? = null
         var tail: read Items.Item? = null
         var length: Int = 0 { value >= 0 }
-        ghost var nodes: Sequence<Items.Item> = Sequence()
 
         invariants {
-            head == nodes.first
-            forall i in 0 ..< nodes.count - 1: nodes[i].next == nodes[i + 1]
-            nodes.count == 0 || nodes.last!.next == null
-            nodes.count == Items.count
+            let nodes = Items.chain(from: head, by: Item.next, until: null)
+            forall n in Items: nodes.contains(n)
             tail == nodes.last
             length == nodes.count
         }
@@ -378,15 +374,14 @@ layout {
 }
 ```
 
-Строки по порядку: первый элемент — `head`; каждый следующий — `next` предыдущего; у последнего `next == null`;
-элементов столько же, сколько в `Items`; хвост — последний; длина — число элементов. Повторов нет: путь, который
-дошёл до `null`, не ходит по кругу. Значит, все и только элементы `Items` стоят в цепочке ровно один раз, и
-`(head == null) == (tail == null)` следует из первой и пятой строк. Операция меняет последовательность явной
-строкой (`ghost nodes = nodes + Sequence(item)` при добавлении в конец), а компилятор проверяет законы в точке
-восстановления. Последовательность — не массив при выполнении и не аксиома: её значение пишет код.
+Строки по порядку: `nodes` — элементы от `head` по `next` до `null`; каждый элемент `Items` стоит на ней; хвост —
+последний; длина — число элементов. Повторов в цепочке нет, поэтому каждый элемент `Items` стоит в ней ровно один
+раз, а `(head == null) == (tail == null)` следует из того, что `last` пуст только у пустой цепочки. Призрачных строк в операциях нет:
+какие элементы на цепочке после записи `head` или `next`, компилятор знает сам и проверяет законы в точке
+восстановления.
 
-Цепочка может связывать не всё множество, а его часть: свободные элементы, свободные места области. Тогда
-последовательность держит только их, а закон говорит, какие элементы в ней стоят:
+Цепочка может связывать не всё множество, а его часть: свободные элементы, свободные места области. Тогда закон
+говорит, какие элементы на ней стоят:
 
 ```efen
 layout {
@@ -394,12 +389,8 @@ layout {
     set area Cells: Cell
 
     struct Self {
-        ghost var freeCells: Sequence<Cells.Item> = Sequence()
-
         invariants {
-            Stock.firstFree == freeCells.first
-            forall i in 0 ..< freeCells.count - 1: freeCells[i].next == freeCells[i + 1]
-            freeCells.count == 0 || freeCells.last!.next == null
+            let freeCells = Cells.chain(from: Stock.firstFree, by: Cell.next, until: null)
             forall c in Cells: (c.kind == FREE) == freeCells.contains(c)
         }
     }
@@ -603,8 +594,8 @@ let owned = take self.head!
 Переход по `next` безопасен, если указатель жив, поле инициализировано и доступны
 права чтения. Из этого не следует завершение обхода.
 
-Законы последовательности `nodes` говорят, что путь от `head` конечен и без повторов: цикл по `next` завершается,
-мера — `nodes.count` минус номер текущего элемента. Без такой последовательности для общего цикла требуется
+Цепочка `nodes` в точке восстановления конечна и без повторов: цикл по `next` завершается, мера — число узлов
+цепочки от текущего элемента до конца. Без такой цепочки для общего цикла требуется
 доказать, что повторов нет, либо ограничить число шагов явным счётчиком.
 
 Тестирование конечного числа списков и превышение времени ожидания проверяющего
