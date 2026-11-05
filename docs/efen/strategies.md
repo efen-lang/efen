@@ -425,16 +425,16 @@ where Access == own {
 
 ```efen
 for x in v          // право read → ArrayTraversal<T, read>
-for x in &v         // право edit → ArrayTraversal<T, edit>
+for x in edit v     // право edit → ArrayTraversal<T, edit>
 for x in mut v      // право mut  → ArrayMutTraversal<T, mut>
 for x in take v     // право own  → ArrayDrain<T, own>
 ```
 
 Право берётся из заголовка `for` по таблице [областей
-доступа](types/access-regions.md#итератор-как-структура): `v` — `read`, `&v` — `edit`,
-`mut v` — `mut`, `take v` — `own`. В заголовке цикла `&` значит `edit`; в
-параметре и в результате функции `&` значит `mut`
-([ownership](types/ownership.md#ссылка-и-параметр)). Нет стратегии под право
+доступа](types/access-regions.md#итератор-как-структура): `v` — `read`, `edit v` — `edit`,
+`mut v` — `mut`, `take v` — `own`. Право в заголовке пишется словом; `&v` в заголовке цикла — ошибка
+с подсказкой `edit v` или `mut v`. Право относится ко всему выражению-источнику: в
+`for chunk in edit values.chunks(of: 8)` это результат `chunks`. Нет стратегии под право
 заголовка — ошибка в этом `for`.
 
 Автор типа решает сам, писать одну стратегию на все права или отдельную там, где
@@ -553,7 +553,7 @@ error: expected Dictionary<shop::Key, Int> [Hashable = lib::KeyHash],
 себя при любой записи программы. `provide` в коде называет стратегию и
 считается выбором для каждого контракта, которому она `conforms`, и только для
 тех прав, которые она покрывает: `provide ArrayDrain for Array<Int>` выбирает
-обход для `take`, а `v` и `&v` берут свою стратегию.
+обход для `take`, а `v` и `edit v` берут свою стратегию.
 
 ### Совместимость стратегий
 

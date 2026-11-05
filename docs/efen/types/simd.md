@@ -117,17 +117,17 @@ struct Mask {
 ## Обход массива частями
 
 ```efen
-fn scale(values: edit [Float32], by factor: Float32) {
+fn scale(values: edit [Float32], factor: Float32) {
     let f = Simd<Float32, 8>(factor)
 
-    for chunk in &values.chunks(of: 8) {
+    for chunk in edit values.chunks(of: 8) {
         chunk.store(chunk.load() * f)
     }
 }
 ```
 
 `chunks(of:)` даёт полные части, затем одну неполную. Тело цикла компилируется дважды: для полной части (обычные
-загрузки и записи) и для неполной (с маской). Границы — контракт итератора. `&` делает части изменяемыми
+загрузки и записи) и для неполной (с маской). Границы — контракт итератора. `edit` делает части изменяемыми
 ([области доступа](access-regions.md)).
 
 ## Ширина по цели

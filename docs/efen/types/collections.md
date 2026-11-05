@@ -559,7 +559,7 @@ for item in collection {
     // Для Array<T>: item — ссылка read на слот collection.
 }
 
-for item in &collection {
+for item in edit collection {
     // Для Array<T>: item — ссылка edit на слот collection.
 }
 
