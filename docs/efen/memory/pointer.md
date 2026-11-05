@@ -234,7 +234,7 @@ struct SlotBlock {
     invariants {
         frontier <= slots.count
         forall k in frontier ..< slots.count: !slots.taken.contains(k)
-        forall k in freeSlots: k < frontier && !slots.taken.contains(k)
+        forall k in freeSlots: 0 <= k && k < frontier && !slots.taken.contains(k)
         firstFreeSlot == (freeSlots.first ?? NONE)
         forall i in 0 ..< freeSlots.count - 1: Int(slots[freeSlots[i]].next) == freeSlots[i + 1]
         freeSlots.count == 0 || Int(slots[freeSlots.last!].next) == NONE
