@@ -52,7 +52,28 @@ strategy for UserId {
 }
 ```
 
-Безымянная стратегия обязана иметь цель `for Type`. Именованная generic-
+Безымянная стратегия обязана иметь цель `for Type`. Безымянная generic-стратегия объявляет свои параметры
+после слова `strategy`, как именованная, только без имени; имена в цели — это эти параметры:
+
+```efen
+struct Pair<T, U> {
+    var first: T
+    var second: U
+}
+
+strategy<T, U> for Pair<T, U> {          // для каждого Pair
+    fn swapped -> Pair<U, T> {
+        return Pair(first: second, second: first)
+    }
+}
+
+strategy for Pair<Int, Bool> {           // только для Pair<Int, Bool>: Int и Bool — типы, не параметры
+    fn describe -> String { … }
+}
+```
+
+Без объявления `strategy<T, U>` имя в цели — обычный тип: `strategy for Pair<T, U>` ищет типы `T` и `U` и без
+них является ошибкой. Именованная generic-
 стратегия может получить конкретную цель через `provide`:
 
 ```efen
