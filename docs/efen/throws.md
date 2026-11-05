@@ -93,6 +93,7 @@ Throwable                      контракт: reason(), трассы
 │  ├─ NullUnwrapError          .program      x! на null
 │  ├─ BoundsError              .program      индекс или диапазон вне коллекции
 │  ├─ OverlapError             .program      пишущий аргумент пересёкся с другим аргументом того же вызова
+│  ├─ ConditionError           .program      нарушено недоказанное условие в сборке с `fault`
 │  ├─ AllocationError          .environment
 │  └─ StackExhaustedError      .environment
 ├─ Cancellation                SpecialThrowable; .cancellation  отмена корутины
@@ -290,6 +291,9 @@ fn release(block: Pointer, size: Int) nofail {
    над сбоем (верх лестницы правила 5), но чужие исключения к нему в `suppressed` не прикрепляются. Исключение, которое было в полёте, и любое исключение из `defer`
    во время его раскрутки записываются в провал как имя типа и текст, а сами освобождаются. Провал хранится
    в месте своей корутины, без кучи ([тесты](tests/tests.md#assert)).
+9. `ConditionError` ([условия](conditions.md#обычная-сборка-и-диагностики)) проходит сквозь любую границу, как
+   `AssertionError` в правиле 7, и сквозь `throws only` со сбоями, и сквозь `nofail`: бросает его только сборка с
+   `fault`, а сводка не должна зависеть от настройки. Где выйти нельзя, он останавливает программу.
 
 ### throws (добавление исключения)
 
