@@ -32,7 +32,7 @@
 | Гарантия | Как отражается в коде |
 |---|---|
 | Арифметика, cleanup, loans и initialized state | Невидимый compiler mechanism поверх обычного кода |
-| Конечная форма списка | Compiler-known условие `chained` |
+| Конечная форма списка | Призрачная последовательность `ghost var nodes: Sequence<Items.Item>` и её законы в `invariants` |
 | Атомарная замена одного места | Compiler-known `replace(place, value)` |
 | Связь chunks, slots и `Items` | Generated ghost goal из descriptor operations, representation и контракта Array |
 | Произвольная невыводимая многооперационная граница | Может потребовать будущего свойства `region` |
@@ -343,80 +343,70 @@ Items.allocate(
 
 ## Декларативные условия
 
-Блок после `var` описывает допустимое значение свойства. `value` означает
-значение именно этого свойства:
+Условия пишутся по [единой форме](../conditions.md#условия-значений-и-invariants): условие одного значения — `{ }`
+в конце его строки, условие, которое читает несколько значений или чужое состояние за ссылкой, — строка
+`invariants` в теле `struct Self`, поскольку `Self` держит всю структуру и его точки восстановления — операции
+списка.
 
-```efen
-var length: Size = 0 {
-    value == Items.count
-}
-```
-
-Условие после `set` применяется к каждому элементу:
-
-```efen
-set Items: Item {
-    value reachable from self.head by Item.next
-}
-```
-
-`reachable` — логическое рефлексивное отношение пути. Оно не запускает обход во
-время выполнения.
-
-Для конечной цепочки всего множества используется compiler-known структурное
-условие уровня `set`:
-
-```efen
-set Items: Item {
-    chained from self.head by Item.next
-}
-```
-
-Оно означает существование единственной конечной последовательности `order`
-логических identity со следующими точными законами:
-
-```text
-allDistinct(order)
-set(order) == Items
-self.head == null <==> order.isEmpty
-
-if !order.isEmpty {
-    self.head == order[0]
-    forall i: 0 <= i && i + 1 < order.count
-        ==> order[i].next == order[i + 1]
-    order[order.count - 1].next == null
-}
-```
-
-Следовательно, `Items.count == order.count`, все и только элементы `Items`
-встречаются в цепочке ровно один раз, переход по `next` не замыкает цикл и
-заканчивается `null`. `order` является compiler-known proof witness: компилятор
-создаёт его в HIR и доказывает сохранение при каждой мутации. Это не runtime
-массив и не аксиома, которую verifier вправе подобрать после изменения heap.
-
-`chained` описывает всё множество, поэтому оно не заменяет условие отдельного
-поля. Например, `tail` по-прежнему отдельно связывается с конкретным последним
-элементом через `reachable` и `tail.next == null`; отдельный surface selector
-последнего элемента пока не вводится.
-
-Цепочка может связывать не всё множество, а его часть: свободные элементы, свободные места области. Тогда строка
-называет конец цепочки и то, какие элементы в ней стоят:
+Форма цепочки задаётся [призрачной последовательностью](../conditions.md#призрачные-поля-и-последовательности) и
+местными законами. Список с хвостом:
 
 ```efen
 layout {
-    one Stock
-    set area Cells: Cell {
-        chained from Stock.firstFree by FreeCell.next until null over value where value.kind == FREE
+    set Items: Item
+
+    struct Item {
+        Target
+        var next: own other Items.Item? = null
+    }
+
+    struct Self {
+        var head: own Items.Item? = null
+        var tail: read Items.Item? = null
+        var length: Int = 0 { value >= 0 }
+        ghost var nodes: Sequence<Items.Item> = Sequence()
+
+        invariants {
+            head == nodes.first
+            forall i in 0 ..< nodes.count - 1: nodes[i].next == nodes[i + 1]
+            nodes.count == 0 || nodes.last!.next == null
+            nodes.count == Items.count
+            tail == nodes.last
+            length == nodes.count
+        }
     }
 }
 ```
 
-Элементы множества, у которых верно условие после `where`, — ровно элементы цепочки от `Stock.firstFree` по `next`
-до `null`, каждый один раз; что из этого компилятор доказывает, сказано в
-[указателях](pointer.md#цепочка-свободных-мест). Та же строка над областью вида начинается с имени области и
-перебирает номера мест:
-`slots chained from firstFreeSlot by Slot.next until NONE over k in 0 ..< frontier where !slots.taken.contains(k)`
-([указатели](pointer.md#цепочка-свободных-мест)).
+Строки по порядку: первый элемент — `head`; каждый следующий — `next` предыдущего; у последнего `next == null`;
+элементов столько же, сколько в `Items`; хвост — последний; длина — число элементов. Повторов нет: путь, который
+дошёл до `null`, не ходит по кругу. Значит, все и только элементы `Items` стоят в цепочке ровно один раз, и
+`(head == null) == (tail == null)` следует из первой и пятой строк. Операция меняет последовательность явной
+строкой (`ghost nodes = nodes + Sequence(item)` при добавлении в конец), а компилятор проверяет законы в точке
+восстановления. Последовательность — не массив при выполнении и не аксиома: её значение пишет код.
+
+Цепочка может связывать не всё множество, а его часть: свободные элементы, свободные места области. Тогда
+последовательность держит только их, а закон говорит, какие элементы в ней стоят:
+
+```efen
+layout {
+    one Stock
+    set area Cells: Cell
+
+    struct Self {
+        ghost var freeCells: Sequence<Cells.Item> = Sequence()
+
+        invariants {
+            Stock.firstFree == freeCells.first
+            forall i in 0 ..< freeCells.count - 1: freeCells[i].next == freeCells[i + 1]
+            freeCells.count == 0 || freeCells.last!.next == null
+            forall c in Cells: (c.kind == FREE) == freeCells.contains(c)
+        }
+    }
+}
+```
+
+Над областью вида то же пишется номерами мест ([указатели](pointer.md#цепочка-свободных-мест)).
 
 Условие множества может назвать вид элемента: `value is V` значит, что у элемента верны все условия вида `V`; `V`
 встраивает тип элемента первым полем.
@@ -431,19 +421,6 @@ set area Boxes: Box {
 `Stack`. Функция, которая меняет то, что читают условия `Stack` (поля, `taken`), доказывает их у элементов, которые
 меняет. `x is V` с видом
 справа допустимо только в условиях.
-
-Обычный `if` внутри условия означает импликацию:
-
-```efen
-var tail: read Items.Item? = null {
-    (self.head == null) == (value == null)
-
-    if value != null {
-        value reachable from self.head by Item.next
-        value.next == null
-    }
-}
-```
 
 Несколько выражений одного блока соединяются логическим `&&`.
 
@@ -626,15 +603,9 @@ let owned = take self.head!
 Переход по `next` безопасен, если указатель жив, поле инициализировано и доступны
 права чтения. Из этого не следует завершение обхода.
 
-Условие:
-
-```efen
-value reachable from self.head by Item.next
-```
-
-говорит о существовании конечного пути к конкретному `value`. Для общего цикла
-дополнительно требуется доказать, что повторов нет либо что число шагов
-ограничено явным счётчиком.
+Законы последовательности `nodes` говорят, что путь от `head` конечен и без повторов: цикл по `next` завершается,
+мера — `nodes.count` минус номер текущего элемента. Без такой последовательности для общего цикла требуется
+доказать, что повторов нет, либо ограничить число шагов явным счётчиком.
 
 Тестирование конечного числа списков и превышение времени ожидания проверяющего
 модуля не являются доказательством. Превышение времени означает «не доказано».

@@ -117,26 +117,27 @@ fn smallSlot(pool: mut Pool, size: Int) -> own Pointer?
 ```efen
 struct FreeBlock {
     Block
-} {
-    kind == .free
+    invariants { kind == .free }
 }
 
 struct LargeBlock {
     Block
-} {
-    kind == .large
-    offset >= LINE
+    invariants {
+        kind == .large
+        offset >= LINE
+    }
 }
 ```
 
 `FreeBlock` и `LargeBlock` описывают одни и те же байты: тот же `Header`, та же
-область. Различаются они условиями. Методов и таблицы виртуальных функций у
+область. Различаются они условиями. Встраивающий вид наследует условия встроенного: строки `invariants` у `Block`
+верны и у `FreeBlock`, и повторить такую строку у наследника — ошибка. Методов и таблицы виртуальных функций у
 структур нет, так что наследование по началу касается только памяти.
 
 ## Условия вида
 
-Блок `{}` после структуры задаёт условия, которые выполняются у каждого её значения.
-Условие на поле заголовка связывает вид с этим полем:
+Строки [`invariants`](../conditions.md#условия-значений-и-invariants) структуры — условия, которые выполняются у
+каждого её значения. Условие на поле заголовка связывает вид с этим полем:
 
 - в `LargeBlock` всегда `kind == .large`, поэтому у `Block` с `kind == .large`
   другого вида быть не может, и `block as LargeBlock` доказано;
@@ -153,18 +154,20 @@ struct LargeBlock {
 - `x.taken` — множество номеров мест, выданных сейчас ([иерархия владения](#что-значит-own-блока)):
   `x.taken.count`, `x.taken.isEmpty`, `x.taken.contains(k)`. `x.taken.count` считает места: диапазон из `n` мест
   добавляет `n`;
-- `x chained from …` — цепочку свободных мест ([ниже](#цепочка-свободных-мест)).
+- призрачные поля вида — например, последовательность свободных мест ([ниже](#цепочка-свободных-мест)).
 
 Строка может быть `forall k in a ..< b: P` и `if c { … }` (импликация), как в
 [компоновке](addresses.md#декларативные-условия):
 
 ```efen
 struct Arena {
-    var top: Int = 0
+    var top: Int = 0 { value >= 0 }
     @align(16) area bytes: Byte
-} {
-    top >= 0 && top <= bytes.count
-    forall k in top ..< bytes.count: !bytes.taken.contains(k)
+
+    invariants {
+        top <= bytes.count
+        forall k in top ..< bytes.count: !bytes.taken.contains(k)
+    }
 }
 ```
 
@@ -178,8 +181,7 @@ shelf.pool`). Значение, только что приведённое из 
 ([компоновка](addresses.md#декларативные-условия)).
 
 Каждое значение вида, которое функция получила или создала приведением и не отдала, снова удовлетворяет условиям
-вида там, где условие восстанавливается ([компоновка](addresses.md#декларативные-условия): `return`, `throw` и
-другие точки), и перед каждым вызовом, которому оно передаётся `own` или `mut`: вызванная функция и вызывающий
+вида в каждой [точке восстановления](../conditions.md#когда-условие-проверяется): вызванная функция и вызывающий
 полагаются на них.
 
 **Поле раскладки** — поле, через которое строка условия задаёт число мест или размер места: `x.count == E` или
@@ -220,35 +222,39 @@ let block = spare as SlotBlock(slots: Slot(size: s))
 ## Цепочка свободных мест
 
 Свободные места блока связаны номерами: поле вида хранит номер первого, поле элемента — номер следующего. Условие
-вида записывает это словом `chained`:
+вида записывает это [призрачной последовательностью](../conditions.md#призрачные-поля-и-последовательности) и
+местными законами:
 
 ```efen
 struct SlotBlock {
-    Header
-    var firstFreeSlot: Int = NONE
-    var frontier: Int = 0
+    Header                                  // used, frontier, firstFreeSlot, kind
     @align(LINE) area slots: Slot
-} {
-    frontier >= 0 && frontier <= slots.count
-    forall k in frontier ..< slots.count: !slots.taken.contains(k)
-    slots chained from firstFreeSlot by Slot.next until NONE over k in 0 ..< frontier where !slots.taken.contains(k)
+    ghost var freeSlots: Sequence<Int> = Sequence()
+
+    invariants {
+        frontier <= slots.count
+        forall k in frontier ..< slots.count: !slots.taken.contains(k)
+        forall k in freeSlots: k < frontier && !slots.taken.contains(k)
+        firstFreeSlot == (freeSlots.first ?? NONE)
+        forall i in 0 ..< freeSlots.count - 1: Int(slots[freeSlots[i]].next) == freeSlots[i + 1]
+        freeSlots.count == 0 || Int(slots[freeSlots.last!].next) == NONE
+        freeSlots.count == frontier - slots.taken.count
+    }
 }
 ```
 
-Общая форма — `x chained from HEAD by Item.LINK until END over k in RANGE where CONDITION`. Места `k` из `RANGE`, у
-которых верно `CONDITION`, образуют одну цепочку: первое — поле `HEAD`, следующее — поле `LINK` места, после
-последнего стоит `END`. Каждое такое место входит в цепочку один раз, цикла нет; при пустом множестве `HEAD == END`.
-`END` — не номер из `RANGE`.
-Здесь это значит: невыданные места ниже границы `frontier` — ровно места цепочки, а выше границы места ещё не
-выдавались.
+Строки по порядку: каждое место последовательности свободно и ниже границы; первое — `firstFreeSlot`; каждое
+следующее — `next` предыдущего; у последнего `next == NONE`; мест столько же, сколько всех невыданных ниже границы.
+Повторов нет: путь, который дошёл до `NONE`, не ходит по кругу. Значит, невыданные места ниже границы `frontier` —
+ровно места цепочки, а выше границы места ещё не выдавались. Код, который снимает или возвращает место, меняет и
+последовательность: `ghost block.freeSlots = block.freeSlots[1 ..< block.freeSlots.count]` при снятии,
+`ghost block.freeSlots = Sequence(k) + block.freeSlots` при возврате.
 
 `firstFreeSlot` и `frontier` — целые `var` вида, `Slot.next` — поле элемента. Вне смены вида граница только растёт на
 единицу, а начало цепочки меняется только снятием (`firstFreeSlot = slots[k].next` при `k == firstFreeSlot`) и
 возвратом (`slots[k].next = firstFreeSlot`, затем `firstFreeSlot = k`).
 
-Смысл строки — весь закон выше. Компилятор может доказать только его часть: что от `HEAD` идут лишь места, у
-которых верно `CONDITION`, без повторов, — этого хватает, чтобы выдача брала невыданное место. Что каждое такое место
-стоит в цепочке, `efen proofs` тогда показывает как недоказанное.
+Строки с `freeSlots` при выполнении не вычисляются: недоказанная получает заметку `efen.unchecked`.
 
 ## Эквивалентность разной разметки одних байтов
 
@@ -337,12 +343,14 @@ fn releaseBlock(block: own PoolBlock) {
 struct SlotBlock {
     Header
     @align(LINE) area slots: Slot
-} {
-    kind == .slots
-    used == slots.taken.count          // связь поля учёта с взятыми местами
-    linked ==> used > 0                // в списке класса — только блоки с выданными слотами
-    next: SlotBlock?                   // имена, не владельцы
-    prev: SlotBlock?
+
+    invariants {
+        kind == .slots
+        used == slots.taken.count          // связь поля учёта с взятыми местами
+        linked ==> used > 0                // в списке класса — только блоки с выданными слотами
+        next == null || next! is SlotBlock // имена, не владельцы
+        prev == null || prev! is SlotBlock
+    }
 }
 ```
 
@@ -373,7 +381,8 @@ fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock) -> own Pointer
     var k: Int
     if block.firstFreeSlot != NONE {
         k = Int(block.firstFreeSlot)
-        block.firstFreeSlot = block.slots[k].next   // k снят с цепочки: не взят
+        block.firstFreeSlot = Int(block.slots[k].next)   // k снят с цепочки: не взят
+        ghost block.freeSlots = block.freeSlots[1 ..< block.freeSlots.count]
     } else {
         k = Int(block.frontier)                // k >= frontier: не взят
         block.frontier = block.frontier + 1
@@ -397,8 +406,9 @@ fn releaseSlot(entry: mut Classes.Item, block: mut SlotBlock, slot: own block.sl
 {
     let k = block.slots.index(slot)
     block.slots[k] = take slot             // байтов не копирует: slot и есть место k
-    block.slots[k].next = block.firstFreeSlot
-    block.firstFreeSlot = UInt16(k)
+    block.slots[k].next = UInt16(block.firstFreeSlot)
+    block.firstFreeSlot = k
+    ghost block.freeSlots = Sequence(k) + block.freeSlots
     block.used = block.used - 1            // Δused == −1 == число возвратов
     if block.used > 0 {
         if !block.linked { relinkBlock(entry, block) }
@@ -493,9 +503,9 @@ fn carve(arena: mut Arena, size: Int) -> own Pointer?
 Владеющее поле пишется только через владельца: через `own`-значение или путь от него, который
 держит заём владельца. Через имя, полученное чтением владеющего места, — нельзя: имя переживает
 `take` владельца, и запись через него замкнула бы цепочку саму на себя (`second.next = take head`
-после `let head = take self.firstFreeBlock!`). Исключение — множество со структурным условием
-(`chained`, `tree`): там запись через имя разрешена, а компилятор доказывает сохранение условия,
-как `append` через `tail` в [примерах компоновки](layout-examples/singly-linked-array.md).
+после `let head = take self.firstFreeBlock!`). Запись через имя у множества, законы которого стоят в `invariants`
+(`append` через `tail` в [примерах компоновки](layout-examples/singly-linked-array.md)), разрешена: строки
+`invariants` компилятор доказывает в точке восстановления, как у любого значения.
 
 ### Арена
 
@@ -591,7 +601,7 @@ layout {
     }
 
     struct Pool {
-        var classes: own Classes.Area? { value == null || value.count == CLASSES } = null
+        var classes: own Classes.Area? = null { value == null || value.count == CLASSES }
     }
 }
 ```
@@ -773,4 +783,3 @@ fn smallFree(memory: own Pointer?) {
 - нет в спецификации, сделано в компиляторе: `@abi(c)` на функции с телом, `thread var x: own T`, приведение
   `(address(m) & ~(A - 1)) as S.Item`, проверка адресов из C в отладочной сборке;
 - как отображение покидает множество блоков при `unmap`.
-- структурное условие `tree from self.root by Item.left, Item.right` — пара к `chained` для дерева.
