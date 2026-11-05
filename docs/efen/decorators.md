@@ -17,34 +17,34 @@
 
 ```efen
 // Декоратор без параметров
-@Deprecated
+@deprecated
 fn oldFunction {
     // код
 }
 
 // Декоратор с позиционными параметрами
-@Route("/api/users", method: "GET")
+@route("/api/users", method: "GET")
 fn getUsers {
     // код
 }
 
 // Декоратор с именованными параметрами
-@Cache(ttl: 3600, strategy: "LRU")
+@cache(ttl: 3600, strategy: "LRU")
 fn expensiveOperation {
     // код
 }
 
 // Множественные декораторы
-@Trace
-@Benchmark
-@Transaction
+@trace
+@benchmark
+@transaction
 fn criticalOperation {
     // код
 }
 
 // Декораторы с namespace
-@ORM::Entity
-@ORM::Table(name: "users")
+@orm::entity
+@orm::table(name: "users")
 class User {
     // код
 }
@@ -57,8 +57,8 @@ class User {
 #### 1. Функциям
 
 ```efen
-@Route("/api/data")
-@Authorization("admin")
+@route("/api/data")
+@authorization("admin")
 fn getData -> Data {
     return fetchData()
 }
@@ -67,8 +67,8 @@ fn getData -> Data {
 #### 2. Классам
 
 ```efen
-@Entity
-@Table(name: "users")
+@entity
+@table(name: "users")
 class User {
     var name: String
 }
@@ -78,11 +78,11 @@ class User {
 
 ```efen
 class Service {
-    @Inject
+    @inject
     var database: Database
 
-    @Cached
-    @Public
+    @cached
+    @public
     fn fetchData -> Data {
         return database.query()
     }
@@ -92,7 +92,7 @@ class Service {
 #### 4. Параметрам функций
 
 ```efen
-fn processUser(@NotNull @Validated userId: Int, @Inject service: UserService) -> User {
+fn processUser(@notNull @validated userId: Int, @inject service: UserService) -> User {
     return service.getUser(userId)
 }
 ```
@@ -100,30 +100,30 @@ fn processUser(@NotNull @Validated userId: Int, @Inject service: UserService) ->
 #### 5. Переменным
 
 ```efen
-@Cached
+@cached
 let expensiveResult = computeHeavyCalculation()
 
-@Volatile
+@volatile
 var sharedCounter: Int = 0
 
-@Deprecated("Use newConfig instead")
+@deprecated("Use newConfig instead")
 param oldConfig: Config = defaultConfig
 ```
 
 #### 6. Интерфейсам, контрактам, стратегиям
 
 ```efen
-@Serializable
+@serializable
 interface DataObject {
     fn toJSON -> String
 }
 
-@CompileTimeValidated
+@compileTimeValidated
 contract Comparable {
     fn compare(other: Self) -> Int
 }
 
-@OptimizedDispatch
+@optimizedDispatch
 strategy FastMath for Int {
     fn square -> Int {
         return this * this
@@ -176,12 +176,12 @@ if value has @myattr {
 ### Пример 1: Логирование
 
 ```efen
-@Trace
+@trace
 fn calculateSum(a: Int, b: Int) -> Int {
     return a + b
 }
 
-// Декоратор @Trace добавляет логирование входа/выхода:
+// Декоратор @trace добавляет логирование входа/выхода:
 // fn calculateSum(a: Int, b: Int) -> Int {
 //     log("Entering calculateSum with a=${a}, b=${b}")
 //     let result = a + b
@@ -193,10 +193,10 @@ fn calculateSum(a: Int, b: Int) -> Int {
 ### Пример 2: Кэширование
 
 ```efen
-@Cached(ttl: 600)
+@cached(ttl: 600)
 let config: Config = loadConfig()
 
-// Декоратор @Cached генерирует код для кэширования:
+// Декоратор @cached генерирует код для кэширования:
 // - Проверяет кэш перед вызовом
 // - Сохраняет результат в кэш
 // - Возвращает закэшированное значение при повторном обращении
@@ -205,14 +205,14 @@ let config: Config = loadConfig()
 ### Пример 3: ORM
 
 ```efen
-@Entity
-@Table(name: "users")
+@entity
+@table(name: "users")
 class User {
-    @Column(type: "int", primary: true)
+    @column(type: "int", primary: true)
     var id: Int
 
-    @Column(type: "string", length: 255)
-    @NotNull
+    @column(type: "string", length: 255)
+    @notNull
     var email: String
 }
 
@@ -256,9 +256,9 @@ let y = @value() + 5
 2. **Порядок выполнения**: Декораторы выполняются сверху вниз
 
 ```efen
-@First      // Выполняется первым
-@Second     // Выполняется вторым
-@Third      // Выполняется третьим
+@first      // Выполняется первым
+@second     // Выполняется вторым
+@third      // Выполняется третьим
 fn example { }
 ```
 
@@ -268,7 +268,7 @@ fn example { }
 помеченным и может заменить тело помеченного объявления. Новое публичное объявление и изменённая
 сигнатура объявляются при регистрации. Границы и песочница — в [плагинах и метакоде](compile-time/plugins.md#атрибуты).
 Декоратор объявляется классом с `conforms Attribute` (контракт `lang::`); его имя разрешается так же, как
-имя функции, а `@Cache(ttl: 3600)` создаёт экземпляр класса, как вызов конструктора. Атрибут без `meta fn`
+имя функции, а `@cache(ttl: 3600)` создаёт экземпляр класса, как вызов конструктора. Атрибут без `meta fn`
 только несёт данные, их читает метакод или [плагин компилятора](compile-time/compiler-plugins.md#c0-осмотр).
 
 ## См. также

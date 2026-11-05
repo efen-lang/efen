@@ -7,16 +7,16 @@
 ### REST API маршруты
 
 ```efen
-@Route("/api/users", method: "GET")
-@Authentication(required: true)
-@RateLimit(requests: 100, period: 60)
-fn getUsers(@Query page: Int = 1, @Query limit: Int = 10) -> [User] {
+@route("/api/users", method: "GET")
+@authentication(required: true)
+@rateLimit(requests: 100, period: 60)
+fn getUsers(@query page: Int = 1, @query limit: Int = 10) -> [User] {
     return userService.getUsers(page, limit)
 }
 
-@Route("/api/users/:id", method: "PUT")
-@Authorization(role: "admin")
-fn updateUser(@Path id: Int, @Body userData: UserData) -> User {
+@route("/api/users/:id", method: "PUT")
+@authorization(role: "admin")
+fn updateUser(@path id: Int, @body userData: UserData) -> User {
     return userService.update(id, userData)
 }
 ```
@@ -24,37 +24,37 @@ fn updateUser(@Path id: Int, @Body userData: UserData) -> User {
 ### ORM и база данных
 
 ```efen
-@Entity
-@Table(name: "users", indexes: ["email"])
+@entity
+@table(name: "users", indexes: ["email"])
 class User {
-    @Column(primary: true, autoIncrement: true)
+    @column(primary: true, autoIncrement: true)
     var id: Int
 
-    @Column(type: "varchar", length: 255, unique: true)
-    @NotNull
-    @Email
+    @column(type: "varchar", length: 255, unique: true)
+    @notNull
+    @email
     var email: String
 
-    @Column(type: "varchar", length: 100)
-    @NotNull
+    @column(type: "varchar", length: 100)
+    @notNull
     var name: String
 
-    @Column(type: "timestamp", default: "CURRENT_TIMESTAMP")
+    @column(type: "timestamp", default: "CURRENT_TIMESTAMP")
     var createdAt: DateTime
 
-    @OneToMany(target: "Post", mappedBy: "author")
+    @oneToMany(target: "Post", mappedBy: "author")
     var posts: [Post]
 }
 
-@Entity
+@entity
 class Post {
-    @Column(primary: true)
+    @column(primary: true)
     var id: Int
 
-    @ManyToOne(target: "User")
+    @manyToOne(target: "User")
     var author: User
 
-    @Column(type: "text")
+    @column(type: "text")
     var content: String
 }
 ```
@@ -64,12 +64,12 @@ class Post {
 ### Кэширование
 
 ```efen
-@Cached(ttl: 3600, key: "user_config_${userId}")
-fn getUserConfig(@Inject userId: Int) -> Config {
+@cached(ttl: 3600, key: "user_config_${userId}")
+fn getUserConfig(@inject userId: Int) -> Config {
     return database.loadConfig(userId)
 }
 
-@Memoize
+@memoize
 fn fibonacci(n: Int) -> Int {
     if n <= 1 {
         return n
@@ -81,15 +81,15 @@ fn fibonacci(n: Int) -> Int {
 ### Профилирование и бенчмарки
 
 ```efen
-@Benchmark
-@Trace
+@benchmark
+@trace
 fn complexCalculation(data: [Int]) -> Int {
     return data.reduce(0, (acc, x) => acc + x * x)
 }
 
-@Profile(detailed: true)
+@profile(detailed: true)
 class DataProcessor {
-    @Measure
+    @measure
     fn process(data: Data) -> Result {
         return transform(data)
     }
@@ -102,15 +102,15 @@ class DataProcessor {
 
 ```efen
 fn createUser(
-    @NotNull @Email email: String,
-    @NotNull @Length(min: 3, max: 50) name: String,
-    @WithinRange(min: 18, max: 120) age: Int
+    @notNull @email email: String,
+    @notNull @length(min: 3, max: 50) name: String,
+    @withinRange(min: 18, max: 120) age: Int
 ) -> User {
     return User(email, name, age)
 }
 
-@ValidateInput
-fn processPayment(@Positive amount: Float, @CreditCard cardNumber: String, @Future expiryDate: Date) -> PaymentResult {
+@validateInput
+fn processPayment(@positive amount: Float, @creditCard cardNumber: String, @future expiryDate: Date) -> PaymentResult {
     return paymentGateway.charge(amount, cardNumber, expiryDate)
 }
 ```
@@ -118,14 +118,14 @@ fn processPayment(@Positive amount: Float, @CreditCard cardNumber: String, @Futu
 ### Проверка прав доступа
 
 ```efen
-@RequireAuthentication
-@RequireRole("admin")
-fn deleteUser(@Path userId: Int) -> Bool {
+@requireAuthentication
+@requireRole("admin")
+fn deleteUser(@path userId: Int) -> Bool {
     return userService.delete(userId)
 }
 
-@CheckPermission("posts.edit")
-fn editPost(@Inject currentUser: User, postId: Int, content: String) -> Post {
+@checkPermission("posts.edit")
+fn editPost(@inject currentUser: User, postId: Int, content: String) -> Post {
     return postService.update(postId, content)
 }
 ```
@@ -134,13 +134,13 @@ fn editPost(@Inject currentUser: User, postId: Int, content: String) -> Post {
 
 ```efen
 class UserController {
-    @Inject
+    @inject
     var userService: UserService
 
-    @Inject("database.primary")
+    @inject("database.primary")
     var database: Database
 
-    @Inject
+    @inject
     var logger: Logger
 
     fn getUser(id: Int) -> User {
@@ -153,16 +153,16 @@ class UserController {
 ## Транзакции и обработка ошибок
 
 ```efen
-@Transaction
-@Retry(maxAttempts: 3, backoff: "exponential")
+@transaction
+@retry(maxAttempts: 3, backoff: "exponential")
 fn transferMoney(from: Account, to: Account, amount: Float) -> Bool {
     from.withdraw(amount)
     to.deposit(amount)
     return true
 }
 
-@HandleErrors(strategy: "log_and_rethrow")
-@Timeout(milliseconds: 5000)
+@handleErrors(strategy: "log_and_rethrow")
+@timeout(milliseconds: 5000)
 fn fetchExternalData(url: String) -> Data {
     return httpClient.get(url)
 }
@@ -171,13 +171,13 @@ fn fetchExternalData(url: String) -> Data {
 ## Сериализация
 
 ```efen
-@Serializable
-@JsonSerializable(camelCase: true)
+@serializable
+@jsonSerializable(camelCase: true)
 class ApiResponse {
-    @JsonProperty("user_id")
+    @jsonProperty("user_id")
     var userId: Int
 
-    @JsonIgnore
+    @jsonIgnore
     var internalData: String
 
     var message: String
@@ -208,14 +208,14 @@ test UserService.create "отклоняет неверный адрес" {
 ## Логирование и мониторинг
 
 ```efen
-@LogExecutionTime
-@NotifyOnError(channel: "slack")
+@logExecutionTime
+@notifyOnError(channel: "slack")
 fn criticalOperation -> Result {
     // выполнение критической операции
     return performOperation()
 }
 
-@Trace(level: "DEBUG", includeArguments: true)
+@trace(level: "DEBUG", includeArguments: true)
 fn debugFunction(param1: Int, param2: String) -> Result {
     return process(param1, param2)
 }
@@ -224,17 +224,17 @@ fn debugFunction(param1: Int, param2: String) -> Result {
 ## Оптимизация компиляции
 
 ```efen
-@Inline
+@inline
 fn fastAdd(a: Int, b: Int) -> Int {
     return a + b
 }
 
-@NoInline
+@noInline
 fn debugHelper {
     // код для отладки
 }
 
-@CompileTimeEvaluate
+@compileTimeEvaluate
 fn constantCalculation -> Int {
     return 42 * 1024 * 1024
 }
@@ -243,13 +243,13 @@ fn constantCalculation -> Int {
 ## Deprecated и версионирование
 
 ```efen
-@Deprecated("Use newFunction() instead", since: "2.0", removal: "3.0")
+@deprecated("Use newFunction() instead", since: "2.0", removal: "3.0")
 fn oldFunction {
     // устаревший код
 }
 
-@Experimental
-@Since("2.5")
+@experimental
+@since("2.5")
 fn experimentalFeature {
     // экспериментальная функциональность
 }
@@ -258,15 +258,15 @@ fn experimentalFeature {
 ## Комбинирование декораторов
 
 ```efen
-@Route("/api/admin/users", method: "POST")
-@Authentication(required: true)
-@Authorization(role: "admin")
-@RateLimit(requests: 10, period: 60)
-@ValidateInput
-@Transaction
-@Trace
-@HandleErrors(strategy: "rollback_and_log")
-fn createAdminUser(@NotNull @Email email: String, @NotNull @Strong password: String, @Inject logger: Logger) -> User {
+@route("/api/admin/users", method: "POST")
+@authentication(required: true)
+@authorization(role: "admin")
+@rateLimit(requests: 10, period: 60)
+@validateInput
+@transaction
+@trace
+@handleErrors(strategy: "rollback_and_log")
+fn createAdminUser(@notNull @email email: String, @notNull @strong password: String, @inject logger: Logger) -> User {
     logger.info("Creating admin user: ${email}")
     return userService.createAdmin(email, password)
 }
