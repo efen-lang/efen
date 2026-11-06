@@ -758,7 +758,7 @@ class Log {
     var handlers: Vector<() -> Void>                          // колбэки ничего не заимствуют
 }
 class Bus<Mem: Origin> {
-    var handlers: Vector<mut<Mem> () -> Void>                 // колбэки могут менять память Mem
+    var handlers: Vector<mut<Mem> () mut -> Void>             // колбэки могут менять память Mem
 }
 
 fn main {
