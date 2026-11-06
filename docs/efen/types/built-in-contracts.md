@@ -1,152 +1,50 @@
 # Встроенные контракты
 
-Встроенные контракты описывают свойства типов, которые учитывает компилятор:
-создание и уничтожение значений, управление памятью и ограничения на передачу
-между потоками. Ниже приведены правила отдельных контрактов.
+[Документация](../README.md) · [Контракты](../contracts.md) · [Runtime языка Efen](../runtime/README.md) · [Память](../memory/README.md)
+
+Каталог перенесён в раздел [Runtime языка Efen](../runtime/README.md):
+[встроенные контракты](../runtime/built-in-contracts.md).
 
 ## TypeContract
 
-Базовый контракт для всех типов данных.
-
-```efen
-contract TypeContract {
-
-    enum TypeKind {
-        Primitive,
-        Structure,
-        Class,
-        Interface,
-        Service,
-        Context,
-        Aspect,
-        TypeDef,
-        Pointer,
-        Generic
-    }
-
-    var name: String
-    var kind: TypeKind
-    var size: Size
-}
-```
+См. [TypeContract](../runtime/built-in-contracts.md#typecontract).
 
 ## ArcClass
 
-Класс с автоматическим подсчётом ссылок объявляет `conforms ArcClass`.
-Сам контракт из `lang::` не требует членов. Нужные поля и операции предоставляет
-внешняя реализация — по умолчанию аспект `ArcCounter` из среды выполнения.
-Он добавляет счётчик владельцев, операции `retain` и `release`, а также
-соответствие `Cloneable` ([реализация извне](../contracts.md#реализация-извне)).
-
-ARC означает автоматический подсчёт ссылок: компилятор вставляет вызовы
-`retain` и `release` при появлении и исчезновении владельцев. Обычный счётчик
-неатомарный. Правила для общего счётчика описаны в статье
-[об общей памяти](../shared.md).
-
-```efen
-contract ArcClass {
-    allow implementations from runtime, std
-}
-```
+См. [ArcClass](../runtime/built-in-contracts.md#arcclass).
 
 ## Constructible
 
-Пустой контракт `lang::`. Класс, у которого есть пользовательские конструкторы `@constructor`, пишет
-`conforms Constructible`; без этой строки `@constructor` — ошибка компиляции. У такого класса нет создания из полей:
-объект создаётся только конструктором. Класс без `Constructible` создаётся из полей (`Box(value: 10)`): это запись
-данных, пользовательский код не выполняется ([классы](../classes.md#определение-класса)).
-
-```efen
-contract Constructible {
-}
-```
+См. [Constructible](../runtime/built-in-contracts.md#constructible).
 
 ## Destructible
 
-Пустой контракт `lang::`. Класс, у которого есть деструкторы `@destructor`, пишет `conforms Destructible`; без этой
-строки `@destructor` — ошибка компиляции. Без деструктора уничтожение объекта — `dispose`, если класс
-`implements Disposable`, затем уничтожение его полей и освобождение памяти ([Disposable](../disposable.md#запись)).
-`Disposable` контракта `Destructible` не требует.
-
-```efen
-contract Destructible {
-}
-```
+См. [Destructible](../runtime/built-in-contracts.md#destructible).
 
 ## OpenClass
 
-Контракт `lang::` без требований. Корень иерархии с `open class` пишет `conforms OpenClass`; без этой строки `open`
-у корня — ошибка компиляции, наследники соответствуют ему через корень. Описатель класса в объекте, по которому
-работают переопределённые методы, интерфейсные таблицы наследников и `catch` по классу, даёт аспект извне
-([реализация извне](../contracts.md#реализация-извне)), по умолчанию `ClassDescriptor` из среды выполнения.
-
-```efen
-contract OpenClass {
-    allow implementations from runtime, std
-}
-```
+См. [OpenClass](../runtime/built-in-contracts.md#openclass).
 
 ## ArcOperations
 
-Контракт, который реализует аспект подсчёта ссылок (`ArcCounter`), а не класс. Вызовы `retain` и `release` расставляет компилятор;
-программа их не пишет ([подсчёт ссылок](../memory.md#подсчет-ссылок)).
-
-```efen
-contract ArcOperations {
-    mut fn retain
-    mut fn release
-}
-```
+См. [ArcOperations](../runtime/built-in-contracts.md#arcoperations).
 
 ## ImplicitlyDestroyable
 
-Пустой контракт `lang::`: компилятор может уничтожить значение такого типа в точке, которую программа не называет.
-Соответствие вычисляется, а не пишется ([Disposable](../disposable.md#implicitlydestroyable)).
-
-```efen
-contract ImplicitlyDestroyable {
-}
-```
+См. [ImplicitlyDestroyable](../runtime/built-in-contracts.md#implicitlydestroyable).
 
 ## ThreadBound
 
-Контракт `lang::` без обязательных членов. Значение такого типа можно
-использовать только в допустимом для него потоке. Тип с собственной привязкой
-объявляет `conforms ThreadBound` явно.
-
-Если привязанный к потоку тип находится в поле, элементе коллекции, захвате
-замыкания или поле `layout`, ограничение распространяется и на содержащий
-его тип. Явное объявление соответствия в этом случае не требуется.
-Если тип не привязан к потоку ни сам по себе, ни из-за содержимого,
-это ограничение не действует. Подробнее —
-[привязка к потоку](../shared.md#привязка-к-потоку-threadbound).
-
-```efen
-contract ThreadBound {
-}
-```
+См. [ThreadBound](../runtime/built-in-contracts.md#threadbound).
 
 ## Freezable
 
-Пустой контракт `lang::`: значение типа допускает заморозку в слот `immutable T`. Соответствие вычисляется по полям,
-элементам, захватам и полям `layout`; строку не пишут. `conforms Freezable` пишет только класс над внешним значением:
-компилятор её не проверяет, это точка доверия, и `efen proofs` показывает её как место без доказательства
-([неизменяемость](../immutability.md#какие-типы-замораживаются)).
-
-```efen
-contract Freezable {
-}
-```
+См. [Freezable](../runtime/built-in-contracts.md#freezable).
 
 ## IndirectExtensions
 
-Контракт `lang::` без требований. Корень открытого `variant` пишет `conforms IndirectExtensions`, чтобы
-данные случаев его расширений лежали в куче и размер корня не зависел от программы ([схемы
-хранения](variant.md#схемы-хранения)).
+См. [IndirectExtensions](../runtime/built-in-contracts.md#indirectextensions).
 
-```efen
-open variant Shape {
-    conforms IndirectExtensions
-    dot
-}
-```
+---
+
+[Документация](../README.md) · [Контракты](../contracts.md) · [Runtime языка Efen](../runtime/README.md) · [Память](../memory/README.md)

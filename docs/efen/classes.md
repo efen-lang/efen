@@ -1,5 +1,7 @@
 # Классы
 
+[Документация](README.md) · [Контракты](contracts.md) · [Runtime языка Efen](runtime/README.md) · [Память](memory/README.md)
+
 Класс объединяет поля, которые хранят состояние объекта, и методы,
 которые работают с этим состоянием. По умолчанию у объекта один владелец,
 а создание из полей не выполняет пользовательский код.
@@ -41,10 +43,10 @@ person.haveBirthday()  // Выведет: "Alice is now 31 years old"
 
 | Возможность | Контракт |
 |---|---|
-| конструкторы `@constructor` | [`Constructible`](types/built-in-contracts.md#constructible) |
-| деструкторы `@destructor` | [`Destructible`](types/built-in-contracts.md#destructible) |
-| несколько владельцев, счётчик | [`ArcClass`](types/built-in-contracts.md#arcclass) |
-| наследники и переопределение, `open` | [`OpenClass`](types/built-in-contracts.md#openclass) |
+| конструкторы `@constructor` | [`Constructible`](runtime/built-in-contracts.md#constructible) |
+| деструкторы `@destructor` | [`Destructible`](runtime/built-in-contracts.md#destructible) |
+| несколько владельцев, счётчик | [`ArcClass`](runtime/built-in-contracts.md#arcclass) |
+| наследники и переопределение, `open` | [`OpenClass`](runtime/built-in-contracts.md#openclass) |
 
 Соответствие этим контрактам наследуется: наследник `Constructible`-класса тоже `Constructible`, наследник
 `ArcClass` тоже со счётчиком. Способ предоставления реализации наследнику определяет соответствующий аспект: `ArcCounter`
@@ -137,7 +139,7 @@ let rect = Rectangle(width: 10.0, height: 5.0)
 
 Классы и методы закрыты для наследования и переопределения по умолчанию (`final`). `open class` разрешает
 наследование, а `open fn` — переопределение метода. Корень `open`-иерархии пишет
-`conforms OpenClass` ([встроенные контракты](types/built-in-contracts.md#openclass)): описатель
+`conforms OpenClass` ([встроенные контракты](runtime/built-in-contracts.md#openclass)): описатель
 класса, по которому работают переопределённые методы и `catch` по классу, даёт аспект этого
 контракта. Без строки `open` у корня — ошибка компиляции; наследник её не пишет:
 
@@ -554,7 +556,7 @@ let box3 = take box1        // владелец теперь box3
 
 Класс, объекты которого делят несколько владельцев, пишет `conforms ArcClass`. У такого объекта есть счётчик
 владельцев, его слоты — `managed` ([владение](types/ownership.md#аспекты-владения)), `let b = a` даёт второго
-владельца, `clone` увеличивает счётчик ([`clone`](contracts.md#оператор-clone)). Поле счётчика, `retain`,
+владельца, `clone` увеличивает счётчик ([`clone`](runtime/value-operations.md#оператор-clone)). Поле счётчика, `retain`,
 `release` и соответствие `Cloneable` даёт аспект, который реализует `ArcClass`, по умолчанию `ArcCounter` из среды выполнения
 ([реализация извне](contracts.md#реализация-извне), [подсчёт ссылок](memory.md#подсчет-ссылок)). Строку пишет корень
 иерархии, а производный класс получает счётчик от него.
@@ -702,8 +704,8 @@ let twice = File.adopt(raw: 3)                   // проверочная сб�
 ### Поля `layout` и модель
 
 `layout { … }` в теле класса описывает, что держит внешняя сторона: поля, которых нет в байтах объекта
-([`layout` в теле класса](memory/addresses.md#layout-в-теле-класса)). Пишет их модель — абстрактный код после
-сигнатуры функции ([модель](conditions.md#модель-model)). По ним FLOW проверяет, что внешняя сторона не держит
+([`layout` в теле класса](memory/layout.md#layout-в-теле-класса)). Пишет их модель — абстрактный код после
+сигнатуры функции ([модель](models.md#модель-model)). По ним FLOW проверяет, что внешняя сторона не держит
 слот дольше, чем он живёт.
 
 ```efen
@@ -746,7 +748,7 @@ fn countUsers(db: mut sqlite3, query: read String) -> Int throws SqliteError {
 Поля `layout` (строки `var`) бывают у любого класса без счётчика, не только у класса над внешним значением, а также
 у интерфейса и у контракта; у класса со счётчиком строка `var` в `layout` — ошибка. Класс с обычными полями, со
 счётчиком или без, пишет в `layout` отношение между своими полями и полями `layout` элементов
-([отношения в `layout`](conditions.md#отношения-в-layout-класса)):
+([отношения в `layout`](models.md#отношения-в-layout-класса)):
 
 ```efen
 class Connection {
@@ -770,3 +772,7 @@ class Connection {
 - **Соответствие контрактам**: Класс может соответствовать нескольким контрактам через `conforms`
 - **Расширение через стратегии**: К классам могут применяться стратегии для добавления функциональности
 - **Инкапсуляция**: Классы скрывают внутреннюю реализацию и предоставляют публичный API
+
+---
+
+[Документация](README.md) · [Контракты](contracts.md) · [Runtime языка Efen](runtime/README.md) · [Память](memory/README.md)

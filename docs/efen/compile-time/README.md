@@ -22,7 +22,11 @@ Compile-time API — часть метапрограммирования Efen: �
 |---|---|
 | Режимы сборки и диагностики | [Режимы компиляции](../compilation-modes.md), [группы диагностик](../diagnostic-groups.md) |
 | Другие frontend-языки | [Диалекты](../dialects.md) |
-| Runtime-facing API | [Runtime](../runtime/README.md) |
+| Runtime языка Efen | [Готовые контракты, функции и типы](../runtime/README.md) |
 
 Свойства HIR, scheduler и backend-граничницы не дублируются здесь: для них
 используйте [Amber design](https://github.com/efen-lang/amber/blob/main/design/README.md).
+
+---
+
+[Документация](../README.md) · [Контракты](../contracts.md) · [Runtime языка Efen](../runtime/README.md) · [Память](../memory/README.md)

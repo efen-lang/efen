@@ -1,5 +1,7 @@
 # Коллекции
 
+[Документация](../README.md) · [Контракты](../contracts.md) · [Runtime языка Efen](../runtime/README.md) · [Память](../memory/README.md)
+
 Коллекция хранит элементы и предоставляет операции для работы с ними.
 В Efen предусмотрены массивы, векторы, множества, словари и другие коллекции.
 
@@ -495,7 +497,7 @@ fn evens(limit: Int) -> Int {
 
 `removeLast` обещает `ensures result == null ==> count == 0`. После цикла `while let x = a.removeLast() { … }` FLOW
 знает, что коллекция пуста, и уничтожает её неявно, даже если элемент не `ImplicitlyDestroyable`; доказанный
-`count == 0` снимает и все удержания элементов ([удержания](../conditions.md#удержания)).
+`count == 0` снимает и все удержания элементов ([удержания](../models.md#удержания)).
 
 ## Итераторы
 
@@ -1021,3 +1023,7 @@ let reversed = numbers.reversed()  // [5, 4, 3, 2, 1]
 let duplicates = [1, 2, 2, 3, 1, 4]
 let unique = duplicates.distinct()  // [1, 2, 3, 4]
 ```
+
+---
+
+[Документация](../README.md) · [Контракты](../contracts.md) · [Runtime языка Efen](../runtime/README.md) · [Память](../memory/README.md)

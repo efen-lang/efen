@@ -11,9 +11,10 @@
 1. [Ownership, borrow, origin и `take`](../types/ownership.md).
 2. [Representations](../representations.md) — логический тип и физическая
    форма.
-3. [Компоновка и дескрипторы](addresses.md) — адреса, `Target`, `Self` и
+3. [Layout и описание памяти](layout.md), [модели поведения](../models.md).
+4. [Компоновка и дескрипторы](addresses.md) — адреса, `Target`, `Self` и
    безопасные операции.
-4. [Примеры компоновки](layout-examples/README.md) — цельные реализации
+5. [Примеры компоновки](layout-examples/README.md) — цельные реализации
    структур данных.
 
 ## Карта материалов
@@ -21,6 +22,7 @@
 | Назначение | Документ |
 |---|---|
 | Общая модель управления памятью | [Обзор](../memory.md), [тематическая модель](index.md) |
+| Layout и удержания | [Layout](layout.md), [модели поведения](../models.md) |
 | Дескрипторы, адреса и layout | [addresses](addresses.md), [разбор прежних дефектов](addresses-defects.md) |
 | Физическое хранение | [колоночные layout](columnar-layouts.md), [варианты representation](layout-representations.md) |
 | Доказательная граница | [Efen → Viper](viper-verification-backend.md), [план](viper-proof-plan.md), [proof model](viper-proof-model.md) |
@@ -30,3 +32,7 @@
 
 `allocator.md` и `classes-internal.md` — исторические низкоуровневые наброски;
 они не заменяют правила ownership и layout выше.
+
+---
+
+[Документация](../README.md) · [Контракты](../contracts.md) · [Runtime языка Efen](../runtime/README.md) · [Память](README.md)

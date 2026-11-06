@@ -1,5 +1,7 @@
 # Неизменяемость: `immutable` и `readonly class`
 
+[Документация](README.md) · [Контракты](contracts.md) · [Runtime языка Efen](runtime/README.md) · [Память](memory/README.md)
+
 В Efen различаются глубокая неизменяемость значения и запрет изменять объект
 через его внешние операции:
 
@@ -48,7 +50,7 @@ hosts.append("backup")          // владелец пишет; поток, чи
 ### Какие типы замораживаются
 
 Тип допускает заморозку — вычисляемый контракт `Freezable`
-([встроенные контракты](types/built-in-contracts.md#freezable)), — если в нём нет поля, элемента, захвата или поля
+([встроенные контракты](runtime/built-in-contracts.md#freezable)), — если в нём нет поля, элемента, захвата или поля
 `layout`:
 
 | Что внутри | Почему |
@@ -308,3 +310,7 @@ shared readonly class Text {
 | поле контекста процесса, `static` | `immutable T`, `shared`-тип, атомарный тип, `shared readonly class` |
 | поле `shared`-структуры без охраны | `let` типа `immutable T` или простого значения без кучи |
 | многопоточная корутина, `offload` | `immutable T`; `readonly class` — по доказательству FLOW |
+
+---
+
+[Документация](README.md) · [Контракты](contracts.md) · [Runtime языка Efen](runtime/README.md) · [Память](memory/README.md)

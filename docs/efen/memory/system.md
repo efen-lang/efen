@@ -194,7 +194,7 @@ notice: this package is a risk: the build believes 3 places of it rather than pr
 ```
 
 Те же точки доверия дают [классы над внешним значением](../classes.md#класс-над-внешним-значением) и
-[модели](../conditions.md#модель-model):
+[модели](../models.md#модель-model):
 
 | Объявление | Модель FLOW берёт как | Доверие |
 |---|---|---|
@@ -210,3 +210,7 @@ notice: this package is a risk: the build believes 3 places of it rather than pr
 `efen proofs` выводит каждое место строкой вида `trust` (`error_number.efen:24:1 trust a C library's function`), в
 том числе с `--unproved`. Позже конфигурация сборки будет называть пакеты, которым доверяют, и рискованный пакет вне
 этого списка станет ошибкой; форма списка не решена.
+
+---
+
+[Документация](../README.md) · [Контракты](../contracts.md) · [Runtime языка Efen](../runtime/README.md) · [Память](README.md)
