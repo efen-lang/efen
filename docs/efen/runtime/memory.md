@@ -167,7 +167,9 @@ let head = Node(value: 1)
 use runtime::memory
 
 // Аллокатор использует alloca (выделение на стеке)
-fn stackAllocate<T>(count: Int = 1) -> UnsafeMutablePointer<T> {
+fn stackAllocate -> UnsafeMutablePointer<T> {
+    generic T: Type
+    param count: Int = 1
     let size = sizeOf(T.self) * count
     return alloca(size) as UnsafeMutablePointer<T>
 }

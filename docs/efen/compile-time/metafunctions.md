@@ -1355,7 +1355,9 @@ log("INFO", "User logged in: ${username}")
 ### 2. Проверка с автоматическим сообщением
 
 ```efen
-meta fn check(condition: Bool, message: String? = null) -> InlineClosure {
+meta fn check -> InlineClosure {
+    param condition: Bool
+    param message: String? = null
     let conditionStr = condition.toString()  // Compile-time
     let file = location.file
     let line = location.line
@@ -1445,7 +1447,12 @@ debugOnly => {
 ### 6. Проверка диапазона
 
 ```efen
-meta fn inRange<T>(value: T, min: T, max: T, name: comptime String) -> InlineClosure {
+meta fn inRange -> InlineClosure {
+    generic T: Type
+    param value: T
+    param min: T
+    param max: T
+    param name: comptime String
     return inline {
         if value < min || value > max {
             throw RangeError("${name} must be in range [${min}, ${max}], got ${value}")

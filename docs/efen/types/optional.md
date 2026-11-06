@@ -395,7 +395,9 @@ if let age = userAges["Alice"] {
 ### Параметры, допускающие отсутствие значения
 
 ```efen
-fn greet(name: String?, title: String? = null) {
+fn greet {
+    param name: String?
+    param title: String? = null
     let actualName = name ?? "Гость"
     if let title = title {
         print("Здравствуйте, ${title} ${actualName}")

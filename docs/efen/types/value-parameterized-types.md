@@ -61,9 +61,7 @@ fn manageUsers(user: User<root> | User<admin>) {
 Общий код объявляет тот же параметр:
 
 ```efen
-fn displayProfile {
-    generic Kind: UserKind
-    param user: User<Kind>
+fn displayProfile<Kind: UserKind>(user: User<Kind>) {
 
     // ...
 }

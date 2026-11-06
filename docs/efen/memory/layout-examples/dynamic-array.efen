@@ -25,7 +25,8 @@ aspect DynamicContiguous<Target> {
 
     implementation {
         @constructor
-        public fn init(capacity: Size = 0) -> Self {
+        public fn init -> Self {
+            param capacity: Size = 0
             self.root = null
             self.areaCapacity = capacity
             self.length = 0
