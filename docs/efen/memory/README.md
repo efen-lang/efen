@@ -25,7 +25,7 @@
 | Layout и удержания | [Layout](layout.md), [модели поведения](../models.md) |
 | Дескрипторы, адреса и layout | [addresses](addresses.md), [разбор прежних дефектов](addresses-defects.md) |
 | Физическое хранение | [колоночные layout](columnar-layouts.md), [варианты representation](layout-representations.md) |
-| Доказательная граница | [Efen → Viper](viper-verification-backend.md), [план](viper-proof-plan.md), [proof model](viper-proof-model.md) |
+| Доказательная граница | [условия и доказательства](../conditions.md) |
 | Проверка при выполнении | [проверочная сборка](checking-build.md) |
 | Сравнение и исторический контекст | [prior art](prior-art.md), [allocator](allocator.md), [class internals](classes-internal.md) |
 | Самостоятельные примеры | [примеры](examples/README.md), [layout examples](layout-examples/README.md) |
