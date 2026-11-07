@@ -511,20 +511,20 @@ fn evens(limit: Int) -> Int {
 типами значений времени выполнения:
 
 ```efen
-contract Iterator<Item: Access T, Src: Origin> {
-    mut fn next -> Access<Src> T?      // ссылка на слот массива Src, не на итератор
+contract Iterator<Access Item, Src: Origin> {
+    mut fn next -> Access<Src> Item?      // ссылка на слот массива Src, не на итератор
     invariants { Access != own }
 }
 
-contract Iterable<Item: Access T, Cursor> {
+contract Iterable<Access Item, Cursor> {
     Access fn iterator -> Cursor
-    invariants { Cursor conforms Iterator<Item> || Cursor conforms ValueIterator<T> }
+    invariants { Cursor conforms Iterator<Access Item> || Cursor conforms ValueIterator<Item> }
 }
 ```
 
 Контракт не говорит, с чем связан курсор: это дело реализации. Стратегия
 возвращает курсор, тип которого сам несёт свой `Src`, например
-`ArrayIterator<Item: edit Int, Src: self>`. `Iterable` один на оба вида курсора: со ссылками на слоты (`Iterator`) и со значениями
+`ArrayIterator<edit Int, Src: self>`. `Iterable` один на оба вида курсора: со ссылками на слоты (`Iterator`) и со значениями
 (`ValueIterator`, ниже). Какой вид у обхода, `for` узнаёт по типу курсора.
 
 Итератор, который выдаёт значения вместо ссылок на слоты чужого источника,
