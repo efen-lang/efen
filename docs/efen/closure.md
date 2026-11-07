@@ -291,7 +291,7 @@ fn makeReport -> (() -> Void) in Environment {
 
 - `spawn { ... }` — корутина с результатом. Возвращает дескриптор `Coroutine<F>`,
   где `F` — тип замыкания, которое выполняет корутина. Вид в `F` не пишется и не учитывается: умолчание
-  `mut` типа функции к `F` не применяется, `Coroutine<() -> Response throws Redirect>`;
+  `read` типа функции к `F` не применяется, `Coroutine<() -> Response throws Redirect>`;
   `Coroutine<() own -> T>` — ошибка. Тело корутины выполняется один раз, и эту однократность
   выражает право `own` на сам дескриптор: `await<T>(c: own Coroutine<() -> T>) -> T`. Дескриптор
   ведёт себя как `Future`. `Coroutine` — обычный обобщённый класс `lang`; что корутина бросает и что ей нужно,
@@ -991,7 +991,7 @@ fn process(data: [Int], transform: (Int) -> Int) -> [Int] {
 
 // Фоновая корутина получает callback без заимствований: окружение своё
 fn asyncProcess(completion: own () -> Void) in Concurrency {
-    background => {
+    background {
         capture completion = take completion
         completion()
     }
