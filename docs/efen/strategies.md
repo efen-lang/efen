@@ -406,14 +406,14 @@ strategy ArrayTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == read || value == edit }
     conforms Iterable<Item: Access T>
-    Access fn iterator -> ArrayIterator<Item: Access T, Src: self> { … }
+    Access fn iterator -> ArrayIterator<Access T, Src: self> { … }
 }
 
 strategy ArrayMutTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == mut }
     conforms Iterable<Item: Access T>              // элемент — ссылка mut
-    Access fn iterator -> IndexIter<Item: Access T, Src: self> { … }
+    Access fn iterator -> IndexIter<Access T, Src: self> { … }
 }
 
 strategy ArrayDrain for Array<T> {
