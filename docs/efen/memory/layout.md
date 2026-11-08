@@ -63,7 +63,7 @@ layout {
     area Classes: Class               // 32 класса размеров подряд
 
     struct Pool {
-        own var classes: Classes.Area? { value == null || value.count == CLASSES }
+        var classes: own Classes.Area? { value == null || value.count == CLASSES }
     }
 }
 ```
@@ -113,7 +113,7 @@ struct Slot {
 | Запись | Что это |
 |---|---|
 | `var next: Blocks.Item?` | имя элемента множества `Blocks`; не владеет, цель обязана быть живой |
-| `own var reserve: SlotBlock?` | владеющая ссылка: она уничтожает цель |
+| `var reserve: own SlotBlock?` | владеющая ссылка: она уничтожает цель |
 | `var next: Int` с концом `NONE` | место своей области по индексу (цепочка свободных мест) |
 | `var key: read<layout.Keys> Int` | место области `Keys` того же `layout` |
 | `var left: own Nodes.Item?` | владеющая ссылка элемента `set area` на элемент того же множества |
