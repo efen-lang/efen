@@ -1,0 +1,35 @@
+// A ring buffer of values: an area of places, a head and a count; places hold plain values.
+const CAPACITY = 64
+
+layout {
+    struct Slot {
+        var value: Int = 0
+    }
+
+    struct Ring {
+        var head: Int = 0 { value >= 0 && value < CAPACITY }
+        var count: Int = 0 { value >= 0 && value <= CAPACITY }
+        area slots: Slot { value.count == CAPACITY }
+    }
+}
+
+fn push(ring: mut Ring, value: Int) -> Bool {  //@ S111 S111.6a
+    if ring.count == CAPACITY { return false }
+    let at = (ring.head + ring.count) % CAPACITY
+    ring.slots[at].value = value
+    ring.count = ring.count + 1
+    return true
+}
+
+fn pop(ring: mut Ring) -> Int? {  //@ S111 S111.6a
+    if ring.count == 0 { return null }
+    let value = ring.slots[ring.head].value
+    ring.head = (ring.head + 1) % CAPACITY
+    ring.count = ring.count - 1
+    return value
+}
+
+// Error: an index past the area, never checked.
+fn peekPast(ring: Ring) -> Int {  //@ S111 S111.6a
+    return ring.slots[ring.head + ring.count].value     // a run-time check or a bounds finding
+}

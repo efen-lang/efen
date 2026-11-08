@@ -1,0 +1,43 @@
+// A hash map with chained buckets: an area of bucket heads, a set of entries, each entry on its home bucket's chain.
+const BUCKETS = 32
+
+layout {
+    set Entries: Entry
+    area Buckets: Bucket
+
+    struct Entry {
+        var key: Int = 0
+        var value: Int = 0
+        var home: Int = 0 { value >= 0 && value < BUCKETS }
+        var next: own Entries.Item? = null
+    }
+
+    struct Bucket {
+        var head: Entries.Item? = null
+    }
+
+    struct Map {
+        var count: Int = 0
+        own var buckets: Buckets.Area? { value == null || value.count == BUCKETS }
+
+        invariants {
+            forall e in Entries: Entries.chain(from: buckets![e.home].head, by: Entry.next, until: null).contains(e)
+        }
+    }
+}
+
+fn insert(map: mut Map, entry: own Entries.Item) {  //@ S111 S111.6a
+    let b = entry.key % BUCKETS
+    entry.home = b
+    entry.next = take map.buckets![b].head
+    map.buckets![b].head = take entry
+    map.count = map.count + 1
+}
+
+// Error: the entry is put on a bucket other than its home.
+fn insertWrongBucket(map: mut Map, entry: own Entries.Item) {  //@ S111 S111.6a
+    entry.home = 1
+    entry.next = take map.buckets![2].head
+    map.buckets![2].head = take entry
+    map.count = map.count + 1
+}                                                       //~ flow.condition

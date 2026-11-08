@@ -1,0 +1,41 @@
+// A binary tree with parent links: each node owns its children; the parent link is a name.
+layout {
+    set area Nodes: Node
+
+    struct Node {
+        var key: Int = 0
+        var parent: Nodes.Item? = null
+        var left: own Nodes.Item? = null
+        var right: own Nodes.Item? = null
+    }
+
+    struct Tree {
+        var root: own Nodes.Item? = null
+    }
+}
+
+fn attachLeft(parent: mut Nodes.Item, child: own Nodes.Item) {  //@ S111 S111.6a
+    child.parent = parent
+    parent.left = take child
+}
+
+fn detachLeft(parent: mut Nodes.Item) -> own Nodes.Item? {  //@ S111 S111.6a
+    guard let child = take parent.left else { return null }
+    child.parent = null
+    return child
+}
+
+// Error: a detach that forgets the parent link; the parent is dropped, the child's stored name outlives it.
+fn detachKeepingParent(parent: mut Nodes.Item) -> own Nodes.Item? {  //@ S111 S111.6a
+    return take parent.left
+}
+
+fn parentAfterDrop(tree: mut Tree, child: own Nodes.Item) {  //@ S111 S111.6a
+    guard let root = take tree.root else { return }
+    attachLeft(parent: root, child: take child)
+    let kept = detachKeepingParent(parent: root)
+    drop(take root)
+    print(kept!.parent!.key)                            //~ flow.slot-left
+}
+
+fn drop(node: own Nodes.Item) { }  //@ S111 S111.6a

@@ -1,0 +1,57 @@
+// An object pool: a block of fixed places, a free chain by index, a frontier.
+const NONE = 0xFFFF
+const LINE = 64
+
+layout {
+    struct Cell {
+        var next: Int = NONE
+        var value: Int = 0
+    }
+
+    struct PoolBlock {
+        var used: Int = 0
+        var frontier: Int = 0 { value >= 0 }
+        var firstFree: Int = NONE
+        @align(LINE) area cells: Cell { value.count == 16 }
+
+        invariants {
+            used == cells.taken.count
+            frontier <= cells.count
+            let free = cells.chain(from: firstFree, by: Cell.next, until: NONE)
+            forall k in free: 0 <= k && k < frontier && !cells.taken.contains(k)
+        }
+    }
+}
+
+fn acquire(block: mut PoolBlock) -> own Pointer? {  //@ S111 S111.6a
+    if block.firstFree != NONE {
+        let k = block.firstFree
+        block.firstFree = block.cells[k].next
+        block.used = block.used + 1
+        let cell = lend block.cells[k]
+        return cell
+    }
+    if block.frontier < block.cells.count {
+        let k = block.frontier
+        block.frontier = block.frontier + 1
+        block.used = block.used + 1
+        let cell = lend block.cells[k]
+        return cell
+    }
+    return null
+}
+
+fn release(block: mut PoolBlock, k: Int, cell: own Pointer) {  //@ S111 S111.6a
+    block.cells[k] = take cell
+    block.used = block.used - 1
+    block.cells[k].next = block.firstFree
+    block.firstFree = k
+}
+
+// Error: the place is used after it went back.
+fn useAfterRelease(block: mut PoolBlock) {  //@ S111 S111.6a
+    guard let c = acquire(block: block) else { return }
+    let k = 0
+    release(block: block, k: k, cell: take c)
+    print(c.value)                                  //~ flow.moved
+}

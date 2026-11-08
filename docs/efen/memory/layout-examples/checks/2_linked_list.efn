@@ -1,0 +1,42 @@
+// A singly linked list over a set: each node owns the next; the list's head owns the first.
+layout {
+    set area Nodes: Node
+
+    struct Node {
+        var value: Int = 0
+        var next: own Nodes.Item? = null
+    }
+
+    struct List {
+        var head: own Nodes.Item? = null
+        var length: Int = 0
+
+        invariants {
+            let nodes = Nodes.chain(from: head, by: Node.next, until: null)
+            length == nodes.count
+        }
+    }
+}
+
+fn push(list: mut List, node: own Nodes.Item) {  //@ S111 S111.6a
+    node.next = take list.head
+    list.head = take node
+    list.length = list.length + 1
+}
+
+fn pop(list: mut List) -> own Nodes.Item? {  //@ S111 S111.6a
+    guard let first = take list.head else { return null }
+    list.head = take first.next
+    list.length = list.length - 1
+    return first
+}
+
+// Error: a name of the first node kept across a pop that hands the node away.
+fn nameAcrossPop(list: mut List) {  //@ S111 S111.6a
+    guard let first = list.head else { return }
+    let gone = pop(list: list)
+    drop(take gone)
+    print(first.value)                              //~ flow.slot-left
+}
+
+fn drop(node: own Nodes.Item?) { }  //@ S111 S111.6a
