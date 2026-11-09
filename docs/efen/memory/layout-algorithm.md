@@ -112,7 +112,7 @@ layout {
     fn insertAfter(self: mut Items.Item, node: anchor Items.Item) {
         node.prev = self
         node.next = take self.next
-        if let old = node.next { old.prev = node }   // старый сосед теперь смотрит на node
+        if let old = node.next { old.prev = node }   // старый сосед смотрит назад на node
         self.next = take node
     }
 }
