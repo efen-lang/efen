@@ -428,7 +428,8 @@ def negative_witnesses():
     assert can_repay()
     source_b["flag"] = 1
     assert source_a["issued"] and not can_repay()
-    # A local B invariant can survive while a foreign A invariant is broken.
+    # Splitting one structural algorithm between layouts is forbidden:
+    # a local B invariant can survive while a foreign A invariant is broken.
     a, b = {"back": 1}, {"target": 0}
     a_law = lambda: a["back"] is None or b["target"] == 0
     b_law = lambda: b["target"] is None or a["back"] == 1
