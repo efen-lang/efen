@@ -451,7 +451,7 @@ layout {
     }
 }
 
-fn removeVertex(g: mut Graph, v: Vertices.Item) {
+fn removeVertex(g: mut Graph, v: read<g> Vertices.Item) {
     for e in g.edges {                          // курсор по всем рёбрам множества
         if e.from == v || e.to == v { e.free() }   // освобождает текущее и сдвигается
     }
@@ -537,7 +537,9 @@ Nipkow) и в Dafny (Leino), по памяти;
 
 ```efen
 layout {
-    set Elements: Element
+    struct Sets {
+        set Elements: Element
+    }
 
     struct Element {
         var parent: Elements.Item               // self у корня
@@ -545,7 +547,7 @@ layout {
         invariants { parent == self || parent.rank > rank }
     }
 
-    fn find(x: Elements.Item) -> Elements.Item {
+    fn find(s: mut Sets, x: read<s> Elements.Item) -> read<s> Elements.Item {
         var root = x
         while root.parent != root { root = root.parent }
         var y = x
@@ -557,9 +559,9 @@ layout {
         return root
     }
 
-    fn union(a: Elements.Item, b: Elements.Item) {
-        let ra = find(x: a)
-        let rb = find(x: b)
+    fn union(s: mut Sets, a: read<s> Elements.Item, b: read<s> Elements.Item) {
+        let ra = find(s: s, x: a)
+        let rb = find(s: s, x: b)
         if ra == rb { return }
         if ra.rank < rb.rank { ra.parent = rb }
         else if ra.rank > rb.rank { rb.parent = ra }
@@ -572,7 +574,7 @@ layout {
   построению: каждое `parent` указывает в живой член.
 - **Закон в `union`** проверяется на двух корнях: после `rb.parent = ra; ra.rank += 1` у `rb` верно
   `ra.rank > rb.rank`, а у элементов с `parent == ra` ранг родителя только вырос. Но это верно, только если `ra`
-  остался корнем после второго вызова `find(x: b)`, а он пишет `parent` на пути `b`. Сводка «`find` пишет только
+  остался корнем после второго вызова `find(s: s, x: b)`, а он пишет `parent` на пути `b`. Сводка «`find` пишет только
   не-корни на пути» требует того же инварианта цепочки, что и сжатие пути.
 - **Закон при сжатии пути** требует `root.rank > y.rank` для каждого `y` на пути. Это транзитивность по цепочке
   `parent` любой длины: инвариант второго цикла «ранг корня больше рангов на пройденном пути» не типовой, и FLOW его
