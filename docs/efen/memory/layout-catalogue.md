@@ -130,7 +130,7 @@ fn pop(list: mut List) -> anchor Nodes.Item? {
 ```efen
 struct Node {
     var next: anchor Nodes.Item? = null
-    var prev: Nodes.Item? = null                 // указатель
+    var prev: Nodes.Item? = null                 // невладеющий указатель
 
     invariants {
         next == null || next!.prev == self
@@ -150,8 +150,8 @@ struct Node {
 struct Entry {
     var key: Int
     var next: anchor Entries.Item? = null        // цепочка корзины: якорь
-    var older: Entries.Item? = null              // список давности: указатель
-    var newer: Entries.Item? = null              // указатель
+    var older: Entries.Item? = null              // список давности: невладеющий указатель
+    var newer: Entries.Item? = null              // невладеющий указатель
 }
 ```
 
@@ -238,7 +238,7 @@ layout {
     set area Edges: Edge
 
     struct Edge {
-        var to: Vertices.Item                    // указатель
+        var to: Vertices.Item                    // невладеющий указатель
         var next: anchor Edges.Item? = null      // список рёбер вершины
     }
 

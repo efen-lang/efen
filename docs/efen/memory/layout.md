@@ -156,7 +156,7 @@ layout {
     struct Node {
         var left: anchor Nodes.Item? = null      // точка уничтожения; указатели на узел допустимы
         var right: anchor Nodes.Item? = null
-        var parent: Nodes.Item? = null           // указатель
+        var parent: Nodes.Item? = null           // невладеющий указатель
     }
 }
 ```
@@ -175,7 +175,7 @@ layout {
 fn rotateLeft(top: mut Nodes.Item) {
     guard let pivot = take top.right else { return }   // якорь pivot перешёл в локальную переменную
     top.right = take pivot.left             // якорь левого поддерева pivot перешёл в top.right
-    pivot.parent = top.parent               // указатели живы
+    pivot.parent = top.parent               // указатели действительны
     pivot.left = take top                   // ошибка: top — параметр mut, его якорь у вызывающего
 }
 ```

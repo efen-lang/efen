@@ -145,7 +145,7 @@ layout {
 
     struct Node {
         var next: anchor Nodes.Item? = null
-        var prev: Nodes.Item? = null                    // указатель
+        var prev: Nodes.Item? = null                    // невладеющий указатель
         invariants { next == null || next!.prev == self }
     }
 
@@ -183,7 +183,7 @@ fn remove(n: mut Nodes.Item) {
     guard let p = n.prev else { return }        // голову удаляет removeHead
     guard let node = take p.next else { return }   // якорь n: n в списке, его поле-якорь — у n.prev
     p.next = take node.next
-    if let b = p.next { b.prev = p }           // единственный указатель на n переписано
+    if let b = p.next { b.prev = p }           // единственный указатель на n переписан
     destroy(take node)
 }
 ```

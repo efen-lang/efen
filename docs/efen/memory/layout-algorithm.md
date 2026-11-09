@@ -142,7 +142,7 @@ fn remove(n: mut Items.Item) {
     guard let p = n.prev else { return }
     guard let node = take p.next else { return }   // якорь n лежит в поле узла n.prev
     p.next = take node.next
-    if let b = p.next { b.prev = p }               // единственный указатель на n переписано
+    if let b = p.next { b.prev = p }               // единственный указатель на n переписан
     destroy(take node)
 }
 ```
