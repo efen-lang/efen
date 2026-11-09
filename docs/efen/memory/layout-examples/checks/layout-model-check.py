@@ -428,7 +428,25 @@ def negative_witnesses():
     assert can_repay()
     source_b["flag"] = 1
     assert source_a["issued"] and not can_repay()
-    return 15
+    # A local B invariant can survive while a foreign A invariant is broken.
+    a, b = {"back": 1}, {"target": 0}
+    a_law = lambda: a["back"] is None or b["target"] == 0
+    b_law = lambda: b["target"] is None or a["back"] == 1
+    assert a_law() and b_law()
+    b["target"] = None
+    assert b_law() and not a_law()
+    live_holders = {1}
+    live_holders.remove(1)
+    assert a["back"] not in live_holders
+    # Detaching t in this function does not keep it disjoint from a later r.
+    q, t, r = 0, 1, 2
+    child = {q: t, t: None, r: None}
+    detached, child[q] = child[q], None
+    child[r] = detached
+    assert child[t] is None and t != r and child[r] == t
+    child[t] = r  # the stale "detached here" criterion would accept a cycle
+    assert child[child[t]] == t
+    return 17
 
 
 def main():
