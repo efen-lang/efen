@@ -175,6 +175,25 @@ fn login(username: String?, password: String?) -> Bool {
 }
 ```
 
+### Короткая форма через `??`
+
+Когда `else` содержит только выход, `guard let` записывается одной строкой через `??`:
+
+```efen
+fn remove(n: mut Items.Item) {
+    let a = n.prev ?? return            // то же, что guard let a = n.prev else { return }
+    …
+}
+
+for line in lines {
+    let value = parse(line) ?? continue
+    …
+}
+```
+
+Справа от `??` допустимы `return` (с значением, если функция его возвращает), `throw`, `break` и `continue`. Если
+перед выходом нужно что-то сделать, пишется полный `guard let … else { … }`.
+
 ## Defer — отложенное выполнение
 
 `Defer` используется для выполнения кода непосредственно перед выходом из текущей области видимости,

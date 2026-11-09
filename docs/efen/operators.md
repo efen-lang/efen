@@ -267,7 +267,13 @@ let city = user?.address?.city
 callback?("event")
 let item = array?[index]
 let name = optionalName ?? "Guest"
+let p = node.prev ?? return             // ранний выход: короткая форма guard let
+let next = take cell.next ?? throw ListError.broken
 ```
+
+Правой частью `??` может быть выход: `return`, `throw`, `break` или `continue`. Тогда тип выражения — тип левой
+части без `?`, а при `null` выполняется выход. `let x = a ?? return` значит то же, что
+`guard let x = a else { return }` ([guard](blocks/guard.md#короткая-форма-через-)).
 
 ### Диапазоны
 
