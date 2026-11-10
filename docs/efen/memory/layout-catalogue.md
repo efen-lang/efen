@@ -113,8 +113,8 @@ layout {
 }
 
 fn pop(list: mut List) -> anchor Nodes.Item? {
-    guard let first = take list.head else { return null }
-    list.head = take first.next
+    guard let first = tie list.head else { return null }
+    list.head = tie first.next
     list.length = list.length - 1
     return first
 }
