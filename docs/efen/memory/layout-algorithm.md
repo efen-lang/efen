@@ -61,7 +61,7 @@
    функция завершения. Иначе — ошибка «утечка».
 7. **Доказательство локально.** Каждая функция проверяется сама по себе, по прототипам вызванных функций, а каждое
    событие — по своим проверяемым элементам. Законы структуры пишет программист, условия функций компилятор выводит сам.
-8. **Граница `layout` закрыта.** Структуру меняют только функции `layout`. Снаружи структура видна только в
+8. **Граница `layout` закрыта.** Структуру меняет только код модуля или пакета, названного модификатором `layout`. Снаружи структура видна только в
    состояниях, где все её законы верны.
 
 ## Что описывает layout
@@ -132,10 +132,10 @@ layout {
     struct Item {
         var next: own Items.Item? = null
     }
+}
 
-    fn setNext(item: mut Items.Item, next: own Items.Item) {
-        item.next = take next
-    }
+fn setNext(item: mut Items.Item, next: own Items.Item) {
+    item.next = take next
 }
 ```
 
@@ -171,13 +171,13 @@ layout {
         var head: anchor Items.Item? = null
         invariants { head == null || head!.prev == null }
     }
+}
 
-    fn insertAfter(a: mut Items.Item, node: anchor Items.Item) {
-        node.prev = a
-        node.next = take a.next
-        if let old = node.next { old.prev = node }   // старый сосед смотрит назад на node
-        a.next = take node
-    }
+fn insertAfter(a: mut Items.Item, node: anchor Items.Item) {
+    node.prev = a
+    node.next = take a.next
+    if let old = node.next { old.prev = node }   // старый сосед смотрит назад на node
+    a.next = take node
 }
 ```
 
@@ -490,12 +490,13 @@ FLOW ищет инвариант в конечном наборе шаблоно
 Внутри функции закон может быть нарушен: `insertAfter` между строками держит структуру сломанной. Снаружи это не видно
 никому, потому что границу защищают четыре правила.
 
-0. **Ворота — функции `public`.** Функции `layout`, как все функции efen, по умолчанию `internal`
-   ([видимость](../visibility.md)): их вызывает код этого `layout`. Внешний мир вызывает только функции, объявленные
-   `public`, — ворота `layout`. Правила ниже о «публичной функции» говорят о них.
-1. **Структуру меняют только функции `layout`.** Писать в поля элементов может только функция, объявленная внутри
-   `layout`. Внешний код читает и вызывает функции. Иначе запись `n.prev = x` в любом месте программы обходила бы
-   закон, и доказательство пришлось бы вести по всей программе.
+0. **Круг пишущего кода задаёт модификатор `layout`.** `private layout` — поля пишут функции модуля; без
+   модификатора (`internal`) — функции пакета; код другого пакета только читает и вызывает
+   ([кто пишет поля](layout.md#пространство-layout)). Ворота — функция этого круга без `private`. Правила ниже
+   о «публичной функции» говорят о воротах.
+1. **Структуру меняет только код этого круга.** Иначе запись `n.prev = x` в любом месте программы меняла бы
+   память, от которой зависят законы, а автор `layout` не мог бы изменить закон, не сломав чужие пакеты. FLOW
+   проверяет каждую функцию круга: закон принят на входе и доказан на выходе.
 2. **Закон верен на входе и выходе каждой публичной функции и перед каждым вызовом, которому он нужен закрытым.**
    Пока закон нарушен, запрещены неизвестный наблюдатель, обратный вход и вызов, полагающийся на закрытые законы:
    неизвестная функция, замыкание или деструктор без подходящей сводки. Проверенный внутренний помощник может читать
@@ -590,32 +591,32 @@ layout {
             forall v in Vertices: all.contains(v)
         }
     }
+}
 
-    public fn addVertex(label: Int) -> Vertices.Item {
-        let v = mm.allocate(…) as Vertex        // память вошла в множество
-        v.label = label
-        v.nextAll = Registry.first
-        Registry.first = v
-        return v
-    }
+public fn addVertex(label: Int) -> Vertices.Item {
+    let v = mm.allocate(…) as Vertex        // память вошла в множество
+    v.label = label
+    v.nextAll = Registry.first
+    Registry.first = v
+    return v
+}
 
-    public fn addEdge(from: mut Vertices.Item, to: Vertices.Item) {
-        from.neighbors.append(to)               // to == from — петля
-    }
+public fn addEdge(from: mut Vertices.Item, to: Vertices.Item) {
+    from.neighbors.append(to)               // to == from — петля
+}
 
-    public fn removeEdge(from: mut Vertices.Item, to: Vertices.Item) {
-        from.neighbors.removeAll(where: { $0 == to })
-    }
+public fn removeEdge(from: mut Vertices.Item, to: Vertices.Item) {
+    from.neighbors.removeAll(where: { $0 == to })
+}
 
-    public fn removeVertex(v: mut Vertices.Item) {
-        var w = Registry.first
-        while let x = w {                       // каждая вершина: закон реестра даёт полноту обхода
-            x.neighbors.removeAll(where: { $0 == v })
-            w = x.nextAll
-        }
-        unregister(v)                           // вырезать v из цепочки реестра
-        mm.free(v as own Pointer)               // доказано: указателей на v нет
+public fn removeVertex(v: mut Vertices.Item) {
+    var w = Registry.first
+    while let x = w {                       // каждая вершина: закон реестра даёт полноту обхода
+        x.neighbors.removeAll(where: { $0 == v })
+        w = x.nextAll
     }
+    unregister(v)                           // вырезать v из цепочки реестра
+    mm.free(v as own Pointer)               // доказано: указателей на v нет
 }
 ```
 
@@ -683,23 +684,23 @@ layout {
             neighbors.isUnique && referrers.isUnique       // без кратных рёбер
         }
     }
+}
 
-    public fn addEdge(from: mut Vertices.Item, to: mut Vertices.Item) {   // петля from == to — отдельная функция
-        from.neighbors.append(to)
-        to.referrers.append(from)
-    }
+public fn addEdge(from: mut Vertices.Item, to: mut Vertices.Item) {   // петля from == to — отдельная функция
+    from.neighbors.append(to)
+    to.referrers.append(from)
+}
 
-    public fn removeEdge(from: mut Vertices.Item, to: mut Vertices.Item) {
-        from.neighbors.removeAll(where: { $0 == to })
-        to.referrers.removeAll(where: { $0 == from })
-    }
+public fn removeEdge(from: mut Vertices.Item, to: mut Vertices.Item) {
+    from.neighbors.removeAll(where: { $0 == to })
+    to.referrers.removeAll(where: { $0 == from })
+}
 
-    public fn removeVertex(v: mut Vertices.Item) {
-        for w in v.referrers { w.neighbors.removeAll(where: { $0 == v }) }
-        for w in v.neighbors { w.referrers.removeAll(where: { $0 == v }) }
-        v.referrers.removeAll(where: { $0 == v }) // собственная обратная петля перед строгим own
-        mm.free(v as own Pointer)               // доказано: указателей на v нет
-    }
+public fn removeVertex(v: mut Vertices.Item) {
+    for w in v.referrers { w.neighbors.removeAll(where: { $0 == v }) }
+    for w in v.neighbors { w.referrers.removeAll(where: { $0 == v }) }
+    v.referrers.removeAll(where: { $0 == v }) // собственная обратная петля перед строгим own
+    mm.free(v as own Pointer)               // доказано: указателей на v нет
 }
 ```
 
