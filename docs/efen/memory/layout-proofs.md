@@ -62,15 +62,16 @@ Dryad): рекурсивное определение раскрывается �
 оторванного узла через вызов.
 
 **Права записи и границы в примерах.** Все функции примеров — функции своего `layout`; где пример стоит после
-закрывающей скобки `layout`, он сокращён. Функция, которая пишет поля нескольких элементов, получает право записи
-через `self: mut Self` своего `layout`, как граф в [алгоритме](layout-algorithm.md#свободный-граф); в примерах
-этот параметр опущен.
+закрывающей скобки `layout`, он сокращён. Право записи даёт указатель `mut`: он пишет свой элемент и элементы, до которых от него можно дойти по указателям
+`layout`. `layout` — логическое пространство без экземпляров: `struct Self` и параметра `self: mut Self` в нём нет
+([алгоритм](layout-algorithm.md#свободный-граф)).
 
-**Освобождение принимает только `own`.** `free(take node)`, где `node` — указатель `anchor` или `mut` (в том числе
-на элемент под множеством), — переход в `own` при передаче в параметр `free`. Кроме невладеющих указателей
-компилятор проверяет, что владеющее поле, которое держало элемент, отпущено в этой функции через `take`; указатели
-вызывающего на элемент недействительны по сводке. На этом переходе компилятор по всем
-законам `layout` проверяет, что на память больше никто не ссылается; без доказательства `free` отвергается. Поля `own` освобождаются вместе со значением, поля-якоря обязаны быть пусты.
+**Освобождение принимает только `own`.** Переход к владению пишется `node as own Pointer`, где `node` — указатель
+`anchor` или `mut` (в том числе на элемент под множеством); память уходит туда, откуда пришла:
+`mm.free(node as own Pointer)`. Кроме невладеющих указателей компилятор проверяет, что владеющее поле, которое
+держало элемент, отпущено в этой функции через `take`; указатели вызывающего на элемент недействительны по сводке.
+На этом переходе компилятор по всем законам `layout` проверяет, что на память больше никто не ссылается; без
+доказательства переход отвергается. Поля `own` освобождаются вместе со значением, поля-якоря обязаны быть пусты.
 
 **Уничтожение источника памяти** — `System.unmap`, завершение экземпляра — одним шагом кончает жизнь всех элементов
 под его множествами: выданных элементов не осталось, хранимые указатели на эти элементы лежат в них самих или у
@@ -80,7 +81,7 @@ Dryad): рекурсивное определение раскрывается �
 **Держатели указателей считаются от входа в функцию.** Внутри тела закон бывает нарушен, его проверяют в точках передачи.
 Поэтому на событии уничтожения FLOW ищет указатели не по закону в этой точке, а по состоянию на входе в функцию и записям
 тела до события. Пример: в `A→B→C` после `n.next = take old.next` у `C` осталось `C.prev == B`; закон в этой точке
-нарушен и о нём не говорит, но запись тела видна, и `free(take old)` до починки `C.prev` — ошибка.
+нарушен и о нём не говорит, но запись тела видна, и `old as own Pointer` до починки `C.prev` — ошибка.
 
 **Отсутствие висячих указателей делится между структурой и кодом.** Закон говорит, где указатели на значение могут лежать;
 код события показывает, что каждое из них мертво, переписано или верно. Чем точнее закон, тем больше работы в шагах,
@@ -167,7 +168,7 @@ fn pop(list: mut List) -> anchor Nodes.Item? {
 перепишет якорь собственного хвоста `n`, а если в этом хвосте лежит узел списка, цикл замкнётся с другой стороны.
 Второе обязательство FLOW выводит в предусловие `push`.
 
-**Крайнее состояние.** `free(take first)` после `pop`: указателей на узел нет, висячих указателей нет. Доказательство целиком в
+**Крайнее состояние.** `mm.free(first as own Pointer)` после `pop`: указателей на узел нет, висячих указателей нет. Доказательство целиком в
 структуре.
 
 ## Двусвязный список
@@ -217,7 +218,7 @@ fn remove(n: mut Nodes.Item) {
     guard let node = take p.next else { return }   // якорь n: n в списке, его поле-якорь — у n.prev
     p.next = take node.next
     if let b = p.next { b.prev = p }           // единственный указатель на n переписан
-    free(take node)
+    mm.free(node as own Pointer)
 }
 ```
 
@@ -280,7 +281,7 @@ fn rotateLeft(x: anchor Nodes.Item) -> anchor Nodes.Item {
 fn freeTree(t: anchor Nodes.Item) {
     if let l = take t.left { freeTree(t: take l) }
     if let r = take t.right { freeTree(t: take r) }
-    free(take t)
+    mm.free(t as own Pointer)
 }
 ```
 
@@ -310,7 +311,7 @@ fn makePair(a: mut Nodes.Item, b: mut Nodes.Item) {
 
 fn dropPeer(a: mut Nodes.Item, b: anchor Nodes.Item) {
     a.peer = null            // закон: единственный указатель на b — a.peer
-    free(take b)          // b.peer умирает вместе с b
+    mm.free(b as own Pointer)   // b.peer умирает вместе с b
 }
 ```
 
@@ -383,7 +384,7 @@ fn removeVertex(g: mut Graph, v: Vertices.Item) {
         u = w.nextInGraph
     }
     freeOwnEdges(v: v)
-    free(unlinkVertex(g: g, v: v))
+    mm.free(unlinkVertex(g: g, v: v) as own Pointer)
 }
 ```
 
@@ -455,7 +456,7 @@ struct Edge   { invariants { nextIn == null || nextIn!.to == to } }
 fn removeVertex(g: mut Graph, v: Vertices.Item) {
     while let e = v.inbound { removeEdge(e: e) }
     while let e = v.out { removeEdge(e: e) }
-    free(unlinkVertex(g: g, v: v))
+    mm.free(unlinkVertex(g: g, v: v) as own Pointer)
 }
 ```
 
@@ -485,19 +486,18 @@ layout {
         var to: Vertices.Item                   // to == from — петля
     }
 
-    struct Self {}
 }
 
-fn removeVertex(self: mut Self, v: mut Vertices.Item) {
+fn removeVertex(v: mut Vertices.Item) {
     for e in Edges {                            // курсор по всем рёбрам множества
         if e.from == v || e.to == v { e.free() }   // освобождает текущее и сдвигается
     }
-    free(take v)                                // под множеством → own: указателей на v нет; конец жизни v
+    mm.free(v as own Pointer)                   // под множеством → own: указателей на v нет; конец жизни v
 }
 ```
 
-Множества `Vertices` и `Edges` объявлены в начале `layout` и принадлежат каждому объекту графа; функция получает
-объект как `self: mut Self`: без `mut` параметр только читает. Записи `free` и перебор — наброски: освобождение здесь — переход места из множества в его
+Множества `Vertices` и `Edges` объявлены в начале `layout`, одни на всю программу; право записи функции даёт
+параметр `mut`: без него указатель только читает. Записи `e.free()` и перебор — наброски: освобождение здесь — переход места из множества в его
 свободную память ([выделение и освобождение](layout.md#выделение-и-освобождение--переход-между-множествами)).
 
 **Проверка по свойствам.**
@@ -505,7 +505,7 @@ fn removeVertex(self: mut Self, v: mut Vertices.Item) {
 | Свойство | Почему выполняется |
 |---|---|
 | нет обращения к мёртвому узлу | проход убрал все рёбра с указателем на `v`; у вызывающего указатели на `v` умирают в точке вызова |
-| нет двойного освобождения | после `free(v)` указатель `v` недействителен, второй вызов — ошибка |
+| нет двойного освобождения | после `v as own Pointer` указатель `v` недействителен, второй вызов — ошибка |
 | узлы не пересекаются | места раздаёт множество |
 | адрес не теряется | узел, на который нет рёбер, остаётся в множестве: его видно перебором, обращение к нему безопасно |
 
@@ -581,28 +581,27 @@ layout {
         invariants { parent == self || parent.rank > rank }
     }
 
-    struct Self {}
+}
 
-    fn find(self: mut Self, x: Elements.Item) -> Elements.Item {
-        var root = x
-        while root.parent != root { root = root.parent }
-        var y = x
-        while y.parent != root {                // сжатие пути
-            let next = y.parent
-            y.parent = root
-            y = next
-        }
-        return root
+fn find(x: mut Elements.Item) -> Elements.Item {
+    var root = x
+    while root.parent != root { root = root.parent }
+    var y = x
+    while y.parent != root {                    // сжатие пути
+        let next = y.parent
+        y.parent = root
+        y = next
     }
+    return root
+}
 
-    fn union(self: mut Self, a: Elements.Item, b: Elements.Item) {
-        let ra = find(x: a)
-        let rb = find(x: b)
-        if ra == rb { return }
-        if ra.rank < rb.rank { ra.parent = rb }
-        else if ra.rank > rb.rank { rb.parent = ra }
-        else { rb.parent = ra; ra.rank += 1 }
-    }
+fn union(a: mut Elements.Item, b: mut Elements.Item) {
+    let ra = find(x: a)
+    let rb = find(x: b)
+    if ra == rb { return }
+    if ra.rank < rb.rank { ra.parent = rb }
+    else if ra.rank > rb.rank { rb.parent = ra }
+    else { rb.parent = ra; ra.rank += 1 }
 }
 ```
 
