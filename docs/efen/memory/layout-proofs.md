@@ -2,7 +2,9 @@
 
 [Layout](layout.md) · [Каталог структур](layout-catalogue.md) · [Условия](../conditions.md) · [Чужой опыт](prior-art.md)
 
-Статус: разбор на бумаге (2026-11-08). FLOW этих доказательств ещё не строит; что ему для этого не хватает, названо в
+Статус: разбор на бумаге (2026-11-08); 2026-11-10 примеры приведены к согласованному синтаксису: множества списков,
+деревьев и графов объявлены через `set`, переход к владению пишется `as own Pointer`, `struct Self` и
+`self: mut Self` убраны. Доказательства не пересматривались. FLOW этих доказательств ещё не строит; что ему для этого не хватает, названо в
 каждом разделе и сведено в [итоге](#итог).
 
 Структура на `layout` доказывается индукцией по событиям: закон верен в начальном состоянии, каждое событие его
@@ -131,7 +133,7 @@ Dryad): рекурсивное определение раскрывается �
 
 ```efen
 layout {
-    set area Nodes: Node
+    set Nodes: Node
 
     struct Node {
         var next: anchor Nodes.Item? = null
@@ -175,7 +177,7 @@ fn pop(list: mut List) -> anchor Nodes.Item? {
 
 ```efen
 layout {
-    set area Nodes: Node
+    set Nodes: Node
 
     struct Node {
         var next: anchor Nodes.Item? = null
@@ -232,7 +234,7 @@ fn remove(n: mut Nodes.Item) {
 
 ```efen
 layout {
-    set area Nodes: Node
+    set Nodes: Node
 
     struct Node {
         var left: anchor Nodes.Item? = null
@@ -296,7 +298,7 @@ fn freeTree(t: anchor Nodes.Item) {
 
 ```efen
 layout {
-    set area Nodes: Node
+    set Nodes: Node
 
     struct Node {
         var peer: Nodes.Item? = null
@@ -348,8 +350,8 @@ FLOW выводит предусловие `dropPeer`: `a.peer == b`. Без н�
 
 ```efen
 layout {
-    set area Vertices: Vertex
-    set area Edges: Edge
+    set Vertices: Vertex
+    set Edges: Edge
 
     struct Vertex {
         var nextInGraph: anchor Vertices.Item? = null
@@ -401,8 +403,8 @@ fn removeVertex(g: mut Graph, v: Vertices.Item) {
 
 ```efen
 layout {
-    set area Vertices: Vertex
-    set area Edges: Edge
+    set Vertices: Vertex
+    set Edges: Edge
 
     struct Vertex {
         var nextInGraph: anchor Vertices.Item? = null
@@ -474,8 +476,8 @@ fn removeVertex(g: mut Graph, v: Vertices.Item) {
 
 ```efen
 layout {
-    set area Vertices: Vertex
-    set area Edges: Edge
+    set Vertices: Vertex
+    set Edges: Edge
 
     struct Vertex {
         var label: Int

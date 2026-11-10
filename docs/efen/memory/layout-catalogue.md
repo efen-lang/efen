@@ -2,7 +2,8 @@
 
 [Layout](layout.md) · [Проверочные структуры](layout-examples/checks/README.md) · [Условия](../conditions.md)
 
-Статус: проверка модели [layout](layout.md) на бумаге, после одного раунда Критика (2026-11-08). Каждая структура разобрана по одной схеме: множества, якоря и
+Статус: проверка модели [layout](layout.md) на бумаге, после одного раунда Критика (2026-11-08); 2026-11-10 множества
+списка и графа объявлены через `set`, разбор не пересматривался. Каждая структура разобрана по одной схеме: множества, якоря и
 указатели, законы, события, что доказывает FLOW, что — Z3, что в модели не закрыто. Компилятор этого ещё не проверяет.
 
 ## Содержание
@@ -93,7 +94,7 @@ layout {
 
 ```efen
 layout {
-    set area Nodes: Node
+    set Nodes: Node
 
     struct Node {
         var value: Int
@@ -234,8 +235,8 @@ struct Node {
 
 ```efen
 layout {
-    set area Vertices: Vertex
-    set area Edges: Edge
+    set Vertices: Vertex
+    set Edges: Edge
 
     struct Edge {
         var to: Vertices.Item                    // невладеющий указатель
