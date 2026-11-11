@@ -1119,7 +1119,7 @@ strategy<T> for FixedVector<T> {
         return true
     }
 
-    public own fn release {                      // T conforms ImplicitlyDestroyable у вызывающего
+    public own fn release requires T conforms ImplicitlyDestroyable {
         for i in 0 ..< count { let dead = take items[i] }
         mm.free(take items as Pointer)
     }
