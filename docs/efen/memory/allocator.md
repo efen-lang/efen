@@ -9,32 +9,33 @@ contract Allocator<Type>
     for Type
 
     // Выделяет блок памяти заданного размера; без памяти бросает AllocationError.
-    fn allocate(size: Size<Type>) -> Pointer<Type> throws AllocationError
+    fn allocate(bytes: Int) -> own Pointer throws AllocationError
 
     // То же, но без памяти возвращает null.
-    fn tryAllocate(size: Size<Type>) -> Pointer<Type>?
+    fn tryAllocate(bytes: Int) -> own Pointer?
 
     // Расширяет блок на месте; никогда не перемещает; если на месте нельзя, бросает AllocationError.
-    fn extend(pointer: Pointer<Type>, size: Size<Type>) throws AllocationError
+    fn extend(pointer: mut Pointer, bytes: Int) throws AllocationError
 
     // То же, но если на месте нельзя, возвращает false.
-    fn tryExtend(pointer: Pointer<Type>, size: Size<Type>) -> Bool
+    fn tryExtend(pointer: mut Pointer, bytes: Int) -> Bool
 
     // Расширяет блок на месте или переносит в новый; без памяти бросает AllocationError, старый блок цел.
-    fn reallocate(pointer: Pointer<Type>, size: Size<Type>) -> Pointer<Type> throws AllocationError
+    fn reallocate(pointer: own Pointer, bytes: Int) -> own Pointer throws AllocationError
 
     // То же, но без памяти возвращает null, старый блок цел.
-    fn tryReallocate(pointer: Pointer<Type>, size: Size<Type>) -> Pointer<Type>?
+    fn tryReallocate(pointer: own Pointer, bytes: Int) -> own Pointer?
 
     // Освобождает ранее выделенный блок памяти по указанному указателю.
-    fn deallocate(pointer: Pointer<Type>)    
+    fn deallocate(pointer: own Pointer)    
 }
 ```
 
 Каждая операция есть в двух видах: с исключением и с `null` или `false`. При
 неудаче ничего не меняется. Для правил областей доступа (`../types/access-regions.md`, «Рост без перемещения»)
-у операций одно действие на все реализации: `allocate` и `extend` — `allocate` (новые слоты, старые
-не двигаются), `reallocate` — `allocate`, `move` и `free` (может переместить), `deallocate` — `free`.
+у операций одно событие на все реализации: `allocate` и `extend` — создание (новая память, старая не двигается),
+`reallocate` — создание, перенос и уничтожение (может переместить), `deallocate` — уничтожение. `Pointer` не
+обобщённый ([сырая память](pointer.md)): аллокатор выдаёт байты, вид им даёт приведение `as`.
 Поэтому коллекция, которая растёт только через `extend`, не перемещает свои элементы, и указатели на них остаются верными, а
 `reallocate` в её коде делает сводку «может переместить». На Linux с overcommit нехватку физической
 памяти после успешного выделения видит ОС, а не программа.
@@ -52,12 +53,12 @@ contract Allocator<Type>
 strategy MyAllocator<Type> {
     conforms Allocator<Type>
 
-    fn allocate(size: Size<Type>) -> Pointer<Type> {
-        return memory::Manager.allocate(size)
+    fn allocate(bytes: Int) -> own Pointer {
+        return memory::Manager.allocate(bytes)
     }
 
-    fn deallocate(pointer: Pointer<Type>) {
-        memory::Manager.deallocate(pointer)
+    fn deallocate(pointer: own Pointer) {
+        memory::Manager.deallocate(take pointer)
     }
 }
 
