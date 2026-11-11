@@ -346,9 +346,9 @@ provide JsonDocument for Documents::Document
 записанное явно, `(edit v).iterator()`, а не объявленное право получателя ([стратегия с правом
 доступа](#стратегия-с-правом-доступа)). Свои права стратегия
 ограничивает условием параметра `Access` или пишет право прямо в `conforms`, без параметра:
-`strategy ArrayDrain<T> for Array<T> { conforms Iterable<Item: T, Access: own> … }`.
+`strategy ArrayDrain<T> for Array<T> { conforms Iterable<Item: T, Access: own, Cursor: _> … }`.
 Если право не записано, а у контракта есть
-параметр `Access`, право — `read`, как везде без пометки: `conforms Iterable<Item: Int>` — это `read`.
+параметр `Access`, право — `read`, как везде без пометки: `conforms Iterable<Item: Int, Cursor: _>` — это `read`.
 Стратегия контракта без параметра `Access` (`Hashable`) подходит под любое право. Выбора отдельно для каждого метода нет, поэтому `equals` и `hash`
 одного `Hashable` всегда приходят из одной стратегии.
 
@@ -405,21 +405,21 @@ strategy OptionalOrThrow<T> for T {
 strategy ArrayTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == read || value == edit }
-    conforms Iterable<Item: Access T>
+    conforms Iterable<Item: Access T, Cursor: _>
     Access fn iterator -> ArrayIterator<Access T, Src: self> { … }
 }
 
 strategy ArrayMutTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == mut }
-    conforms Iterable<Item: Access T>              // элемент — ссылка mut
+    conforms Iterable<Item: Access T, Cursor: _>   // элемент — ссылка mut
     Access fn iterator -> IndexIter<Access T, Src: self> { … }
 }
 
 strategy ArrayDrain for Array<T> {
     generic T: Type
     generic Access: Access { value == own }
-    conforms Iterable<Item: T, Access: Access>   // элемент — значение, забирается
+    conforms Iterable<Item: T, Access: Access, Cursor: _>   // элемент — значение, забирается
     Access fn iterator -> DrainIterator<T> { … }
 }
 ```

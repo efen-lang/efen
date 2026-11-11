@@ -1,6 +1,6 @@
 # Модели поведения функций
 
-[Документация](README.md) · [Условия функций](conditions.md) · [Layout и память](memory/layout.md)
+[Документация](README.md) · [Условия функций](conditions.md) · [Layout и память](memory/layout.md) · [Правила доступа к памяти](memory/memory-rules.md)
 
 ## Модель `model`
 

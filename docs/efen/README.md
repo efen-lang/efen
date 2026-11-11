@@ -65,6 +65,7 @@ Efen — компилируемый язык с программируемыми
 |---|---|
 | Как конструкция должна вести себя? | Тематический документ в `docs/efen/` |
 | Что означает термин? | [Словарь](glossary.md) |
+| Что можно делать с памятью и что убивает ссылку? | [Правила доступа к памяти](memory/memory-rules.md) |
 | Почему решение принято или отменено? | [Журнал решений Amber](https://github.com/efen-lang/amber/blob/main/dev/DECISIONS.md) |
 | Что ещё нужно спроектировать или реализовать? | [Очередь вопросов Efen](../../dev/language-design-questions.md) и [План Amber](https://github.com/efen-lang/amber/blob/main/dev/PLAN.md) |
 | Как семантика хранится в HIR? | [Описание HIR в Amber](https://github.com/efen-lang/amber/blob/main/design/hir/README.md) |
