@@ -190,6 +190,7 @@ class Index {
 | путь одной части начинает путь другой | `items = data` и `cache = data.index`; `items = inner` и `cache = inner.Storage.cache` |
 | привязано поле `static` или `thread` | такое поле не принадлежит экземпляру |
 | поле со связью внутрь объекта привязано не к той части, что его источник | `kids = children` и `cursor = current` при `current: read<self.children> Node?` |
+| в типе есть поле со связью `read<self> T?` | такое поле смотрит во все части сразу |
 | поле одной части зависит через `layout` с правом `mut` от того, чем владеет другая | запрос в `cache` держит `db: mut sqlite3`, а `db` в `items` |
 | поля двух частей владеют слотами одной области или одного множества типа | `head: own Nodes.Item?` в `items` и `free: own Nodes.Item?` в `cache`: рост `Nodes` перемещает слоты обеих частей |
 
