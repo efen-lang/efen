@@ -125,7 +125,7 @@ let next: immutable Config = take draft
 
 - Чтение поля, элемента, вызов метода с `read self`.
 - **Путь через `immutable` — тоже `immutable`.** `config.hosts` имеет тип `immutable Vector<String>`, его элемент —
-  `immutable String`. Место, которое возвращает `read fn` с источником `self`, тоже `immutable`.
+  `immutable String`. Ссылка, которую возвращает `read fn` с источником `self`, тоже `immutable`.
 - Копия простого значения без кучи (`ImplicitlyCopyable`) теряет `immutable`: `var limit = config.timeout` — `Int`.
 - `take` всего значения в другой слот `immutable T`. `take` части — ошибка.
 - Уничтожение. Владелец `own immutable T` уничтожает значение и вызывает роль деструктора, в том числе `explicit`,
