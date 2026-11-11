@@ -1,159 +1,101 @@
-aspect DynamicContiguous<Target> {
-    conforms Representation<Target>
-    layout {
-        set Items: Item {
-            value in self.root[0..<self.length]
-        }
+private layout<T> {
+    area Items: T
 
-        struct Item {
-            Target
-        }
-
-        struct Self {
-            var root: own Items.Area? = null
-
-            var areaCapacity: Size = 0 {
-                (value == 0) == (self.root == null)
-            }
-
-            var length: Size = 0 {
-                value == Items.count
-                value <= self.areaCapacity
-            }
-        }
-    }
-
-    implementation {
-        @constructor
-        public fn init -> Self {
-            param capacity: Size = 0
-            self.root = null
-            self.areaCapacity = capacity
-            self.length = 0
-
-            if capacity > 0 {
-                self.root = Items.allocateArea(capacity: capacity)
-            }
-
-            return self
-        }
-
-        public fn count -> Size {
-            return self.length
-        }
-
-        public fn capacity -> Size {
-            return self.areaCapacity
-        }
-
-        fn itemAt(index: Size) -> Items.Item {
-            if index >= self.length {
-                throw BoundsError(index, self.length)
-            }
-
-            return Items.at(self.root!, index)
-        }
-
-        public fn reserve(minimum: Size)
-            requires Target conforms Movable
-        {
-            if minimum <= self.areaCapacity {
-                return
-            }
-
-            let doubled = self.areaCapacity * 2
-            let nextCapacity = max(minimum, max(8, doubled))
-
-            Items.reallocateArea(
-                root: self.root,
-                oldCapacity: self.areaCapacity,
-                initializedCount: self.length,
-                newCapacity: nextCapacity
-            )
-            self.areaCapacity = nextCapacity
-        }
-
-        public fn append(value: own Target)
-            requires Target conforms Movable
-        {
-            let nextLength = self.length + 1
-            reserve(nextLength)
-
-            Items.initialize(
-                root: self.root!,
-                index: self.length,
-                value: Item(take value)
-            )
-            self.length = nextLength
-        }
-
-        public fn insert(index: Size, value: own Target)
-            requires Target conforms Movable
-        {
-            if index > self.length {
-                throw BoundsError(index, self.length)
-            }
-
-            let nextLength = self.length + 1
-            reserve(nextLength)
-
-            var cursor = self.length
-            while cursor > index {
-                Items.move(
-                    from: self.root!,
-                    fromIndex: cursor - 1,
-                    to: self.root!,
-                    toIndex: cursor
-                )
-                cursor -= 1
-            }
-
-            Items.initialize(
-                root: self.root!,
-                index: index,
-                value: Item(take value)
-            )
-            self.length = nextLength
-        }
-
-        public fn remove(index: Size) -> Target
-            requires Target conforms Movable
-        {
-            if index >= self.length {
-                throw BoundsError(index, self.length)
-            }
-
-            let oldLength = self.length
-            let removed = Items.extract(self.root!, index)
-            var cursor = index
-
-            while cursor + 1 < oldLength {
-                Items.move(
-                    from: self.root!,
-                    fromIndex: cursor + 1,
-                    to: self.root!,
-                    toIndex: cursor
-                )
-                cursor += 1
-            }
-
-            self.length = oldLength - 1
-            return take removed.Target
-        }
-
-        public fn read(index: Size) -> Target
-            requires Target conforms Copyable
-        {
-            return itemAt(index).Target
-        }
-
-        public fn replace(index: Size, value: own Target) -> Target
-            requires Target conforms Movable
-        {
-            let item = itemAt(index)
-            let previous = replace(item.Target, value)
-
-            return take previous
-        }
+    public struct Vector {
+        private var items: own Items.Area? = null { value == null || value.count == capacity }
+        public  var capacity: Int = 0 { value >= 0 }
+        public  var count: Int = 0 { value >= 0 && value <= capacity }
     }
 }
+
+private fn grow<T: Movable>(v: mut Vector<T>, minimum: Int) {
+    let next = max(minimum, max(8, v.capacity * 2))
+    let fresh: Items<T>.Area = mm.allocate(…) as Items<T>.Area { value.count == next }
+
+    if let old = take v.items {
+        var i = 0
+        while i < v.count {
+            fresh[i] = take old[i]
+            i += 1
+        }
+        mm.free(old as Pointer)
+    }
+
+    v.items = take fresh
+    v.capacity = next
+}
+
+strategy<T: Movable> for Vector<T> {
+    public mut fn reserve(minimum: Int) {
+        if minimum > capacity {
+            grow(self, minimum: minimum)
+        }
+    }
+
+    public mut fn append(value: own T) {
+        reserve(count + 1)
+        items![count] = take value
+        count += 1
+    }
+
+    public mut fn insert(index: Int, value: own T)
+        requires index >= 0 && index <= count
+    {
+        reserve(count + 1)
+        var i = count
+        while i > index {
+            items![i] = take items![i - 1]
+            i -= 1
+        }
+        items![index] = take value
+        count += 1
+    }
+
+    public mut fn remove(index: Int) -> own T
+        requires index >= 0 && index < count
+    {
+        let removed = take items![index]
+        var i = index
+        while i + 1 < count {
+            items![i] = take items![i + 1]
+            i += 1
+        }
+        count -= 1
+        return removed
+    }
+
+    public mut fn replace(index: Int, value: own T) -> own T
+        requires index >= 0 && index < count
+    {
+        let previous = take items![index]
+        items![index] = take value
+        return previous
+    }
+
+    public mut fn release {
+        if let old = take items {
+            var i = 0
+            while i < count {
+                let dead = take old[i]
+                i += 1
+            }
+            mm.free(old as Pointer)
+        }
+        count = 0
+        capacity = 0
+    }
+}
+
+strategy<T: Copyable> for Vector<T> {
+    public fn read(index: Int) -> T
+        requires index >= 0 && index < count
+    {
+        return items![index]
+    }
+}
+
+var v = Vector<Int>()
+v.append(1)
+v.append(2)
+let first = v.read(0)
+v.release()

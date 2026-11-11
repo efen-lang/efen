@@ -1,155 +1,147 @@
-aspect List<Target> {
-    conforms Representation<Target>
-    layout {
-        set Items: Item
+private layout<T> {
+    set Nodes: Node
 
-        struct Item {
-            Target
-            var next: own other Items.Item? = null
-        }
-
-        struct Self {
-            var head: own Items.Item? = null
-            var tail: read Items.Item? = null
-            var length: Size = 0
-            ghost var nodes: Sequence<Items.Item> = Sequence()
-
-            invariants {
-                head == nodes.first
-                forall i in 0 ..< nodes.count - 1: nodes[i].next == nodes[i + 1]
-                nodes.count == 0 || nodes.last!.next == null
-                nodes.count == Items.count
-                tail == nodes.last
-                length == nodes.count
-            }
-        }
+    struct Node {
+        var value: T
+        var next: anchor Nodes.Item? = null
     }
 
-    implementation {
-        @constructor
-        public fn init -> Self {
-            self.head = null
-            self.tail = null
-            self.length = 0
-            return self
-        }
+    public struct SinglyList {
+        private var head: anchor Nodes.Item? = null
+        private var tail: Nodes.Item? = null
+        public  var count: Int = 0 { value >= 0 }
 
-        fn itemAt(index: Size) -> Items.Item {
-            if index >= self.length {
-                throw BoundsError(index, self.length)
-            }
-
-            var current = self.head!
-            var position: Size = 0
-
-            while position < index {
-                current = current.next!
-                position += 1
-            }
-
-            return current
-        }
-
-        public fn count -> Size {
-            return self.length
-        }
-
-        public fn read(index: Size) -> Target
-            requires Target conforms Copyable
-        {
-            return itemAt(index).Target
-        }
-
-        public fn replace(index: Size, value: own Target) -> Target
-            requires Target conforms Movable
-        {
-            let item = itemAt(index)
-            let previous = replace(item.Target, value)
-
-            return take previous
-        }
-
-        public fn append(value: own Target)
-            requires Target conforms Movable
-        {
-            let nextLength = self.length + 1
-            let item = Items.allocate(
-                Item(take value, next: null)
-            )
-            ghost nodes = nodes + Sequence(item)
-
-            if self.tail == null {
-                self.head = take item
-                self.tail = self.head
-            } else {
-                self.tail!.next = take item
-                self.tail = self.tail!.next
-            }
-
-            self.length = nextLength
-        }
-
-        public fn insert(index: Size, value: own Target)
-            requires Target conforms Movable
-        {
-            if index > self.length {
-                throw BoundsError(index, self.length)
-            }
-
-            if index == self.length {
-                append(take value)
-                return
-            }
-
-            let nextLength = self.length + 1
-            let item = Items.allocate(
-                Item(take value, next: null)
-            )
-            ghost nodes = nodes[0 ..< index] + Sequence(item) + nodes[index ..< nodes.count]
-
-            if index == 0 {
-                item.next = take self.head
-                self.head = take item
-            } else {
-                let before = itemAt(index - 1)
-                item.next = take before.next
-                before.next = take item
-            }
-
-            self.length = nextLength
-        }
-
-        public fn remove(index: Size) -> Target
-            requires Target conforms Movable
-        {
-            if index >= self.length {
-                throw BoundsError(index, self.length)
-            }
-
-            var victim: own Items.Item
-            ghost nodes = nodes[0 ..< index] + nodes[index + 1 ..< nodes.count]
-
-            if index == 0 {
-                victim = take self.head!
-                self.head = take victim.next
-
-                if self.head == null {
-                    self.tail = null
-                }
-            } else {
-                let before = itemAt(index - 1)
-                victim = take before.next!
-                before.next = take victim.next
-
-                if before.next == null {
-                    self.tail = before
-                }
-            }
-
-            self.length -= 1
-            let result = take victim.Target
-            Items.free(take victim)
-            return take result
+        invariants {
+            let nodes = Nodes.chain(from: head, by: Node.next, until: null)
+            count == nodes.count
+            (head == null) == (tail == null)
+            tail == null || tail!.next == null
         }
     }
 }
+
+private fn newNode<T>(value: own T) -> anchor Nodes<T>.Item {
+    return mm.allocate(…) as Node<T>(value: take value)
+}
+
+private fn nodeAt<T>(list: edit SinglyList<T>, index: Int) -> edit Nodes<T>.Item
+    requires index >= 0 && index < list.count
+{
+    var current = list.head!
+    var position = 0
+    while position < index {
+        current = current.next!
+        position += 1
+    }
+    return current
+}
+
+private fn unlinkAt<T>(list: mut SinglyList<T>, index: Int) -> anchor Nodes<T>.Item? {
+    if index == 0 {
+        guard let first = tie list.head else { return null }
+        list.head = tie first.next
+        if list.head == null {
+            list.tail = null
+        }
+        list.count -= 1
+        return first
+    }
+
+    let before = nodeAt(list, index: index - 1)
+    guard let victim = tie before.next else { return null }
+    before.next = tie victim.next
+    if before.next == null {
+        list.tail = before
+    }
+    list.count -= 1
+    return victim
+}
+
+strategy<T: Movable> for SinglyList<T> {
+    public edit fn pushFirst(value: own T) {
+        let node = newNode(take value)
+        node.next = tie head
+        head = tie node
+        if tail == null {
+            tail = head
+        }
+        count += 1
+    }
+
+    public edit fn append(value: own T) {
+        let node = newNode(take value)
+        if let last = tail {
+            last.next = tie node
+        } else {
+            head = tie node
+        }
+        tail = node
+        count += 1
+    }
+
+    public edit fn insert(index: Int, value: own T)
+        requires index >= 0 && index <= count
+    {
+        if index == 0 {
+            pushFirst(take value)
+            return
+        }
+        if index == count {
+            append(take value)
+            return
+        }
+
+        let node = newNode(take value)
+        let before = nodeAt(self, index: index - 1)
+        node.next = tie before.next
+        before.next = tie node
+        count += 1
+    }
+
+    public mut fn remove(index: Int) -> own T? {
+        guard index >= 0 && index < count else { return null }
+        guard let node = unlinkAt(self, index: index) else { return null }
+        let value = take node.value
+        mm.free(node as own Pointer)
+        return value
+    }
+
+    public mut fn replace(index: Int, value: own T) -> own T
+        requires index >= 0 && index < count
+    {
+        let node = nodeAt(self, index: index)
+        let previous = take node.value
+        node.value = take value
+        return previous
+    }
+
+    public mut fn release {
+        while let node = tie head {
+            head = tie node.next
+            let dead = take node.value
+            mm.free(node as own Pointer)
+        }
+        tail = null
+        count = 0
+    }
+}
+
+strategy<T: Copyable> for SinglyList<T> {
+    public fn read(index: Int) -> T
+        requires index >= 0 && index < count
+    {
+        var current = head!
+        var position = 0
+        while position < index {
+            current = current.next!
+            position += 1
+        }
+        return current.value
+    }
+}
+
+var list = SinglyList<Int>()
+list.append(1)
+list.pushFirst(0)
+let second = list.read(1)
+list.release()

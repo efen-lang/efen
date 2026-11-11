@@ -14,11 +14,3 @@ contract ResizableSequence<Element> {
     fn remove(index: Size) -> Element
         requires Element conforms Movable
 }
-
-struct Array {
-    generic Element: Type
-    generic R<Target>: Representation<Target>
-
-    conforms IndexedSequence<Element>
-    use R<Element>
-}
