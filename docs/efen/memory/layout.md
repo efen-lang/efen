@@ -1255,7 +1255,7 @@ note: указатель взят здесь
 [«Вложенность»](#вложенность) держит родителя живым.
 
 ```efen
-fn work(list: mut List) {
+fn work(list: own List) {
     let p = list.first()                       // Items.Item, источник — list
     with makeTaskGroup() {
         let h = spawn { sum(list) }            // области h: read list, вся структура
@@ -1264,7 +1264,7 @@ fn work(list: mut List) {
         await(take h)
     }
     with makeTaskGroup() {
-        background { capture var l = take list; l.removeFirst() }   // корень ушёл из слота
+        background { capture var l = take list; l.removeFirst(); l.release() }   // корень ушёл из слота
         print(p.value)                         // ошибка: p умер в `take list`
     }
 }
