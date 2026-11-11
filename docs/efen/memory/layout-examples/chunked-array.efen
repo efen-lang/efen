@@ -85,9 +85,8 @@ strategy<T> for ChunkedArray<T> {
         count += 1
     }
 
-    public mut fn remove(index: Int) -> own T
-        requires index >= 0 && index < count
-    {
+    public mut fn remove(index: Int) -> own T? {
+        guard index >= 0 && index < count else { return null }
         let removed = take directory![index / CHUNK_SIZE].root![index % CHUNK_SIZE]
         var i = index
         while i + 1 < count {
@@ -108,7 +107,9 @@ strategy<T> for ChunkedArray<T> {
         return previous
     }
 
-    public mut fn release {
+    public mut fn release
+        requires T conforms ImplicitlyDestroyable
+    {
         if let dir = take directory {
             var c = 0
             while c < directoryLength {
@@ -139,7 +140,7 @@ strategy<T: Copyable> for ChunkedArray<T> {
 }
 
 var a = ChunkedArray<Int>()
+defer a.release()
 a.append(1)
 a.append(2)
 let second = a.read(1)
-a.release()

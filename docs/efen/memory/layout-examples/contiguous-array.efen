@@ -9,7 +9,7 @@ private layout<T: Movable> {
 
 strategy<T> for FixedArray<T> {
     public mut fn fill(size: Int, make: (Int) -> own T)
-        requires count == 0 && size >= 0
+        requires items == null && count == 0 && size >= 0
     {
         if size > 0 {
             let fresh: Items<T>.Area = mm.allocate(…) as Items<T>.Area { value.count == size }
@@ -32,7 +32,9 @@ strategy<T> for FixedArray<T> {
         return previous
     }
 
-    public mut fn release {
+    public mut fn release
+        requires T conforms ImplicitlyDestroyable
+    {
         if let old = take items {
             var i = 0
             while i < count {
@@ -58,6 +60,6 @@ fn square(i: Int) -> own Int {
 }
 
 var a = FixedArray<Int>()
+defer a.release()
 a.fill(size: 4, make: square)
 let third = a.read(2)
-a.release()

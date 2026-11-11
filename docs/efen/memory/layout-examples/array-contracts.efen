@@ -1,16 +1,16 @@
 contract IndexedSequence<Element> {
-    fn count -> Size
-    fn read(index: Size) -> Element
+    var count: Int { get }
+    fn read(index: Int) -> Element
         requires Element conforms Copyable
-    fn replace(index: Size, value: own Element) -> Element
+    mut fn replace(index: Int, value: own Element) -> own Element
         requires Element conforms Movable
 }
 
 contract ResizableSequence<Element> {
-    fn append(value: own Element)
+    mut fn append(value: own Element)
         requires Element conforms Movable
-    fn insert(index: Size, value: own Element)
+    mut fn insert(index: Int, value: own Element)
         requires Element conforms Movable
-    fn remove(index: Size) -> Element
+    mut fn remove(index: Int) -> own Element?
         requires Element conforms Movable
 }

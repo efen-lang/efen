@@ -51,9 +51,8 @@ strategy<T> for Vector<T> {
         count += 1
     }
 
-    public mut fn remove(index: Int) -> own T
-        requires index >= 0 && index < count
-    {
+    public mut fn remove(index: Int) -> own T? {
+        guard index >= 0 && index < count else { return null }
         let removed = take items![index]
         var i = index
         while i + 1 < count {
@@ -72,7 +71,9 @@ strategy<T> for Vector<T> {
         return previous
     }
 
-    public mut fn release {
+    public mut fn release
+        requires T conforms ImplicitlyDestroyable
+    {
         if let old = take items {
             var i = 0
             while i < count {
@@ -95,7 +96,7 @@ strategy<T: Copyable> for Vector<T> {
 }
 
 var v = Vector<Int>()
+defer v.release()
 v.append(1)
 v.append(2)
 let first = v.read(0)
-v.release()

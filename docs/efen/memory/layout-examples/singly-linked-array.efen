@@ -36,6 +36,18 @@ private fn nodeAt<T>(list: edit SinglyList<T>, index: Int) -> edit Nodes<T>.Item
     return current
 }
 
+private fn nodeAtMut<T>(list: mut SinglyList<T>, index: Int) -> mut Nodes<T>.Item
+    requires index >= 0 && index < list.count
+{
+    var current = list.head!
+    var position = 0
+    while position < index {
+        current = current.next!
+        position += 1
+    }
+    return current
+}
+
 private fn unlinkAt<T>(list: mut SinglyList<T>, index: Int) -> anchor Nodes<T>.Item? {
     if index == 0 {
         guard let first = tie list.head else { return null }
@@ -47,7 +59,7 @@ private fn unlinkAt<T>(list: mut SinglyList<T>, index: Int) -> anchor Nodes<T>.I
         return first
     }
 
-    let before = nodeAt(list, index: index - 1)
+    let before = nodeAtMut(list, index: index - 1)
     guard let victim = tie before.next else { return null }
     before.next = tie victim.next
     if before.next == null {
@@ -109,19 +121,19 @@ strategy<T> for SinglyList<T> {
     public mut fn replace(index: Int, value: own T) -> own T
         requires index >= 0 && index < count
     {
-        let node = nodeAt(self, index: index)
-        let previous = take node.value
-        node.value = take value
-        return previous
+        let node = nodeAtMut(self, index: index)
+        return replace(node.value, take value)
     }
 
-    public mut fn release {
+    public mut fn release
+        requires T conforms ImplicitlyDestroyable
+    {
+        tail = null
         while let node = tie head {
             head = tie node.next
             let dead = take node.value
             mm.free(node as own Pointer)
         }
-        tail = null
         count = 0
     }
 }
@@ -141,7 +153,7 @@ strategy<T: Copyable> for SinglyList<T> {
 }
 
 var list = SinglyList<Int>()
+defer list.release()
 list.append(1)
 list.pushFirst(0)
 let second = list.read(1)
-list.release()
