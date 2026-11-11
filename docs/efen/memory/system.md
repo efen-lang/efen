@@ -143,6 +143,7 @@ contract System {
         ensures result == null || (result.size == bytes && result.alignment == aligned)
 
     fn unmap(memory: own Pointer, bytes: Int)
+        requires memory.size == bytes
 }
 ```
 
