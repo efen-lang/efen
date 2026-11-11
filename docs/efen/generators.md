@@ -276,7 +276,7 @@ for item in index.active() {
 
 - Источник в роли `yield` — `self` или путь внутрь него. В классе путь называет настоящее поле, и тогда генератор
   держит только это поле: остальные поля вызывающий меняет, пока генератор жив.
-- Пометка с путём пишется так же, как у метода: `mut<self.data> generator`, `access<…> generator`
+- Пометка с путём пишется так же, как у метода: `mut<self.data> generator`, `mut<self.data, edit self.memo> generator`
   ([части объекта](types/parts.md#пометка-метода)).
 - Тип результата вызова — тип генератора с удержанием: `index.active()` имеет тип
   `(edit<index.data> generator yield edit<index.data> Item)`.
