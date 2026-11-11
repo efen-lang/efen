@@ -205,7 +205,7 @@ fn insertAfter(a: mut Items.Item, node: anchor Items.Item) {
 ```
 
 ```efen
-fn remove(n: Items.Item) {
+fn remove(n: mut Items.Item) {            // освобождает узел: нужен mut
     let a = n.prev!                         // сосед слева; голову удаляет removeFirst
     let node = tie a.next!                 // шаг 1
     a.next = tie node.next                 // шаг 2
@@ -603,7 +603,7 @@ public fn addVertex(label: Int) -> Vertices.Item {
 }
 
 public fn addEdge(from: mut Vertices.Item, to: Vertices.Item) {
-    from.neighbors.append(to)               // to == from — петля
+    from.neighbors.append(to)               // to == from — петля; mut: рост вектора переносит его слоты
 }
 
 public fn removeEdge(from: mut Vertices.Item, to: Vertices.Item) {
@@ -623,11 +623,18 @@ public fn removeVertex(v: mut Vertices.Item) {
 
 Встроенного перебора множества нет: обход идёт по цепочке реестра, и закон «каждая вершина лежит на цепочке» даёт
 его полноту. `mut` на элемент даёт писать и в элементы, до которых от него можно дойти по указателям `layout`.
-Здесь обход начинается с `Registry.first`, а не с `v`; какое право функция имеет на одиночный `one Registry`,
-ещё не определено.
+Здесь обход начинается с `Registry.first`, а не с `v`. Что функция делает с одиночным `one Registry`, — её эффект:
+он выводится из тела и стоит в прототипе, у `removeVertex` — `in mut Registry`; слова `edit` в записи права на контекст нет, поэтому объявление
+`addVertex` без тела тоже пишет `in mut Registry` ([права в `layout`](layout.md#пространство-layout)). Вызывающий проверяется по
+сводке: `removeVertex` сжимает `neighbors` каждой вершины, поэтому вызвать её в теле обхода `for n in w.neighbors`
+— ошибка, если обход после вызова продолжается.
+
+`addVertex` отдаёт указатель без слова, а `removeVertex` ждёт `mut Vertices.Item`. У `Vertices` нет поля-владельца,
+источник указателя — само множество, и передать указатель в параметр `mut` может любой код, которому функция
+видна: право здесь даёт видимость функции, а не значение.
 
 **Чей указатель и кто пишет.** `Vertices` — множество всех вершин программы; графов, которые ими пользуются,
-сколько угодно. Писать в вершину даёт право `mut` на неё; указатель без `mut` только читает
+сколько угодно. Писать значения в вершину даёт право `edit` на неё, менять структуру — `mut`; указатель без слова только читает
 ([права в типе указателя](../types/ownership.md)). `addEdge(from: a, to: a)` — петля — допустима: второй параметр
 только читает.
 
