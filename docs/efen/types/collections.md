@@ -563,8 +563,8 @@ strategy IntervalStep for IntervalIterator {
 `Cursor` обязан быть конкретным типом, соответствующим `Iterator` или
 `ValueIterator`. Аргументы контракта можно передавать позиционно и по имени:
 `ValueIterator<String>` и `ValueIterator<Item: String>` равнозначны. `Cursor` в
-соответствии выводится из результата `iterator()`; его можно указать явно по
-имени, если вывод неоднозначен. Коллекция подключает обход стратегией, по одной
+соответствии пишется явно или выводится из результата `iterator()` по знаку `_`:
+`conforms Iterable<Item: Int, Cursor: _>` ([параметры контракта](../contracts.md#параметры-контракта)). Коллекция подключает обход стратегией, по одной
 на набор прав ([стратегия с правом доступа](../strategies.md#стратегия-с-правом-доступа)).
 
 Право заголовка `for` — это право на источник, с которым вызывается `iterator`,
@@ -831,7 +831,7 @@ while let value = iter.next() {
 
 ```efen
 class IntList {
-    conforms Iterable<Item: Int>
+    conforms Iterable<Item: Int, Cursor: _>
 
     private var items: Vector<Int> = []
 
