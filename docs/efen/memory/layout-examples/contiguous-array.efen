@@ -1,4 +1,4 @@
-private layout<T> {
+private layout<T: Movable> {
     area Items: T
 
     public struct FixedArray {
@@ -7,7 +7,7 @@ private layout<T> {
     }
 }
 
-strategy<T: Movable> for FixedArray<T> {
+strategy<T> for FixedArray<T> {
     public mut fn fill(size: Int, make: (Int) -> own T)
         requires count == 0 && size >= 0
     {

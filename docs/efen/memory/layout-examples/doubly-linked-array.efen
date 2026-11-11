@@ -1,4 +1,4 @@
-private layout<T> {
+private layout<T: Movable> {
     set Nodes: Node
 
     struct Node {
@@ -76,7 +76,7 @@ private fn unlinkAt<T>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.I
     return victim
 }
 
-strategy<T: Movable> for DoublyList<T> {
+strategy<T> for DoublyList<T> {
     public edit fn pushFirst(value: own T) {
         let node = newNode(take value)
         if let first = head {

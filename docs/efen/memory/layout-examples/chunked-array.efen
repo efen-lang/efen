@@ -1,6 +1,6 @@
 const CHUNK_SIZE: Int = 256
 
-private layout<T> {
+private layout<T: Movable> {
     area Items: T
     area Chunks: Chunk
 
@@ -59,7 +59,7 @@ private fn movePosition<T: Movable>(a: mut ChunkedArray<T>, from: Int, to: Int) 
         take a.directory![from / CHUNK_SIZE].root![from % CHUNK_SIZE]
 }
 
-strategy<T: Movable> for ChunkedArray<T> {
+strategy<T> for ChunkedArray<T> {
     public mut fn append(value: own T) {
         ensureChunks(self, required: 1 + count / CHUNK_SIZE)
 
