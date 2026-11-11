@@ -21,10 +21,10 @@ contract Allocator<Type>
     fn tryExtend(pointer: mut Pointer, bytes: Int) -> Bool
 
     // Расширяет блок на месте или переносит в новый; без памяти бросает AllocationError, старый блок цел.
-    fn reallocate(pointer: own Pointer, bytes: Int) -> own Pointer throws AllocationError
+    fn reallocate(pointer: mut Pointer, bytes: Int) throws AllocationError
 
-    // То же, но без памяти возвращает null, старый блок цел.
-    fn tryReallocate(pointer: own Pointer, bytes: Int) -> own Pointer?
+    // То же, но без памяти возвращает false, старый блок цел.
+    fn tryReallocate(pointer: mut Pointer, bytes: Int) -> Bool
 
     // Освобождает ранее выделенный блок памяти по указанному указателю.
     fn deallocate(pointer: own Pointer)    
