@@ -1,6 +1,6 @@
 # Библиотеки на C
 
-[Документация](README.md) · [Пакеты и модули](packages.md) · [Системные вызовы](memory/system.md) ·
+[Документация](README.md) · [Пакеты и модули](packages.md) · [Системные вызовы](memory/system.md) · · [Правила доступа к памяти](memory/memory-rules.md)
 [Владение](types/ownership.md) · [Проверочная сборка](memory/checking-build.md) · [Общая память](shared.md)
 
 Статус: черновик 10. Amber ничего из этого ещё не реализует. Синтаксис, которого нет в

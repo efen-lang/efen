@@ -1,6 +1,6 @@
 # Общая память
 
-[Документация](README.md) · [Словарь](glossary.md) · [Асинхронный контекст](context-and-effects.md#асинхронный-контекст) · [Области доступа](types/access-regions.md#корутины-spawn) · [Projection](types/projection.md) · [Типы-состояния](types/typestate.md)
+[Документация](README.md) · [Словарь](glossary.md) · [Асинхронный контекст](context-and-effects.md#асинхронный-контекст) · [Области доступа](types/access-regions.md#корутины-spawn) · [Projection](types/projection.md) · [Типы-состояния](types/typestate.md) · [Правила доступа к памяти](memory/memory-rules.md)
 
 Общая память — значение, тип которого помечен `shared`, вместе со всем, что из
 него достижимо. К нему одновременно обращаются несколько потоков. Корутины

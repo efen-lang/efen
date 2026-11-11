@@ -1,6 +1,6 @@
 # Замыкания
 
-[Документация](README.md) · [Контракты](contracts.md) · [Runtime языка Efen](runtime/README.md) · [Память](memory/README.md)
+[Документация](README.md) · [Контракты](contracts.md) · [Runtime языка Efen](runtime/README.md) · [Память](memory/README.md) · [Правила доступа к памяти](memory/memory-rules.md)
 
 `Efen` поддерживает замыкания (closures) — анонимные функции,
 которые могут захватывать переменные из окружающей области видимости.

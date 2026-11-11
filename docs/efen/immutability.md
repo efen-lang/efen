@@ -1,6 +1,6 @@
 # Неизменяемость: `immutable` и `readonly class`
 
-[Документация](README.md) · [Контракты](contracts.md) · [Runtime языка Efen](runtime/README.md) · [Память](memory/README.md)
+[Документация](README.md) · [Контракты](contracts.md) · [Runtime языка Efen](runtime/README.md) · [Память](memory/README.md) · [Правила доступа к памяти](memory/memory-rules.md)
 
 В Efen различаются глубокая неизменяемость значения и запрет изменять объект
 через его внешние операции:

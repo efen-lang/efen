@@ -1,6 +1,6 @@
 # Коллекции
 
-[Документация](../README.md) · [Контракты](../contracts.md) · [Runtime языка Efen](../runtime/README.md) · [Память](../memory/README.md)
+[Документация](../README.md) · [Контракты](../contracts.md) · [Runtime языка Efen](../runtime/README.md) · [Память](../memory/README.md) · [Правила доступа к памяти](../memory/memory-rules.md)
 
 Коллекция хранит элементы и предоставляет операции для работы с ними.
 В Efen предусмотрены массивы, векторы, множества, словари и другие коллекции.

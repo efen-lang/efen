@@ -8,6 +8,9 @@
 
 ## Маршрут
 
+Все правила доступа к памяти сведены в одну таблицу: [правила доступа к памяти](memory-rules.md). Статьи ниже их
+вводят и объясняют.
+
 1. [Ownership, borrow, origin и `take`](../types/ownership.md).
 2. [Representations](../representations.md) — логический тип и физическая
    форма.
