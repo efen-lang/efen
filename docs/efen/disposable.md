@@ -86,8 +86,6 @@ private layout<T: Movable> {
         }
         public  var capacity: Int = 0 { value >= 0 }
         public  var count: Int = 0 { value >= 0 && value <= capacity }
-
-        invariants { items == null || items!.extent == count * sizeOf(T) }   // заняты слоты 0 ..< count
     }
 }
 

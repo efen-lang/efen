@@ -217,8 +217,6 @@ layout<T: Movable> {
     public struct Store {
         let capacity: Int { value > 0 }
         var cells: own Cells.Area? = null { value == null || value.count == capacity }
-
-        invariants { cells == null || cells!.extent == cells!.size }   // заполнена каждая ячейка
     }
 }
 
