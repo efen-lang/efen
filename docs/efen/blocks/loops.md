@@ -115,7 +115,7 @@ for number in numbers where number % 2 == 0 {
 
 ```efen
 for item in let cursor = items.removing() {
-    if item.dead { cursor.remove(take item) }
+    if item.dead { cursor.remove() }
 }
 
 for job in let queue = jobs.draining() {
@@ -143,7 +143,7 @@ for job in let queue = jobs.draining() {
 ```efen
 let cursor = items.removing()
 while let item = cursor.next() {
-    if item.dead { cursor.remove(take item) }
+    if item.dead { cursor.remove() }
 }
 ```
 
