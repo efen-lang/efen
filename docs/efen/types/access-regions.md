@@ -589,7 +589,7 @@ for item in let cursor = items.removing() {
 через `while let`; тогда им владеет внешний блок:
 
 ```efen
-var cursor = items.removing()
+let cursor = items.removing()
 while let item = cursor.next() {
     if item.dead { cursor.remove() }
 }

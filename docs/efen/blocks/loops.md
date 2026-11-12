@@ -550,10 +550,10 @@ for element in array {
 
 // ✅ Быстрее — кешируем count
 let count = array.count
-var i = 0
-while i < count {
-    print(array[i])
-    i += 1
+var j = 0
+while j < count {
+    print(array[j])
+    j += 1
 }
 ```
 

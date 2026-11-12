@@ -745,7 +745,7 @@ ownership-правилами.
 var count = 0
 each(action: () => count += 1)                // можно: замыкание живёт не дольше вызова
 register(callback: () => count += 1)          // ошибка: сохранённое замыкание держит count
-register(callback: () => {
+register(callback: () -> Void {
     capture total = copy count
     print(total)
 })                                            // можно: окружение своё

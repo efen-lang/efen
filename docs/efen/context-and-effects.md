@@ -543,7 +543,11 @@ print(entry)                         // ошибка
 
 ```efen
 fn map(items: [T], transform: (T) -> U in ...Ctx) -> [U] in ...Ctx {
+    generic T: Type
+    generic U: Type
     generic ...Ctx: Context
+
+    // тело не важно для примера: вызывает transform для каждого элемента
 }
 ```
 

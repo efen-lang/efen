@@ -74,12 +74,13 @@ class File {
 private layout<T: Movable> {
     area Items: T
     public struct Vector {
-        private var items: own Items.Area? = null
-        public var count: Int = 0
+        private var items: own Items.Area? = null { value == null || value.count == capacity }
+        private var capacity: Int = 0 { value >= 0 }
+        public  var count: Int = 0 { value >= 0 && value <= capacity }
     }
 }
 
-strategy<T: Movable> for Vector<T> {
+strategy<T> for Vector<T> {
     implements Disposable
 
     fn dispose {
@@ -90,10 +91,11 @@ strategy<T: Movable> for Vector<T> {
         if let area = take self.items {
             mm.free(area as Pointer)
         }
+        self.capacity = 0
     }
 }
 
-fn loadValues() -> Vector<Int> {
+fn loadValues -> Vector<Int> {
     var values = Vector<Int>()
     values.append(1)
     return take values

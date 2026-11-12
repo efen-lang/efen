@@ -492,7 +492,7 @@ fn acquire(pool: mut Pool) -> own Connection
         let editor = pool as PoolEditor
 
         if editor.idle.count > 0 {
-            return Grant.reused(connection: editor.idle.removeLast())
+            return Grant.reused(connection: editor.idle.removeLast()!)
         }
 
         if editor.openCount < editor.maxConnections {

@@ -219,7 +219,7 @@ layout<T: Movable> {
     }
 }
 
-shared struct Ring<T> {
+shared struct Ring<T: Movable> {
     var head: AtomicInt = AtomicInt(0) { value >= previous(value) }
     var tail: AtomicInt = AtomicInt(0) { value >= previous(value) }
     var store: Store<T>

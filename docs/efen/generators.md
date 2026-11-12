@@ -31,7 +31,7 @@ fn sum -> Int {
 `ensures` ([conditions.md](conditions.md)). Если есть хотя бы одна строка роли, `{` стоит на отдельной строке:
 
 ```efen
-generator echo(prefix: String) -> Int
+generator relay(prefix: String) -> Int
     yield String
     resume String
     requires prefix.length() > 0
@@ -132,7 +132,7 @@ fn walker(items: mut [Int]) -> (mut<items> generator yield Int)
 
 | Форма | Что происходит |
 |---|---|
-| `let g = echo("a")` | выделяется кадр, аргументы попадают в него по виду параметра ([параметры и условия](#параметры-и-условия)); тело не выполняется |
+| `let g = relay("a")` | выделяется кадр, аргументы попадают в него по виду параметра ([параметры и условия](#параметры-и-условия)); тело не выполняется |
 | `g.start()` | с `resume`: тело работает до первого `yield`; результат — шаг `.yielded` или `.completed` |
 | `g.next(value)` | `value` передаётся приостановленному `yield`, тело работает до следующего; результат тот же |
 | `g.next()` | без `resume`: первый вызов запускает тело, следующие продолжают его |
@@ -140,7 +140,7 @@ fn walker(items: mut [Int]) -> (mut<items> generator yield Int)
 | `g.result` | итоговый результат после `.completed` или после `for`, дошедшего до конца; `take g.result` забирает его |
 
 ```efen
-let g = echo("log")
+let g = relay("log")
 
 match g.start() {
     .yielded.{ value: let greeting }: print(greeting)  // "ready"
@@ -425,7 +425,7 @@ fn consume(items: own [Int]) {
     print(items.count)
 }                                    // конец области: область массива возвращает его dispose
 
-fn main() {
+fn main {
     var items = [5, 6]
     let walker = walk(items: items)
     for item in walker {
@@ -450,7 +450,8 @@ generator upTo(n: Int) yield Int { /* тело не важно для приме
 fn total<I: ValueIterator<Int>>(it: mut I) -> Int { /* тело не важно для примера */ }
 
 let g = upTo(5)
-let sum = total(it: mut g.iterator())
+var cursor = g.iterator()          // курсор держит g с правом mut
+let sum = total(it: cursor)
 ```
 
 **Правило.** `iterator()` — метод `mut` генератора. Курсор держит генератор с `mut`, а через него — источники

@@ -710,13 +710,13 @@ public fn addEdge(graph: mut Graph, from: read<graph> Vertices.Item, to: read<gr
 }
 
 public fn removeEdge(graph: mut Graph, from: read<graph> Vertices.Item, to: read<graph> Vertices.Item) {
-    from.neighbors.removeAll(where: { $0 == to })
+    from.neighbors.removeAll(where: (n) => n == to)
 }
 
 public fn removeVertex(graph: mut Graph, v: read<graph> Vertices.Item) {
     var w = graph.first
     while let x = w {                       // цепочка графа называет каждую его вершину
-        x.neighbors.removeAll(where: { $0 == v })
+        x.neighbors.removeAll(where: (n) => n == v)
         w = x.nextAll
     }
     let cut = unlinkVertex(graph, v)        // anchor Vertices.Item: вершина вырезана из цепочки графа
@@ -811,14 +811,14 @@ public fn addEdge(graph: mut Graph, from: read<graph> Vertices.Item, to: read<gr
 }
 
 public fn removeEdge(graph: mut Graph, from: read<graph> Vertices.Item, to: read<graph> Vertices.Item) {
-    from.neighbors.removeAll(where: { $0 == to })
-    to.referrers.removeAll(where: { $0 == from })
+    from.neighbors.removeAll(where: (n) => n == to)
+    to.referrers.removeAll(where: (n) => n == from)
 }
 
 public fn removeVertex(graph: mut Graph, v: read<graph> Vertices.Item) {
-    for w in v.referrers { w.neighbors.removeAll(where: { $0 == v }) }
-    for w in v.neighbors { w.referrers.removeAll(where: { $0 == v }) }
-    v.referrers.removeAll(where: { $0 == v }) // собственная обратная петля; для перехода в own необязательно
+    for w in v.referrers { w.neighbors.removeAll(where: (n) => n == v) }
+    for w in v.neighbors { w.referrers.removeAll(where: (n) => n == v) }
+    v.referrers.removeAll(where: (n) => n == v) // собственная обратная петля; для перехода в own необязательно
     let cut = unlinkVertex(graph, v)        // anchor Vertices.Item: вершина вырезана из цепочки графа
     let neighbors = take cut.neighbors      // оба вектора забраны из вершины
     let referrers = take cut.referrers

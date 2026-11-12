@@ -346,7 +346,7 @@ fn pushFirst(list: edit List, node: anchor Items.Item) requires node.next == nul
 fn removeVertex(graph: mut Graph, v: read<graph> Vertices.Item) {
     var w = graph.first
     while let x = w {                       // цепочка графа называет каждую его вершину
-        x.neighbors.removeAll(where: { $0 == v })
+        x.neighbors.removeAll(where: (n) => n == v)
         removeEdges(from: x, to: v)         // рёбра x с to == v вынуты из цепочки и освобождены
         w = x.nextAll
     }
