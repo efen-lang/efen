@@ -883,7 +883,7 @@ layout {
 }
 
 fn grow(table: mut Table) requires table.size == BUCKETS {
-    var fresh = Buckets.Area(count: 2 * BUCKETS)
+    var fresh = Buckets(count: 2 * BUCKETS)
     var i = 0
     while i < BUCKETS {
         while let e = tie table.buckets![i].head {      // снять первую запись старой корзины i

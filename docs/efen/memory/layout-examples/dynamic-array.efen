@@ -10,7 +10,7 @@ private layout<T: Movable> {
 
 private fn grow<T: Movable>(v: mut Vector<T>, minimum: Int) {
     let next = max(minimum, max(8, v.capacity * 2))
-    let fresh = Items<T>.Area(count: next)
+    let fresh = Items<T>(count: next)
 
     if let old = take v.items {
         var i = 0

@@ -146,9 +146,9 @@ fn rotateRootLeft(tree: edit Tree) {          // edit: все узлы оста�
    структур (`Queue()`) и получает элементы от функций `layout`.
 9. Структура с хвостовой областью без инварианта размера («вся память до конца `Pointer`») формой с полями не
    создаётся: размера у неё нет, пока нет памяти. Её приводят из сырой памяти (путь 3).
-10. Область верхнего уровня создаётся той же формой с числом слотов или байтов:
-    `let fresh = Items<T>.Area(count: next)` даёт `own Items<T>.Area { value.count == next }`,
-    `let records = Records.Area(size: bytes)` для области с разным шагом даёт
+10. Область верхнего уровня создаёт её конструктор с числом слотов или байтов, без `.Area`:
+    `let fresh = Items<T>(count: next)` даёт `own Items<T>.Area { value.count == next }`,
+    `let records = Records(size: bytes)` для области с разным шагом даёт
     `own Records.Area { value.size == bytes }`. Компилятор запрашивает у стратегии `Allocator<Items<T>.Area>`
     `next * sizeOf(Items<T>.Item)` байт с выравниванием `alignOf(Items<T>.Item)`. Как и приведение к области, форма
     стоит только начальным значением переменной, а `count` и `size` — число, константа или неизменяемое имя

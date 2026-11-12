@@ -31,7 +31,7 @@ private fn growDirectory<T: Movable>(a: mut ChunkedArray<T>, minimum: Int) {
     }
 
     let next = max(minimum, max(4, a.directoryCapacity * 2))
-    let fresh = Chunks<T>.Area(count: next)
+    let fresh = Chunks<T>(count: next)
 
     if let old = take a.directory {
         var i = 0
@@ -49,7 +49,7 @@ private fn ensureChunks<T: Movable>(a: mut ChunkedArray<T>, required: Int) {
     while a.directoryLength < required {
         growDirectory(a, minimum: a.directoryLength + 1)
 
-        let block = Items<T>.Area(count: CHUNK_SIZE)
+        let block = Items<T>(count: CHUNK_SIZE)
         a.directory![a.directoryLength] = Chunk<T>(root: take block, length: 0)
         a.directoryLength += 1
     }

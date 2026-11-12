@@ -12,7 +12,7 @@ strategy<T> for FixedArray<T> {
         requires items == null && count == 0 && size >= 0
     {
         if size > 0 {
-            let fresh = Items<T>.Area(count: size)
+            let fresh = Items<T>(count: size)
             var i = 0
             while i < size {
                 let value = make(i)
