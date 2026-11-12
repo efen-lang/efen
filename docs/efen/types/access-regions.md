@@ -568,7 +568,7 @@ for item in queue.byIndex() {
 ```efen
 for item in let cursor = items.removing() {
     if item.dead {
-        let body = cursor.remove()            // текущий элемент удалён и теперь принадлежит body
+        let body = cursor.remove()            // текущий элемент удалён, им владеет body
         // print(item.hp)                     // ошибка: привязка item недействительна со строки remove
         // cursor.remove(take item)           // ошибка: take привязки цикла
         // items.remove(0)                    // ошибка: items закрыта, пока жив cursor
@@ -589,7 +589,7 @@ for item in let cursor = items.removing() {
 через `while let`; тогда им владеет внешний блок:
 
 ```efen
-let cursor = items.removing()
+var cursor = items.removing()
 while let item = cursor.next() {
     if item.dead { cursor.remove() }
 }
@@ -739,7 +739,7 @@ for IndexIter<Access T, Src: Src> {
     mut fn next -> Access<Src> T? {
         if index >= array.count { return null }   // длина после тела цикла
         index += 1
-        return array[index - 1]
+        return &array[index - 1]
     }
 }
 ```
@@ -1211,7 +1211,7 @@ a.remove(n!)                                      // ошибка: remove ждё
 недействительны по выводу, остальные действительны.
 
 ```efen
-private layout<T> {
+private layout<T: Movable> {
     area Items: T
 
     public struct FixedVector {

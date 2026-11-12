@@ -236,7 +236,7 @@ print(view.email.count)                          // ошибка: view испо�
 ```efen
 projection Sized for Buffer { let length: PositiveInt }     // в Buffer это Int
 
-fn chunk(b: read Sized, each: () -> Void) { each(); let n = total / b.length }
+fn chunk(b: read Sized, each: () -> Void) { each(); let n = 4096 / b.length }
 
 chunk(buf) => { buf.length = 0 }           // ошибка: length держит проекция Sized
 ```
