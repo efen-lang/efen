@@ -136,8 +136,14 @@ layout {
 непрерывных байтов. Область с известным числом слотов:
 
 ```efen
+const CLASSES: Int = 32
+
 layout {
     area Classes: Class                       // 32 класса размеров подряд
+
+    struct Class {
+        var size: Int = 0                     // размер слота этого класса в байтах
+    }
 
     struct Sizes {
         var classes: own Classes.Area? { value == null || value.count == CLASSES }
@@ -164,6 +170,7 @@ layout {
 **Пример.**
 
 ```efen
+// Header, BLOCK, LINE, PAYLOAD, SIZES, NONE и SLOT_KEY объявляет менеджер памяти (статья «Сырая память»)
 @align(BLOCK)
 struct SlotBlock {
     Header                            // общее первое поле видов (раздел 2.3)

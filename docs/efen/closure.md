@@ -539,7 +539,7 @@ var cur = &items[0]
 scan(count: items.count, visit: (i: Int) -> Void {
     if items[i].priority > cur.priority {
         cur = &items[i]
-        items.append(items[i])         // ошибка
+        items.append(copy items[i])    // ошибка
     }
 })
 ```

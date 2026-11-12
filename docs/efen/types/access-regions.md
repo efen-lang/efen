@@ -493,7 +493,7 @@ print(r)                              // подсказка: let values = loadVa
 ```efen
 for item in doc.items.reading() {
     doc.tags.append(item.id)     // можно: tags не пересекается с областью обхода items
-    doc.items.append(item)       // ошибка: append может перенести буфер items, курсор смотрит в него
+    doc.items.append(copy item)  // ошибка: append может перенести буфер items, курсор смотрит в него
 }
 ```
 

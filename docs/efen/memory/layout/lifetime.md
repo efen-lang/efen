@@ -295,7 +295,7 @@ fn example(list: mut List) {
 **Пример.**
 
 ```efen
-fn countCopied(values: read Array<Int>) -> Int throws {
+fn countCopied(values: read Array<Int>) -> Int {
     var v = Vector<Int>()
     for x in values { v.append(x) }     // append может бросить исключение: на этом выходе вызывается dispose
     return v.count                      // обычный выход: dispose вызывается после чтения count
