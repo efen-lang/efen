@@ -130,8 +130,6 @@ public strategy ThreadHeap<Type: ThreadBound> {
 
     // tryAllocate и четыре функции роста написаны так же
 }
-
-provide ThreadHeap for Sessions.Item            // множество Sessions берёт память у ThreadHeap
 ```
 
 Стратегию для типа выбирают обычные правила ([выбор стратегии](../strategies.md#правила-выбора-стратегии)):
@@ -160,7 +158,7 @@ error: expected List<Int> [Allocator = mm::Heap], found List<Int> [Allocator = p
 
 ```efen
 class MyObject {
-    conforms Constructible
+    conforms Constructible, ThreadBound
     var data: Int
 
     @constructor fn init(data: Int) -> Self {
@@ -168,5 +166,5 @@ class MyObject {
     }
 }
 
-provide ThreadHeap for MyObject                 // ошибка, если MyObject не ThreadBound
+provide ThreadHeap for MyObject                 // MyObject привязан к потоку: ThreadHeap к нему применим
 ```
