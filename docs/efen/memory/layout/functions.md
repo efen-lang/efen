@@ -184,7 +184,7 @@ fn register(id: Int) {
 
 ```efen
 // два объявления без тела
-fn first(list: read List) -> read<list> Items.Item?      // источник результата записан
+fn firstOf(list: read List) -> read<list> Items.Item?    // источник результата записан
 fn clear(list: mut List)                                 // после вызова указатели с источником list недействительны
 ```
 

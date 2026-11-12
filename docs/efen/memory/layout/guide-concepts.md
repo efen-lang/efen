@@ -174,8 +174,8 @@ struct Node {
 | перевыделение или замена области | `mut` | внутрь прежней области недействительны |
 
 ```efen
-let node = list.first()
-list.insertFirst(value: 7)          // edit: узлы на своих адресах, node действителен
+let node = list.head ?? return
+list.pushFirst(7)                   // edit: узлы на своих адресах, node действителен
 print(node.value)
 ```
 

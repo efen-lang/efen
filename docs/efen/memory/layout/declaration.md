@@ -323,8 +323,22 @@ private fn setPrev(a: Items.Item, b: edit Items.Item) {      // вспомога
 }
 
 strategy for List {
-    public mut fn removeFirst {                               // публичная функция структуры
+    public fn first -> read<self> Items.Item? {
+        // тело не важно для примера: возвращает head
+    }
+    public edit fn insertFirst(value: Int) {                 // публичная функция структуры
+        // тело не важно для примера: новый узел записан в head
+    }
+    public mut fn removeFirst {
         // тело не важно для примера: снимает первый узел и освобождает его
+    }
+}
+
+strategy for List {
+    implements Disposable
+
+    fn dispose {
+        // тело не важно для примера: снимает узлы по одному и освобождает их
     }
 }
 ```
