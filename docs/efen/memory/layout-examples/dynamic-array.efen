@@ -114,10 +114,10 @@ fn example {
     let first = v.read(0)
 }                                               // конец области: компилятор вызывает dispose
 
-strategy<T> for Vector<T> {
-    public edit fn at(index: Int) -> edit<&self.items![index]> T
-        requires index >= 0 && index < count
-    {
+strategy VectorAccess<T, Access: Access> for Vector<T>
+where Access == read || Access == edit || Access == mut {
+    public Access fn at(index: Int) -> Access<&self.items![index]> T {
+        guard index >= 0 && index < count else { throw BoundsError() }
         return &items![index]
     }
 }
