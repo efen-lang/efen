@@ -628,7 +628,7 @@ fn returnSlot(block: mut SlotBlock, slot: Int)
 
 Последние две строки компилятор читает как вставку `slot` в голову `freeSlots`: ссылка нового узла — старая голова,
 голова — новый узел. Отсюда он выводит, что `freeSlots` выросла на один узел, и проверяет законы у `slot`. Цепочка
-не из области — список с хвостом над набором `Items` ([законы и цепочки](memory/layout.md#законы-и-цепочки)):
+не из области — список с хвостом над набором `Items` ([законы и цепочки](memory/layout-reference.md#законы-и-цепочки)):
 `let nodes = Items.chain(from: head, by: Item.next, until: null)`, законы `forall n in Items: nodes.contains(n)` и
 `tail == nodes.last`.
 

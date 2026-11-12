@@ -14,7 +14,7 @@
 1. [Ownership, borrow, origin и `take`](../types/ownership.md).
 2. [Representations](../representations.md) — логический тип и физическая
    форма.
-3. [Layout и описание памяти](layout.md), [модели поведения](../models.md).
+3. [Layout и описание памяти](layout-reference.md), [модели поведения](../models.md).
 4. [Примеры компоновки](layout-examples/README.md) — цельные реализации
    структур данных.
 
@@ -23,7 +23,7 @@
 | Назначение | Документ |
 |---|---|
 | Общая модель управления памятью | [Обзор](../memory.md), [тематическая модель](index.md) |
-| Layout и заимствования | [Layout](layout.md), [модели поведения](../models.md) |
+| Layout и заимствования | [Layout](layout-reference.md), [модели поведения](../models.md) |
 | Сырая память, `Pointer`, выдача и возврат | [Сырая память](pointer.md) |
 | Физическое хранение | [колоночные layout](columnar-layouts.md), [варианты representation](layout-representations.md) |
 | Доказательная граница | [условия и доказательства](../conditions.md) |

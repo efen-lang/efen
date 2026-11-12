@@ -15,7 +15,7 @@ Efen — компилируемый язык с программируемыми
 | Работать с данными и ресурсами | [Типы и данные](types/README.md) → [владение и доступ](types/ownership.md) → [память и компоновка](memory/README.md) |
 | Расширить поведение типа | [Контракты](contracts.md) → [интерфейсы](interfaces.md) → [стратегии](strategies.md) |
 | Понять обязательные возможности языка | [Runtime языка Efen](runtime/README.md) → [связь с компилятором](runtime/lang-roles.md) |
-| Описать память и поведение вызовов | [Layout](memory/layout.md) → [модели поведения](models.md) → [условия функций](conditions.md) |
+| Описать память и поведение вызовов | [Layout](memory/layout-reference.md) → [модели поведения](models.md) → [условия функций](conditions.md) |
 | Писать метапрограммирование | [Аспекты](aspects/README.md) → [API времени компиляции](compile-time/README.md) → [метафункции](compile-time/metafunctions.md) |
 | Понять устройство компилятора и сборки | [Режимы компиляции](compilation-modes.md) → [диалекты](dialects.md) → [Amber](https://github.com/efen-lang/amber/blob/main/design/README.md) |
 | Понять модули и архитектурные границы | [Пакеты](packages.md) → [видимость](visibility.md) → [слои](layers.md) |
