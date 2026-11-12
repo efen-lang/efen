@@ -230,12 +230,14 @@ public fn peekNode(list: mut List<Int>) -> anchor Nodes<Int>.Item? {  // оши�
 **6. Изменение структуры под `edit`.**
 
 ```efen
-public edit fn dropFirst {       // ошибка: узел ушёл из списка в уничтожение, нужен mut
-    let node = tie head ?? return
-    head = tie node.next
-    count -= 1
-    let dead = take node.value
-    mm.free(node as own Pointer)
+strategy<T> for List<T> {
+    public edit fn dropFirst {       // ошибка: узел ушёл из списка в уничтожение, нужен mut
+        let node = tie head ?? return
+        head = tie node.next
+        count -= 1
+        let dead = take node.value
+        mm.free(node as own Pointer)
+    }
 }
 ```
 

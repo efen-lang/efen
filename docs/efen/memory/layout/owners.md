@@ -81,7 +81,7 @@ fn destroyBlock(pool: mut Pool, node: anchor Blocks.Item) {
 
 fn pop(list: mut List) -> anchor Items.Item? {
     let first = tie list.head ?? return null
-    list.head = tie first.next               // first.next теперь равен null
+    list.head = tie first.next               // после tie поле first.next равно null
     if let h = list.head { h.prev = null } else { list.tail = null }
     list.length -= 1                         // инварианты List восстановлены: функция публичная
     return first                             // якорь переходит к вызывающему

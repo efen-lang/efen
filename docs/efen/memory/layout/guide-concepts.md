@@ -210,9 +210,10 @@ private fn unlinkFirst<T>(list: mut List<T>) -> anchor Nodes<T>.Item? {
 вызов `Item(value: 0, next: NONE)`: записывает названные поля, а полю со значением по умолчанию даёт это значение.
 
 ```efen
-let a = memory as Item(value: 0, next: NONE)    // все поля записаны в приведении
-let b = memory as Item(value: _, next: NONE)    // value: прежние байты, явно
-let c = memory as Item                          // value и next не инициализированы
+// m1, m2, m3: три разных значения own Pointer; каждое приведение поглощает своё
+let a = m1 as Item(value: 0, next: NONE)        // все поля записаны в приведении
+let b = m2 as Item(value: _, next: NONE)        // value: прежние байты, явно
+let c = m3 as Item                              // value и next не инициализированы
 c.value = 0                                     // запись инициализирует поле
 ```
 

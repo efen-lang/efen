@@ -105,8 +105,8 @@ unsigned char* c = poolGet();   // b == c: один блок у двух вла�
 того как пул прочитал хоть одно слово блока:
 
 ```
-amber check: an address C gave that is no live place at 0x… in poolPut, node …;
-the instance of a lent place at 0x… was lent in …, node … and released in release, node …
+amber check: an address C gave that is no live place at 0x7ffff79f0000 in poolPut, node 4;
+the instance of a lent place at 0x7ffff79f0000 was lent in poolGet, node 2 and released in release, node 3
 ```
 
 Так же ловятся адрес внутри отданного слота и адрес, которого аллокатор не давал.

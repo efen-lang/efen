@@ -155,7 +155,7 @@ fn newNode -> own Items.Item {
 
 fn addVertex(graph: edit Graph, label: Int) -> Vertices.Item {
     let v = mm.allocate(bytes: sizeOf(Vertex)) as Vertex(label: label, neighbors: Vector<Vertices.Item>())
-    v.nextAll = tie graph.first             // поле пусто по умолчанию; прежняя первая вершина теперь под v
+    v.nextAll = tie graph.first             // поле пусто по умолчанию; прежней первой вершиной владеет v
     graph.first = tie v                     // вершина принадлежит графу
     return graph.first!                     // указатель без владения, источник: graph
 }
@@ -419,7 +419,7 @@ fn removeVertex(graph: mut Graph, v: read<graph> Vertices.Item) {
 
 ```efen
 fn reuse(block: own SlotBlock) {
-    let a = lend block.slots[0]         // block теперь anchor SlotBlock
+    let a = lend block.slots[0]         // после первой выдачи block имеет тип anchor SlotBlock
     let b = lend block.slots[1]
     block.slots[0] = take a             // слот 0 вернулся
     freeBlock(block as own SlotBlock)   // ошибка: слот 1 выдан, used == 1

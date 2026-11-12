@@ -324,7 +324,7 @@ struct Pool {
     invariants { firstFreeBlock: FreeBlock? }      // цель поля имеет вид FreeBlock
 }
 
-pool.firstFreeBlock = toFreeBlock(block, next: take pool.firstFreeBlock)
+pool.firstFreeBlock = toFreeBlock(take block, next: take pool.firstFreeBlock)
 let spare = take pool.firstFreeBlock!  // приведения нет: поле уточнено до FreeBlock
 ```
 
@@ -336,7 +336,7 @@ let spare = take pool.firstFreeBlock!  // приведения нет: поле 
 
 ```efen
 fn releaseBlock(pool: mut Pool, block: own PoolBlock) {
-    pool.firstFreeBlock = toFreeBlock(block, next: take pool.firstFreeBlock)
+    pool.firstFreeBlock = toFreeBlock(take block, next: take pool.firstFreeBlock)
 }
 ```
 
@@ -656,6 +656,7 @@ layout {
 
     struct Class {
         var size: Int = 0
+        var requests: Int = 0                             // число запросов к классу
         var firstAvailable: anchor Blocks.Item? = null    // список класса: блоки со свободными слотами
         var firstFull: anchor Blocks.Item? = null         // цепочка заполненных блоков
         var reserve: own Blocks.Item? = null              // запас класса: блок без выданных слотов
@@ -724,7 +725,7 @@ let table: Classes.Area = memory as Classes.Area { value.count == CLASSES }
 ```efen
 fn countUse(pool: mut Pool, index: Int) {
     if index >= 0 && index < CLASSES {
-        pool.classes![index].used = pool.classes![index].used + 1
+        pool.classes![index].requests = pool.classes![index].requests + 1
     }
 }
 ```

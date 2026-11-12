@@ -195,7 +195,7 @@ fn insertAfter(a: edit Items.Item, node: anchor Items.Item) {
 
 ```
 до:     A ⇄ N ⇄ B
-шаг 1:  вынуть N из A.next          — якорь N теперь у функции
+шаг 1:  вынуть N из A.next          — якорь N у функции
 шаг 2:  A.next = B                  — A указывает на B
 шаг 3:  B.prev = A                  — B указывает назад на A
 шаг 4:  на N никто не указывает     — anchor → own
@@ -700,7 +700,7 @@ layout {
 
 public fn addVertex(graph: edit Graph, label: Int) -> Vertices.Item {
     let v = mm.allocate(bytes: sizeOf(Vertex)) as Vertex(label: label, neighbors: Vector<Vertices.Item>())
-    v.nextAll = tie graph.first             // прежняя первая вершина теперь под v
+    v.nextAll = tie graph.first             // прежней первой вершиной владеет v
     graph.first = tie v                     // вершина принадлежит графу
     return graph.first!                     // указатель без владения, источник: graph
 }

@@ -137,8 +137,10 @@ print(p.value)                      // ошибка: p недействител�
 
 ```efen
 fn shrink(table: mut Table, n: mut Nodes.Item) {
-    let k = n.key
-    table.keys = take smallerKeys()        // ошибка: k используется ниже и указывает в прежнюю область
+    let k = n.key                          // Keys.Item: слот области table.keys
+    let old = take table.keys              // ошибка: k используется ниже и указывает в прежнюю область
+    table.keys = smallerKeys()             // новая область в пустое владеющее поле
+    freeKeys(take old)                     // прежняя область возвращена менеджеру памяти
     print(k)
 }
 ```
@@ -183,7 +185,7 @@ fn shrink(table: mut Table, n: mut Nodes.Item) {
 ```efen
 fn move(pool: mut Pool, block: anchor Blocks.Item) {
     let name = block
-    keep(pool, tie block)                  // block перешёл в pool; источник name теперь pool
+    keep(pool, tie block)                  // block записан в pool; источником name служит pool
     print(name.used)                       // допустимо
 }
 ```
