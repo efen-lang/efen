@@ -568,7 +568,7 @@ public fn freeNode(node: own Nodes.Item) { … }
 функции из модуля `layout` или передаёт дальше. Поле `own Nodes.Item` в классе или обычной структуре запрещено.
 Дольше одного вызова элемент хранится в контейнере `layout`, например в `Vector<own Nodes.Item>`.
 
-### Выданный слот: `public lend S.area`
+### Выданный слот: `public lend T.поле`
 
 ```efen
 layout {
@@ -583,7 +583,8 @@ layout {
 }
 
 public fn acquire(pool: mut Pool) -> own Block.data.Item? { … }
-public fn release(block: mut Blocks.Item, data: own block.data.Item) {
+public fn release(pool: mut Pool, data: own Block.data.Item) {
+    let block = blockOf(pool, data)              // блок, из которого выдан data: его находит код layout
     block.data[0] = take data                    // слот вернулся туда, откуда выдан
 }
 ```
