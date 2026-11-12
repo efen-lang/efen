@@ -303,7 +303,7 @@ fn describe(r: Reason) -> String {
 
 Значение enum можно перезаписать целиком, поэтому слоты не следуют за подтипом. Параметр `mut`, `edit` или `out`
 типа `Reason` принимает только слот ровно типа `Reason`. Запись целого значения enum без данных разрешена и под
-`edit` ([`edit` и `mut`](../memory/layout-reference.md#edit-и-mut-в-layout), правило 6), поэтому слот расширения
+`edit` ([`edit` и `mut`](../memory/layout/operations.md#edit-и-mut-в-layout), правило 6), поэтому слот расширения
 параметру `edit` тоже не подходит:
 
 ```efen
