@@ -29,7 +29,7 @@ private fn growDirectory<T: Movable>(a: mut ChunkedArray<T>, minimum: Int) {
     }
 
     let next = max(minimum, max(4, a.directoryCapacity * 2))
-    let fresh: Chunks<T>.Area = mm.allocate(…) as Chunks<T>.Area { value.count == next }
+    let fresh: Chunks<T>.Area = mm.allocate(bytes: next * sizeOf(Chunk<T>)) as Chunks<T>.Area { value.count == next }
 
     if let old = take a.directory {
         var i = 0
@@ -48,7 +48,7 @@ private fn ensureChunks<T: Movable>(a: mut ChunkedArray<T>, required: Int) {
     while a.directoryLength < required {
         growDirectory(a, minimum: a.directoryLength + 1)
 
-        let block: Items<T>.Area = mm.allocate(…) as Items<T>.Area { value.count == CHUNK_SIZE }
+        let block: Items<T>.Area = mm.allocate(bytes: CHUNK_SIZE * sizeOf(T)) as Items<T>.Area { value.count == CHUNK_SIZE }
         a.directory![a.directoryLength] = Chunk<T>(root: take block, length: 0)
         a.directoryLength += 1
     }
@@ -107,16 +107,39 @@ strategy<T> for ChunkedArray<T> {
         return previous
     }
 
-    public mut fn release
-        requires T conforms ImplicitlyDestroyable || count == 0
-    {
+    public mut fn drain(each: (own T) -> Void) {
         if let dir = take directory {
             var c = 0
             while c < directoryLength {
                 if let area = take dir[c].root {
                     var j = 0
                     while j < dir[c].length {
-                        let dead = take area[j]
+                        each(take area[j])
+                        j += 1
+                    }
+                    mm.free(area as Pointer)
+                }
+                c += 1
+            }
+            mm.free(dir as Pointer)
+        }
+        directoryLength = 0
+        directoryCapacity = 0
+        count = 0
+    }
+}
+
+strategy<T> for ChunkedArray<T> {
+    implements Disposable
+
+    fn dispose {
+        if let dir = take directory {
+            var c = 0
+            while c < directoryLength {
+                if let area = take dir[c].root {
+                    var j = 0
+                    while j < dir[c].length {
+                        let dead = take area[j]         // значение T уничтожается в конце шага
                         j += 1
                     }
                     mm.free(area as Pointer)
@@ -139,8 +162,9 @@ strategy<T: Copyable> for ChunkedArray<T> {
     }
 }
 
-var a = ChunkedArray<Int>()
-defer a.release()
-a.append(1)
-a.append(2)
-let second = a.read(1)
+fn example {
+    var a = ChunkedArray<Int>()
+    a.append(1)
+    a.append(2)
+    let second = a.read(1)
+}                                               // конец области: компилятор вызывает dispose

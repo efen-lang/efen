@@ -10,7 +10,7 @@ private layout<T: Movable> {
 
 private fn grow<T: Movable>(v: mut Vector<T>, minimum: Int) {
     let next = max(minimum, max(8, v.capacity * 2))
-    let fresh: Items<T>.Area = mm.allocate(…) as Items<T>.Area { value.count == next }
+    let fresh: Items<T>.Area = mm.allocate(bytes: next * sizeOf(T)) as Items<T>.Area { value.count == next }
 
     if let old = take v.items {
         var i = 0
@@ -71,13 +71,28 @@ strategy<T> for Vector<T> {
         return previous
     }
 
-    public mut fn release
-        requires T conforms ImplicitlyDestroyable || count == 0
-    {
+    public mut fn drain(each: (own T) -> Void) {
         if let old = take items {
             var i = 0
             while i < count {
-                let dead = take old[i]
+                each(take old[i])
+                i += 1
+            }
+            mm.free(old as Pointer)
+        }
+        count = 0
+        capacity = 0
+    }
+}
+
+strategy<T> for Vector<T> {
+    implements Disposable
+
+    fn dispose {
+        if let old = take items {
+            var i = 0
+            while i < count {
+                let dead = take old[i]          // значение T уничтожается в конце шага
                 i += 1
             }
             mm.free(old as Pointer)
@@ -95,8 +110,9 @@ strategy<T: Copyable> for Vector<T> {
     }
 }
 
-var v = Vector<Int>()
-defer v.release()
-v.append(1)
-v.append(2)
-let first = v.read(0)
+fn example {
+    var v = Vector<Int>()
+    v.append(1)
+    v.append(2)
+    let first = v.read(0)
+}                                               // конец области: компилятор вызывает dispose

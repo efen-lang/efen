@@ -25,7 +25,7 @@ private layout<T: Movable> {
 }
 
 private fn newNode<T>(value: own T) -> anchor Nodes<T>.Item {
-    return mm.allocate(…) as Node<T>(value: take value)
+    return mm.allocate(bytes: sizeOf(Node<T>)) as Node<T>(value: take value)
 }
 
 private fn nodeAt<T>(list: edit DoublyList<T>, index: Int) -> edit Nodes<T>.Item
@@ -74,7 +74,7 @@ private fn nodeAtMut<T>(list: mut DoublyList<T>, index: Int) -> mut Nodes<T>.Ite
 
 private fn unlinkAt<T>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.Item? {
     if index == 0 {
-        guard let first = tie list.head else { return null }
+        let first = tie list.head ?? return null
         list.head = tie first.next
         if let newHead = list.head {
             newHead.prev = null
@@ -86,7 +86,7 @@ private fn unlinkAt<T>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.I
     }
 
     let before = nodeAtMut(list, index: index - 1)
-    guard let victim = tie before.next else { return null }
+    let victim = tie before.next ?? return null
     before.next = tie victim.next
     if let after = before.next {
         after.prev = before
@@ -147,7 +147,7 @@ strategy<T> for DoublyList<T> {
 
     public mut fn remove(index: Int) -> own T? {
         guard index >= 0 && index < count else { return null }
-        guard let node = unlinkAt(self, index: index) else { return null }
+        let node = unlinkAt(self, index: index) ?? return null
         let value = take node.value
         mm.free(node as own Pointer)
         return value
@@ -159,17 +159,19 @@ strategy<T> for DoublyList<T> {
         let node = nodeAtMut(self, index: index)
         return replace(node.value, take value)
     }
+}
 
-    public mut fn release
-        requires T conforms ImplicitlyDestroyable || count == 0
-    {
+strategy<T> for DoublyList<T> {
+    implements Disposable
+
+    fn dispose {
         tail = null
         while let node = tie head {
             head = tie node.next
             if let newHead = head {
                 newHead.prev = null
             }
-            let dead = take node.value
+            let dead = take node.value          // значение T уничтожается в конце шага
             mm.free(node as own Pointer)
         }
         count = 0
@@ -190,8 +192,9 @@ strategy<T: Copyable> for DoublyList<T> {
     }
 }
 
-var list = DoublyList<Int>()
-defer list.release()
-list.append(1)
-list.pushFirst(0)
-let second = list.read(1)
+fn example {
+    var list = DoublyList<Int>()
+    list.append(1)
+    list.pushFirst(0)
+    let second = list.read(1)
+}                                               // конец области: компилятор вызывает dispose

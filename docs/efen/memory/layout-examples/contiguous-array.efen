@@ -12,7 +12,7 @@ strategy<T> for FixedArray<T> {
         requires items == null && count == 0 && size >= 0
     {
         if size > 0 {
-            let fresh: Items<T>.Area = mm.allocate(…) as Items<T>.Area { value.count == size }
+            let fresh: Items<T>.Area = mm.allocate(bytes: size * sizeOf(T)) as Items<T>.Area { value.count == size }
             var i = 0
             while i < size {
                 let value = make(i)
@@ -32,13 +32,27 @@ strategy<T> for FixedArray<T> {
         return previous
     }
 
-    public mut fn release
-        requires T conforms ImplicitlyDestroyable || count == 0
-    {
+    public mut fn drain(each: (own T) -> Void) {
         if let old = take items {
             var i = 0
             while i < count {
-                let dead = take old[i]
+                each(take old[i])
+                i += 1
+            }
+            mm.free(old as Pointer)
+        }
+        count = 0
+    }
+}
+
+strategy<T> for FixedArray<T> {
+    implements Disposable
+
+    fn dispose {
+        if let old = take items {
+            var i = 0
+            while i < count {
+                let dead = take old[i]          // значение T уничтожается в конце шага
                 i += 1
             }
             mm.free(old as Pointer)
@@ -59,7 +73,8 @@ fn square(i: Int) -> own Int {
     return i * i
 }
 
-var a = FixedArray<Int>()
-defer a.release()
-a.fill(size: 4, make: square)
-let third = a.read(2)
+fn example {
+    var a = FixedArray<Int>()
+    a.fill(size: 4, make: square)
+    let third = a.read(2)
+}                                               // конец области: компилятор вызывает dispose
