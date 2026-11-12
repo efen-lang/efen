@@ -203,7 +203,7 @@ fn build(worker: own Thread) {   // Thread уничтожает только я�
 **3. Чтение поля до инициализации.**
 
 ```efen
-let node = memory as Node<Int>   // next получил значение по умолчанию, value не записан
+let node = Node<Int>()           // next получил значение по умолчанию, value не записан
 print(node.value)                // ошибка: value не инициализирован
 ```
 

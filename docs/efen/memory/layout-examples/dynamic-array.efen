@@ -2,7 +2,7 @@ private layout<T: Movable> {
     area Items: T
 
     public struct Vector {
-        private var items: own Items.Area? = null { (value == null) == (capacity == 0) && (value == null || value.count == capacity) }
+        private var items: own Items.Area? = null { (value == null) == (capacity == 0) && (value == null || value.count == capacity && value.extent == count * sizeOf(T)) }
         public  var capacity: Int = 0 { value >= 0 }
         public  var count: Int = 0 { value >= 0 && value <= capacity }
     }
@@ -113,3 +113,11 @@ fn example {
     v.append(2)
     let first = v.read(0)
 }                                               // конец области: компилятор вызывает dispose
+
+strategy<T> for Vector<T> {
+    public edit fn at(index: Int) -> edit<&self.items![index]> T
+        requires index >= 0 && index < count
+    {
+        return &items![index]
+    }
+}

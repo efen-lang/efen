@@ -217,6 +217,16 @@ layout<T: Movable> {
     public struct Store {
         let capacity: Int { value > 0 }
         var cells: own Cells.Area? = null { value == null || value.count == capacity }
+
+        invariants { cells == null || cells!.extent == cells!.size }   // заполнена каждая ячейка
+    }
+}
+
+strategy<T> for Store<T> {
+    implements Disposable
+
+    fn dispose {
+        // тело не важно для примера: забирает значение каждой ячейки и возвращает область
     }
 }
 
@@ -242,9 +252,9 @@ projection Consumer for Ring {
 }
 ```
 
-Проекции называют область путём `store.cells`. Приведение `ring as Producer` доказывает условие
-`store.cells != null` (правило 3). Значение `Store` создаёт явная функция кода `layout`, которая берёт область и
-записывает `null` в каждую ячейку: конструктора у структуры нет. `Consumer` забирает значение через `replace`, а не
+Проекции называют область путём `store.cells`. Приведение `ring as Producer` доказывает условие `store.cells != null`
+(правило 3). Значение `Store` создаёт функция кода `layout` `newStore`: она берёт область и записывает `null` в каждую
+ячейку, потому что форма с полями слоты области не заполняет. `Consumer` забирает значение через `replace`, а не
 `take`, поэтому каждая ячейка хранит значение ([роли](../../shared.md#роли)).
 
 **Запрещено.**

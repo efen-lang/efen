@@ -2,7 +2,7 @@ private layout<T: Movable> {
     area Items: T
 
     public struct FixedArray {
-        private var items: own Items.Area? = null { (value == null) == (count == 0) && (value == null || value.count == count) }
+        private var items: own Items.Area? = null { (value == null) == (count == 0) && (value == null || value.count == count && value.extent == value.size) }
         public  var count: Int = 0 { value >= 0 }
     }
 }

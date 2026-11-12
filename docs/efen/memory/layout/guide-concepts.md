@@ -267,7 +267,7 @@ private layout<T: Movable> {
 ```efen
 strategy<T> for DoublyList<T> {
     public edit fn append(value: own T) {
-        let node = newNode(take value)
+        let node = Node<T>(value: take value)
         if let last = tail {
             node.prev = last
             last.next = tie node

@@ -271,7 +271,7 @@ layout, пакет graph
 
 Vertices    по полю: Graph.first, Vertex.nextAll (anchor); наружу не уходит
 Edges       по полю: Vertex.firstEdge, Edge.next (anchor); наружу не уходит
-Graph       значение; освобождает destroy(graph:); публичная
+Graph       значение; освобождает dispose; публичная
 Vertex      внутренняя в Graph; нечистая: указывает на Vertices
 Edge        внутренняя в Graph; нечистая: указывает на Vertices
 ```

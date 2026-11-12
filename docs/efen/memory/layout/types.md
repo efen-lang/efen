@@ -31,7 +31,7 @@
 | `Block.data.Item` | слот области-поля `data`, названный через структуру; под `own` это выданный слот или диапазон (раздел 3.5) | `fn acquire(pool: mut Pool) -> own Block.data.Item?` |
 | `block.data.Item` | тот же слот, названный через значение-родителя `block` | `fn releaseSlot(block: mut Block, slot: own block.data.Item)` |
 | `slots.Item` | слот области-поля в инвариантах самой структуры | `sizeOf(slots.Item) == SIZES[sizeClass]` |
-| `Nodes<Int>.Item` | элемент множества `layout` с параметрами, названный вне этого `layout` (раздел 2.4) | `fn newNode<T>(value: own T) -> anchor Nodes<T>.Item` |
+| `Nodes<Int>.Item` | элемент множества `layout` с параметрами, названный вне этого `layout` (раздел 2.4) | `fn newNode<T>(value: own T) -> own Nodes<T>.Item` |
 | `Lists<Entry>.Nodes.Item` | элемент множества `open layout` с именем `Lists` (раздел 10.1) | `var node: Lists<Entry>.Nodes.Item? = null` |
 | `Vector<own Nodes.Item>`, `Vector<read<g> Nodes.Item>` | форма в аргументе типа: контейнер владеет элементами (раздел 3.4) или хранит заимствование (раздел 4.5) | `var pending: Vector<own Nodes.Item>` |
 

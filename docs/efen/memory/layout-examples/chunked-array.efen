@@ -5,13 +5,13 @@ private layout<T: Movable> {
     area Chunks: Chunk
 
     struct Chunk {
-        private var root: own Items.Area? = null { value == null || value.count == CHUNK_SIZE }
+        private var root: own Items.Area? = null { value == null || value.count == CHUNK_SIZE && value.extent == length * sizeOf(T) }
         private var length: Int = 0 { value >= 0 && value <= CHUNK_SIZE }
     }
 
     public struct ChunkedArray {
         private var directory: own Chunks.Area? = null {
-            (value == null) == (directoryCapacity == 0) && (value == null || value.count == directoryCapacity)
+            (value == null) == (directoryCapacity == 0) && (value == null || value.count == directoryCapacity && value.extent == directoryLength * sizeOf(Chunk))
         }
         private var directoryCapacity: Int = 0 { value >= 0 }
         private var directoryLength: Int = 0 { value >= 0 && value <= directoryCapacity }
