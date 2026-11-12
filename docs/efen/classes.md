@@ -749,11 +749,11 @@ fn countUsers(db: mut sqlite3, query: read String) -> Int throws SqliteError {
     let rc = sqlite3_stmt.sqlite3_prepare_v2(db: db, sql: query.cString, length: -1, self: s)
     guard let st = s, rc == SQLITE_OK else { throw SqliteError() }
     st.sqlite3_bind_text(index: 1, text: name.cString, length: -1, destructor: SQLITE_STATIC)
-    print(name)                                  // можно: удержание read
+    print(name)                                  // можно: заимствование read
     // name.append("x")                          // ошибка: st.bound[1] держит name
     var total = 0
     while st.sqlite3_step() == SQLITE_ROW { total += 1 }
-    (take st).sqlite3_finalize()                 // удержания кончились
+    (take st).sqlite3_finalize()                 // заимствования кончились
     name.append("x")                             // можно
     return total
 }

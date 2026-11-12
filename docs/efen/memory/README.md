@@ -23,7 +23,7 @@
 | Назначение | Документ |
 |---|---|
 | Общая модель управления памятью | [Обзор](../memory.md), [тематическая модель](index.md) |
-| Layout и удержания | [Layout](layout.md), [модели поведения](../models.md) |
+| Layout и заимствования | [Layout](layout.md), [модели поведения](../models.md) |
 | Сырая память, `Pointer`, выдача и возврат | [Сырая память](pointer.md) |
 | Физическое хранение | [колоночные layout](columnar-layouts.md), [варианты representation](layout-representations.md) |
 | Доказательная граница | [условия и доказательства](../conditions.md) |
