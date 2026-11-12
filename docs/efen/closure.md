@@ -926,7 +926,7 @@ numbers.reduce(0, (acc, x) => acc + x)
 
 ```efen
 fn loadData(onSuccess: (Data) -> Void, onError: (Error) -> Void) {
-    // ...
+    // тело не важно для примера
 }
 
 // Несколько замыканий передаются в скобках

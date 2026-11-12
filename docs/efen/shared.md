@@ -73,7 +73,7 @@ fn release(pool: mut Pool, connection: own Connection)
 
 ## Пометка `shared`
 
-Структура, к которой могут обращаться несколько потоков, помечена `shared`. Форма пометки — модификатор перед `struct`, `class`, `readonly class` или `interface`. `shared interface` требует, чтобы все реализации были `shared`-типами; только значение такого интерфейса уходит в другой поток ([неизменяемость](immutability.md#shared-readonly-class-и-границы)). Перед `fn` слово `shared` пишется только у функции `@abi(c)` с телом и стоит перед атрибутом: `shared @abi(c) fn onEvent(…) { … }`. Оно объявляет, что C вызывает функцию из нескольких потоков, и её тело проверяется как код многопоточного контекста ([структура и поток](memory/layout-reference.md#структура-и-поток), правило 5). Пометка — часть типа: компилятор знает общую память по типу,
+Структура, к которой могут обращаться несколько потоков, помечена `shared`. Форма пометки — модификатор перед `struct`, `class`, `readonly class` или `interface`. `shared interface` требует, чтобы все реализации были `shared`-типами; только значение такого интерфейса уходит в другой поток ([неизменяемость](immutability.md#shared-readonly-class-и-границы)). Перед `fn` слово `shared` пишется только у функции `@abi(c)` с телом и стоит перед атрибутом: `shared @abi(c) fn onEvent`. Оно объявляет, что C вызывает функцию из нескольких потоков, и её тело проверяется как код многопоточного контекста. Функцию `@abi(c)` без этого слова компилятор проверяет в предположении, что C вызывает её в потоке её контекста и не одновременно с остальным его кодом ([структура и поток](memory/layout-reference.md#структура-и-поток), правило 4). Пометка — часть типа: компилятор знает общую память по типу,
 а не выводит её из того, какие корутины что захватили.
 
 Пометка говорит, какие типы могут жить в общей памяти, поэтому поле
@@ -134,7 +134,7 @@ fn race(db: mut sqlite3, q: read String) {
     with makeTaskGroup() {                                   // MultiThreadConcurrency
         let h = spawn { capture st = take s; st!.sqlite3_step() }   // области h: read name, mut db
         name[0] = "B"                                        // ошибка: h читает name в другом потоке
-        sqlite3_exec(db: db, …)                              // ошибка: h держит mut db
+        sqlite3_exec(db: db, sql: "VACUUM", callback: (columns) => print(columns[0]))   // ошибка: h держит mut db
         await(take h)                                        // st уничтожен внутри h: заимствования кончились
         name[0] = "B"                                        // можно
     }
@@ -168,7 +168,7 @@ fn race(db: mut sqlite3, q: read String) {
 ```efen
 @c("pthread_t") @abi(c) class Thread {
     shared layout { var start: own (() own -> Pointer?)? }   // поток выполняет замыкание параллельно
-    …
+    // остальные объявления не важны для примера
 }
 ```
 
@@ -194,7 +194,7 @@ fn race(db: mut sqlite3, q: read String) {
 ```efen
 @abi(c) class GLContext {
     conforms ThreadBound                     // контекст GL живёт в потоке, который его сделал
-    …
+    // остальные объявления не важны для примера
 }
 
 class Renderer {
@@ -203,7 +203,7 @@ class Renderer {
 
 fn runAside<T: Movable>(value: own T) {      // сводка: T не ThreadBound
     with makeTaskGroup() {
-        spawn { capture v = take value; … }
+        spawn { capture v = take value; use(take v) }
     }
 }
 
@@ -456,8 +456,8 @@ projection SecondEditor for Inbox {
 ```text
 error: field `letters` is written under two different locks
   --> inbox.efen:13
-   |  projection FirstEditor ... { first is Mutex.Held }
-   |  projection SecondEditor ... { second is Mutex.Held }
+   |  projection FirstEditor for Inbox: first is Mutex.Held
+   |  projection SecondEditor for Inbox: second is Mutex.Held
    = help: guard `letters` by one lock in both projections
 ```
 

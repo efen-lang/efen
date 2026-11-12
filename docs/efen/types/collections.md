@@ -674,11 +674,11 @@ for item in take collection {
 let values: [Int?] = [1, null, 3]
 
 for x in values {              // три шага; x имеет тип Int?
-    if x == null { … }         // второй элемент
+    if x == null { print("пусто") }   // второй элемент
 }
 
 var it = values.iterator()
-while let x = it.next() { … }  // то же: while let снимает внешний уровень, x имеет тип Int?
+while let x = it.next() { print(x) }  // то же: while let снимает внешний уровень, x имеет тип Int?
 ```
 
 Сравнение `it.next() == null` проверяет только внешний уровень, то есть конец обхода.
@@ -833,7 +833,7 @@ for value in lazyResult {
 // Mapping: 3
 // Filtering: 6
 // Result: 6
-// ...
+// дальше то же для остальных элементов
 ```
 
 Терминальная операция завершает цепочку обходом результата. Например,

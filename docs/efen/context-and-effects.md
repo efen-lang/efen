@@ -800,7 +800,7 @@ interface Writer {
 
 class FileWriter {
     implements Writer
-    …
+    // остальные объявления не важны для примера
 }
 
 fn report in Writer {
@@ -1022,7 +1022,7 @@ use log
 @default
 public class ConsoleLogger {
     conforms log::Logger
-    static fn note(code: Int) { … }
+    static fn note(code: Int) { /* тело не важно для примера */ }
 }
 
 // log_file/lib.efen
@@ -1030,7 +1030,7 @@ use log
 
 public class FileLogger {
     conforms log::Logger
-    static fn note(code: Int) { … }
+    static fn note(code: Int) { /* тело не важно для примера */ }
 }
 ```
 
@@ -1115,7 +1115,7 @@ contract ErrorNumber {
 // рантайм
 @default
 @platform(os: "linux", arch: "x86_64")
-implementation ProgramEntry { … }
+implementation ProgramEntry { /* тело не важно для примера */ }
 
 // программа заменяет вход
 config server {

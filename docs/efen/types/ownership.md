@@ -349,12 +349,8 @@ fn resize(memory: own Pointer?, size: Int) -> own Pointer?
     ensures taken(memory) == (result != null)
     ensures throws CopyError ==> taken(memory)
 {
-    guard let moved = allocate(size) else {
-        return null                    // memory остаётся у вызывающего
-    }
-    guard let old = take memory else {
-        return moved
-    }
+    let moved = allocate(size) ?? return null    // memory остаётся у вызывающего
+    let old = take memory ?? return moved
     copy(from: old, to: moved)         // CopyError: old уже забран — строка throws это разрешает
     free(take old)
     return moved

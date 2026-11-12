@@ -616,11 +616,11 @@ type Descriptor: Int32 { value >= 0 }
 
 public class File {
     representation Raw<Descriptor>               // объект — дескриптор
-    …
+    // остальные объявления не важны для примера
 }
 
-@abi(c) class sqlite3 { … }                      // сырое значение — sqlite3*
-@c("pthread_t") @abi(c) class Thread { … }       // сырое значение — pthread_t, пустого значения нет
+@abi(c) class sqlite3 { /* объявления не важны для примера */ }                  // сырое значение — sqlite3*
+@c("pthread_t") @abi(c) class Thread { /* объявления не важны для примера */ }   // сырое значение — pthread_t, пустого значения нет
 ```
 
 В одном классе можно смешивать методы с телом и внешние методы. Наследования и `open fn` у такого класса нет,
@@ -685,10 +685,10 @@ conn.statement(sql)! = take other                // ошибка: запись �
 ```efen
 @constructor fn sqlite3_open(filename: read CString, self?) -> Int32
 
-@constructor fn pthread_create(self, attr: read pthread_attr_t?, …) -> Int32
+@constructor fn pthread_create(self, attr: read pthread_attr_t?, start: own (() own -> Pointer?)?) -> Int32
     ensures written(self) == (result == 0)
 
-@constructor fn posix_spawn(pid: out Pid, …) -> Int32
+@constructor fn posix_spawn(pid: out Pid, path: read CString /* остальные параметры не важны для примера */) -> Int32
     ensures written(pid) == (result == 0)
 
 @constructor fn open_thing(self) -> Int32

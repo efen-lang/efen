@@ -282,7 +282,7 @@ FLOW не видит тела там, где Efen читает только ме
 shared readonly class Text {
     let bytes: immutable Vector<Byte>
     private let hash: Lazy<UInt64>           // shared-тип std: вычисляется один раз
-    fn hashValue -> UInt64 { … }
+    fn hashValue -> UInt64 { /* тело не важно для примера */ }
 }
 ```
 

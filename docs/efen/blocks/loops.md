@@ -130,7 +130,7 @@ for job in let queue = jobs.draining() {
 
   ```efen
   let maybe: Vector<Job>? = load()
-  for job in let queue = maybe?.draining() { … }   // maybe == null: тело не выполняется
+  for job in let queue = maybe?.draining() { run(take job) }   // maybe == null: тело не выполняется
   ```
 
 - `var` вместо `let` — ошибка: `let` запрещает перепривязку, а не изменение, и `cursor.remove` с ним разрешён.
@@ -436,7 +436,9 @@ for x in values {
 После цикла:
 
 ```
-v = v ⊕ ((…(p[0] ⊕ p[1]) ⊕ …) ⊕ p[N-1])
+частичные = p[0]
+для k от 1 до N-1: частичные = частичные ⊕ p[k]
+v = v ⊕ частичные
 ```
 
 - Номер итерации — позиция в последовательности до `where`. Итерация, которую пропускает `where`, которую

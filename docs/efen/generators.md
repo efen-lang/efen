@@ -82,7 +82,7 @@ generator numbers yield Int {
 пишется и тип генератора-результата с ролями:
 
 ```efen
-generator lines(path: String) yield String { … }
+generator lines(path: String) yield String { /* тело не важно для примера */ }
 
 let g = lines("a.txt")                              // тип generator yield String; throws и in выведены из тела
 var source: generator yield String throws IoError in Files
@@ -445,9 +445,9 @@ fn main() {
 цикл `for` шагает генератором сам.
 
 ```efen
-generator upTo(n: Int) yield Int { … }
+generator upTo(n: Int) yield Int { /* тело не важно для примера */ }
 
-fn total<I: ValueIterator<Int>>(it: mut I) -> Int { … }
+fn total<I: ValueIterator<Int>>(it: mut I) -> Int { /* тело не важно для примера */ }
 
 let g = upTo(5)
 let sum = total(it: mut g.iterator())

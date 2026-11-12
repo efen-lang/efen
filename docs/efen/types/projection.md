@@ -184,7 +184,7 @@ projection Contact for User {
     let id
 }
 
-fn rename(contact: mut Contact) { … }
+fn rename(contact: mut Contact) { contact.name = "Ada" }
 
 let orders = &read user.orders
 rename(user)                  // для вызывающего: mut на user.name и user.phone, чтение user.id
