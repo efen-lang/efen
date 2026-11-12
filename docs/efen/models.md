@@ -84,7 +84,7 @@ model { if destructor == SQLITE_STATIC { self.bound[index] = text } else { self.
   ([тип функции](types/function-type.md#ссылка-в-результате-типа-функции)).
 
 ```efen
-class Pool { var items: Vector<own sqlite3_stmt> }
+class Pool { var items: Vector<sqlite3_stmt> }
 
 fn park(pool: mut Pool, s: own sqlite3_stmt)
 model { pool.items.append(take s) }              // заимствования s переходят к pool
@@ -119,7 +119,7 @@ model { pool.items.append(take s) }              // заимствования s
 ```efen
 class Connection {
     var db: own sqlite3
-    var cache: Dictionary<String, own sqlite3_stmt>
+    var cache: Dictionary<String, sqlite3_stmt>
     invariants { forall s in cache.values: s.db == db }
 
     mut fn evict(sql: read String) { cache.remove(sql) }   // удаление сохраняет forall

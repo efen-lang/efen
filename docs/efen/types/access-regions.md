@@ -369,7 +369,7 @@ scale(v, w)           // можно: src может и не лежать в dst
 ```efen
 fn sortBy(items: mut Vector<Int>, less: (a: Int, b: Int) -> Bool)
 
-data.sortBy((a: Int, b: Int) -> Bool {
+sortBy(items: data, less: (a: Int, b: Int) -> Bool {
     data.append(0)       // ошибка: замыкание меняет структуру data, а у less нет пометки mut<items>
     data[0] = 0          // ошибка: захват data пересекается с аргументом items, а у less нет пометки edit<items>
     return a < b
@@ -1255,7 +1255,7 @@ strategy<T> for FixedVector<T> {
 }
 ```
 
-`FixedVector<Int>` освобождает `dispose` в конце области видимости. `FixedVector<own Thread>` контракту
+`FixedVector<Int>` освобождает `dispose` в конце области видимости. `FixedVector<Thread>` контракту
 `ImplicitlyDestroyable` не соответствует, и неявно он не уничтожается: его расходует `drain(each:)`, который отдаёт
 каждый элемент вызывающему и возвращает область
 ([ничего не теряется](../memory/layout/lifetime.md#74-ничего-не-теряется), правила 3, 4 и 6 о значении структуры).

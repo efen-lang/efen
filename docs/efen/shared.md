@@ -313,7 +313,9 @@ shared struct Mutex {
         initial Free
         Held
     }
+}
 
+strategy for Mutex {
     mut fn enter state Lock.Free >> Lock.Held in Suspending(ordered)
     mut fn exit state Lock.Held >> Lock.Free nofail
 
@@ -408,15 +410,17 @@ fn openReserved(pool: mut Pool) -> own Connection
 бы. `openReserved` вызывают только после `Grant.reserved`; функцию
 стоит держать внутри модуля пула.
 
-### Методы общей структуры
+### Функции стратегии общей структуры
 
-`self` метода общей структуры — обычный параметр: к полям метод обращается
+Функции общей структуры объявляет её `strategy`. `self` такой функции — обычный параметр: к полям функция обращается
 через `self as P` по тем же правилам.
 
 ```efen
 shared struct Pool {
     // поля из примера выше
+}
 
+strategy for Pool {
     mut fn resetCount {                      // выведено: self.mutex приходит Free
         with mutex {
             (self as PoolEditor).openCount = 0
@@ -429,7 +433,7 @@ shared struct Pool {
 
 Каждое изменяемое поле общей структуры охраняет ровно одна блокировка либо оно
 принадлежит одному разделу ролей. Поле `shared`-типа
-(мьютекс, атомик) охраняет себя само: к нему обращаются напрямую, его методами,
+(мьютекс, атомик) охраняет себя само: к нему обращаются напрямую, функциями его стратегии,
 а перезаписать его целиком нельзя.
 Охрану компилятор выводит из условий projection: если projection пишет поле
 (`var`), охрана поля — блокировка из её условия. Две projection, которые пишут
@@ -607,7 +611,9 @@ mut fn waitFor(condition: () -> T? under self throws ...Errors) -> T state Lock.
 поэтому замыкание пишется в скобках:
 
 ```efen
-shared struct Condition {
+shared struct Condition {}
+
+strategy for Condition {
     mut fn waitFor(mutex: mut Mutex.Free, condition: () -> T? under mutex throws ...Errors) -> T in Suspending throws ...Errors {
         generic T: NonOptional
         generic ...Errors: Throwable

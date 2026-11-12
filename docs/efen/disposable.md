@@ -221,7 +221,7 @@ print(loadValues().count)      // временный Vector освобождае
 
 ```efen
 fn runTwo(job: edit Job) {
-    var ts: Vector<own Thread> = []                    // вектор владеет областью: неявно он не уничтожается
+    var ts: Vector<Thread> = []                // вектор владеет областью: неявно он не уничтожается
     var t: Thread
     guard Thread.pthread_create(self: t, attr: null, start: () -> Pointer? { job.run(); return null }) == 0 else { return }
     ts.append(take t)
@@ -239,7 +239,7 @@ fn joinLater(t: own Thread) {
 
 class Pool {                                     // класс без счётчика
     conforms Destructible
-    var workers: [own Thread]                    // Pool не ImplicitlyDestroyable
+    var workers: [Thread]                // Pool не ImplicitlyDestroyable
     @destructor(explicit) own fn joinAll {
         workers.drain(each: (t: own Thread) -> Void { (take t).pthread_join() })
                                                  // элементы отданы, область возвращена: владеющее поле массива равно null

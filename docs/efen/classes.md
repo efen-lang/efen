@@ -453,7 +453,7 @@ class Parser {
   ```
 
 - слот поля потока принимает только `ImplicitlyDestroyable`: при завершении потока нет выхода, на котором программа
-  освобождает значение. Запись `thread var x: own T` со значением другого типа, например с `Vector<own Thread>`,
+  освобождает значение. Запись `thread var x: own T` со значением другого типа, например с `Vector<Thread>`,
   служит точкой доверия ([деструкторы](disposable.md#implicitlydestroyable),
   [кому доступно доверие](memory/system.md#кому-доступно-доверие)).
 
@@ -772,7 +772,7 @@ fn countUsers(db: mut sqlite3, query: read String) -> Int throws SqliteError {
 ```efen
 class Connection {
     var db: own sqlite3
-    var cache: Dictionary<String, own sqlite3_stmt>   // область словаря возвращает его dispose вместе с объектом
+    var cache: Dictionary<String, sqlite3_stmt>   // область словаря возвращает его dispose вместе с объектом
     layout { forall s in cache.values: s.db == db }   // cache уничтожается раньше db; db не заменить, пока cache не пуст
 }
 ```
