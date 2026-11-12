@@ -157,7 +157,7 @@ strategy<T> for DoublyList<T> {
         requires index >= 0 && index < count
     {
         let node = nodeAtMut(self, index: index)
-        return replace(node.value, take value)
+        return replace(node.value, value)
     }
 }
 

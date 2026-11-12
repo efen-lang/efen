@@ -349,9 +349,16 @@ fn resize(memory: own Pointer?, size: Int) -> own Pointer?
     ensures taken(memory) == (result != null)
     ensures throws CopyError ==> taken(memory)
 {
+    // allocate, copyBytes и free обозначают функции менеджера памяти
     let moved = allocate(size) ?? return null    // memory остаётся у вызывающего
     let old = take memory ?? return moved
-    copy(from: old, to: moved)         // CopyError: old уже забран — строка throws это разрешает
+    try {
+        copyBytes(from: old, to: moved)          // CopyError: old забран, строка throws это разрешает
+    } catch e: CopyError {
+        free(take old)                           // на выходе через исключение обе памяти возвращены
+        free(take moved)
+        throw e
+    }
     free(take old)
     return moved
 }
@@ -405,7 +412,7 @@ if let bigger = resize(memory: block, size: 4096) {
 class Queue {
     var pending: own Job?
 
-    fn detach -> Job? {
+    mut fn detach -> Job? {
         return take self.pending
     }
 }
@@ -416,8 +423,8 @@ class Queue {
 всегда требует явного `take`:
 
 ```efen
-let pointer = node.pointer       // заимствование
-let pointer = take node.pointer  // передача own
+let borrowed = node.pointer      // заимствование
+let owned = take node.pointer    // передача own
 ```
 
 Compiler-known операция `replace(place, value)` сама является явным действием
@@ -1040,7 +1047,7 @@ fn findOrAdd(list: mut Vector<Shape>, id: Int) -> edit<list> Shape {
 class Scene {
     var shapes: own Vector<Shape>
 
-    fn shape(id: Int) -> edit<self.shapes> Shape? {
+    edit fn shape(id: Int) -> edit<self.shapes> Shape? {
         return find(list: self.shapes, id: id)      // ссылка в self.shapes
     }
 }
@@ -1053,7 +1060,7 @@ class Scene {
 
 ```efen
 var s = scene.shape(id: 1)!
-s = scene.shape(id: 2)!          // s теперь указывает на фигуру 2
+s = scene.shape(id: 2)!          // ссылка s переставлена на фигуру 2
 s = copy scene.shape(id: 3)!     // копия фигуры 3 пишется в фигуру 2
 ```
 
@@ -1225,7 +1232,7 @@ fn head(values: edit Vector<Int>, n: Int) -> edit<values> [Int] {
     return &values[0..<n]
 }
 
-var nums = [1, 2, 3, 4]                 // массив владеет областью: её возвращает dispose в конце области видимости
+var nums: Vector<Int> = [1, 2, 3, 4]    // вектор владеет областью: её возвращает dispose в конце области видимости
 let first = head(values: nums, n: 2)    // смотрит в nums[0] и nums[1]
 first[0] = 10                           // пишет в nums
 ```

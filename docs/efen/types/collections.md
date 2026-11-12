@@ -1010,7 +1010,7 @@ let result = numbers
     .collect()           // Создаёт финальный массив
 
 // Эквивалентно оптимизированному циклу:
-var result = []           // растёт ниже, поэтому это Vector<Int>
+var collected = []        // растёт ниже, поэтому это Vector<Int>
 var taken = 0
 for x in numbers {
     if taken >= 3 {
@@ -1018,7 +1018,7 @@ for x in numbers {
     }
     let mapped = x * 2
     if mapped > 5 {
-        result[] = mapped
+        collected[] = mapped
         taken += 1
     }
 }
@@ -1032,7 +1032,7 @@ for x in numbers {
    let found = largeList.find => item > 100
 
    // Эквивалентный отбор при ленивом filter; find выражает намерение короче
-   let found = largeList.filter => { item > 100 }.first()
+   let sameFound = largeList.filter => { item > 100 }.first()
    ```
 
 2. **Предпочитайте методы итераторов императивным циклам**:
@@ -1041,10 +1041,10 @@ for x in numbers {
    let sum = numbers.filter => { item > 0 }.sum()
 
    // Хуже
-   var sum = 0
+   var total = 0
    for x in numbers {
        if x > 0 {
-           sum += x
+           total += x
        }
    }
    ```
@@ -1084,7 +1084,7 @@ let sorted = numbers.sorted()  // [1, 2, 3, 4, 5]
 
 // sortedBy - сортировка по ключу
 let words = ["zebra", "apple", "banana"]
-let sorted = words.sortedBy => word.length()  // ["apple", "zebra", "banana"]
+let byLength = words.sortedBy => word.length()  // ["apple", "zebra", "banana"]
 
 // reversed - переворот
 let reversed = numbers.reversed()  // [5, 4, 3, 2, 1]
