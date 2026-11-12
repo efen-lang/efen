@@ -336,12 +336,12 @@ open variant Shape {
 
 ```efen
 open variant Shape {
-    conforms ImplicitlyCopyable
+    conforms Copyable              // ImplicitlyCopyable объявляют только модули языка
     dot
 }
 
 variant FileShape: Shape {
-    file { let handle: File }      // ошибка: File не Copyable, а Shape копируется неявно
+    file { let handle: File }      // ошибка: File не Copyable, а Shape объявил Copyable
 }
 ```
 

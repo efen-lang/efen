@@ -1031,37 +1031,39 @@ type AtomicInt: Int {
 `var store.cells[tail ..< head + store.capacity]`. Условия для такой области перечисляет
 [справочник `layout`](memory/layout-reference.md#роли).
 
-Обе роли пишут в поле `slots`, но в разные ячейки: писатель кладёт в свободные,
-читатель забирает из заполненных. Раздел записан в projection диапазоном номеров:
+Ячейки кольца хранит структура `Store` из `layout`: поле `capacity` и область `cells`
+([роли в `layout`](memory/layout-reference.md#роли)). Обе роли пишут в область `store.cells`, но в разные ячейки:
+писатель записывает в свободные, читатель забирает из заполненных. Раздел записан в projection диапазоном номеров:
 
 ```efen
 shared struct Ring {
-    let capacity: Int { value > 0 }
     var head: AtomicInt = AtomicInt(0) { value >= previous(value) }    // сколько забрал читатель
     var tail: AtomicInt = AtomicInt(0) { value >= previous(value) }    // сколько положил писатель
-    var slots: [Job?]
+    var store: Store<Job?>                                             // область ячеек и её ёмкость
 
     invariants {
-        slots.count == capacity
         head <= tail
-        tail <= head + capacity
+        tail <= head + store.capacity
     }
 }
 
 projection Producer for Ring {
-    var tail, slots[tail ..< head + capacity]     // свободные ячейки
-    let head, capacity
+    var tail, store.cells[tail ..< head + store.capacity]     // свободные ячейки
+    let head, store.capacity
 }
 
 projection Consumer for Ring {
-    var head, slots[head ..< tail]                // заполненные ячейки
-    let tail, capacity
+    var head, store.cells[head ..< tail]                      // заполненные ячейки
+    let tail, store.capacity
 }
 ```
 
-В разделе поля номер `i` из диапазона означает ячейку `slots[i % slots.count]`. Для диапазона внутри `0 ..< slots.count` это обычный индекс; здесь
-номера — значения счётчиков, а `slots.count == capacity`. Компилятор доказывает,
-что разделы не пересекаются, из трёх фактов:
+Обе проекции называют область под `var`, поэтому их объявляет код `layout` структуры `Store`. Число ячеек задаёт
+условие поля `cells` в `Store`: `value.count == capacity`.
+
+В разделе поля номер `i` из диапазона означает ячейку `cells[i % cells.count]`. Для диапазона внутри `0 ..< cells.count`
+это обычный индекс; здесь номерами служат значения счётчиков, а `cells.count == capacity`. Компилятор доказывает, что
+разделы не пересекаются, из трёх фактов:
 
 - инвариант `head <= tail <= head + capacity`;
 - каждый счётчик только растёт, и пишет его только своя роль: `tail` есть в
@@ -1093,26 +1095,26 @@ projection Consumer for Ring {
 // возвращает job, если места нет
 fn push(ring: mut Producer, job: own Job) -> own Job? {
     let t = ring.tail.load()             // relaxed: tail пишет только эта роль
-    let h = ring.head.load()             // acquire: от h зависит запись в slots
+    let h = ring.head.load()             // acquire: от h зависит запись в ячейку
 
-    if t - h == ring.capacity {
+    if t - h == ring.store.capacity {
         return take job
     }
 
-    ring.slots[t % ring.capacity] = take job
+    ring.store.cells![t % ring.store.capacity] = take job
     ring.tail.store(t + 1)               // release: tail открывает ячейку читателю
     return null
 }
 
 fn pop(ring: mut Consumer) -> own Job? {
     let h = ring.head.load()             // relaxed: head пишет только эта роль
-    let t = ring.tail.load()             // acquire: от t зависит чтение slots
+    let t = ring.tail.load()             // acquire: от t зависит чтение ячейки
 
     if h == t {
         return null
     }
 
-    let job = take ring.slots[h % ring.capacity]
+    let job = take ring.store.cells![h % ring.store.capacity]
     ring.head.store(h + 1)               // release: head возвращает ячейку писателю
     return take job
 }
@@ -1120,9 +1122,9 @@ fn pop(ring: mut Consumer) -> own Job? {
 
 Метод получает роль с правом `mut`: запись и `take` целого `Job?` в ячейку — изменение
 структуры, а `edit` её не позволяет (см. [Области доступа](types/access-regions.md)).
-На поле с разделом это право действует только по ячейкам своего раздела:
-само поле нельзя присвоить целиком, перевыделить или переставить (`append`,
-`removeAll`, `swap`, `sort`), пока роли живы.
+На области с разделом это право действует только по ячейкам своего раздела. Пока существует хотя бы одна роль,
+область нельзя заменить, а остальные поля `store` любой код только читает
+([роли в `layout`](memory/layout-reference.md#роли), правило 5).
 
 ### Единственность роли
 
@@ -1132,7 +1134,7 @@ fn pop(ring: mut Consumer) -> own Job? {
 роль в двух корутинах — две записи в один слот.
 
 ```efen
-var ring = Ring(capacity: 64)            // конструктор заполняет slots значениями null
+var ring = Ring(store: newStore(capacity: 64))   // newStore берёт область и записывает null в каждую ячейку
 let writer = ring as Producer
 let reader = ring as Consumer            // можно: разделы не пересекаются
 
@@ -1155,7 +1157,12 @@ with makeTaskGroup() {
 }
 
 print(ring.head.load())                  // можно: роли кончились
+ring.store.release()                     // область возвращает явный код: деструктора у структуры нет
 ```
+
+Конструктора у структуры нет, поэтому кольцо создаёт явный код. `newStore` служит функцией кода `layout` структуры
+`Store`: она берёт область на `capacity` ячеек и записывает в каждую `null`, после чего условие поля `cells` верно.
+Вызов `Ring(…)` только записывает поля.
 
 Второй `ring as Producer` при живом `writer` — ошибка; в двух корутинах — тоже, даже
 если в каждой корутине вид один. Роль живёт до последнего использования, как заём в
@@ -1210,7 +1217,7 @@ FLOW; потом кольцо снова целиком у владельца.
 | пометка функции C как неждущей, пометка доверенного состояния | [эффекты](#эффекты-ожидания), [доступ](#доступ-через-projection) |
 | `requires pool.mutex is Mutex.Free` ([условия функций](conditions.md)) | [мьютекс](#мьютекс-и-with) |
 | блок `invariants { }` у структуры | [инвариант](#инвариант) |
-| `slots[a ..< b]` в поле projection | [роли](#роли) |
+| `store.cells[a ..< b]` в поле projection | [роли](#роли) |
 | путь к области в поле projection: `store.cells[a ..< b]` | [роли](#роли) |
 | ожидание `waitFor` с замыканием «результат или `null`», `notifyOne` после `}`, очередь `Condition` с мьютексом аргументом | [ожидание](#ожидание-условия) |
 | параметр-тело блока `() -> T? under self`, контракт `NonOptional` для `T` у `waitFor` | [ожидание](#ожидание-условия) |

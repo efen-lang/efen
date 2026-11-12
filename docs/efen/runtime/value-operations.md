@@ -28,7 +28,8 @@ contract ImplicitlyCopyable : Copyable {
 ```
 
 `ImplicitlyCopyable` уточняет `Copyable`: тип, соответствующий первому,
-обязан соответствовать и второму.
+обязан соответствовать и второму. Строку `conforms ImplicitlyCopyable` пишут только модули языка: в
+пользовательском типе она вызывает ошибку, и его значение копирует только явный `copy`.
 
 `Movable` разрешает передать существующее значение через `take`. `Copyable`
 разрешает создать независимое значение оператором `copy`. Ни один из этих
@@ -100,8 +101,8 @@ let wrong = clone tree     // ошибка: у `tree` нет счётчика с
 псевдоним ([связывание существующего значения](../types/ownership.md#связывание-существующего-значения)).
 
 ```efen
-fn area(p: Point) -> Int { … }
-area(point)          // Point — ImplicitlyCopyable: передаётся копией
+fn square(side: Int) -> Int { … }
+square(side)         // Int соответствует ImplicitlyCopyable: передаётся копией
 evaluate(expression) // indirect variant: передаётся по ссылке
 ```
 
