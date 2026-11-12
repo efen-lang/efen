@@ -189,7 +189,7 @@ layout {
    проверяется при выполнении. У области с разным шагом индекс только доказывается (раздел 2.6).
 5. Строки `set`, `area` и `one` принято писать в начале. Порядок объявлений на разрешение имён не влияет: у одного
    `layout` одна общая область видимости.
-6. Строка множества может нести условие в фигурных скобках, как поле: `set area Boxes: Box { … }`. Условие верно
+6. Строка множества может нести условие в фигурных скобках, как поле: `set area Boxes: Box { value.kind == STACKED ==> value is Stack }`. Условие верно
    для каждого элемента множества, имя `value` в нём называет элемент (раздел 5.3).
 7. Слоты одной области имеют один размер, пока структура слота не задаёт свой размер сама. Область, структура слота
    которой задаёт размер собственным инвариантом, называется областью с разным шагом. Её правила стоят в разделе
@@ -346,9 +346,9 @@ private layout<T: Movable> {
 
 | Объявление | Поля пишут | Остальной код |
 |---|---|---|
-| `private layout { … }` | функции этого модуля | читает поля, которые показывает ему их видимость, и вызывает функции |
-| `layout { … }` (по умолчанию `internal`) | функции пакета | читает поля, которые показывает ему их видимость, и вызывает функции |
-| `open layout Имя { … }` | функции пакета; поля `protected` пишет ещё и код расширений (раздел 10.4) | читает поля без `protected`, которые показывает ему их видимость, и вызывает функции без `protected` |
+| `private layout` | функции этого модуля | читает поля, которые показывает ему их видимость, и вызывает функции |
+| `layout` без модификатора (по умолчанию `internal`) | функции пакета | читает поля, которые показывает ему их видимость, и вызывает функции |
+| `open layout Lists` (с именем) | функции пакета; поля `protected` пишет ещё и код расширений (раздел 10.4) | читает поля без `protected`, которые показывает ему их видимость, и вызывает функции без `protected` |
 
 Из правила следуют пять определений:
 
@@ -377,7 +377,9 @@ private fn setPrev(a: Items.Item, b: edit Items.Item) {      // вспомога
 }
 
 strategy for List {
-    public mut fn removeFirst { … }                           // публичная функция структуры
+    public mut fn removeFirst {                               // публичная функция структуры
+        // тело не важно для примера: снимает первый узел и освобождает его
+    }
 }
 ```
 
@@ -591,7 +593,7 @@ fn destroyBlock(pool: mut Pool, node: anchor Blocks.Item) {
 }
 
 fn pop(list: mut List) -> anchor Items.Item? {
-    guard let first = tie list.head else { return null }
+    let first = tie list.head ?? return null
     list.head = tie first.next               // first.next теперь равен null
     if let h = list.head { h.prev = null } else { list.tail = null }
     list.length -= 1                         // инварианты List восстановлены: функция публичная
@@ -758,7 +760,7 @@ fn pop(list: mut List) -> anchor Items.Item? {
 
 ```efen
 public fn acquire(pool: mut Pool) -> own Block.data.Item? {
-    guard let block = unlinkFree(pool) else { return null }   // anchor Blocks.Item: первый участок из Pool.free
+    let block = unlinkFree(pool) ?? return null   // anchor Blocks.Item: первый участок из Pool.free
     let n = block.data.count
     let data = lend block.data[0 ..< n]      // выдан диапазон: все байты области block.data
     block.used += n
@@ -775,7 +777,13 @@ public fn release(pool: mut Pool, data: own Block.data.Item) {
     linkFree(pool, tie cut)                  // used == 0: участок привязан к Pool.free
 }
 
-public fn destroy(pool: own Pool) requires pool.busy == null { … }   // выданных слотов нет; освобождает участки
+public fn destroy(pool: own Pool) requires pool.busy == null {       // выданных слотов нет: все участки в Pool.free
+    while let block = tie pool.free {
+        pool.free = tie block.next
+        if let next = pool.free { next.prev = null }                 // указатель на block переписан до as own
+        mm.free(block as own Pointer)
+    }
+}
 ```
 
 `acquire` выдаёт все байты области одним диапазоном (раздел 6.6, правило 6), и `used` считает выданные байты.
@@ -1040,7 +1048,7 @@ let cursor = ListCursor<Src: list>(list: list)
    ([два доступа сразу](memory-rules.md#два-доступа-сразу)).
 4. Курсор по вершинам графа из примера C пишется так же. Структура
    `struct VertexCursor<Src: Origin> { var current: read<Src> Vertices.Item? }` создаётся как
-   `VertexCursor<Src: graph>`, и источником её указателя служит граф. Вызов `removeVertex(graph, …)` меняет для
+   `VertexCursor<Src: graph>`, и источником её указателя служит граф. Вызов `removeVertex(graph, v)` меняет для
    такого курсора структуру источника.
 
 Указатели, которые внешний код собрал при обходе, тоже записываются заимствованием. Путь по графу из
@@ -1048,7 +1056,9 @@ let cursor = ListCursor<Src: list>(list: list)
 
 ```efen
 fn findPath(g: read Graph, from: read<g> Vertices.Item, to: read<g> Vertices.Item)
-    -> Vector<read<g> Vertices.Item> { … }                // обход в ширину; источник указателей: g
+    -> Vector<read<g> Vertices.Item> {
+    // тело не важно для примера: обход в ширину; источник указателей в результате: g
+}
 
 var path = findPath(graph, from: a, to: b)                // a и b: вершины graph; вектор заимствует graph
 print(path[0].label)
@@ -1107,7 +1117,7 @@ let block = (address(m) & ~(BLOCK - 1)) as read<pool> Blocks.Item    // элем
 - Хранимые указатели на узлы без заимствования всей коллекции (таблица LRU указывает на узлы его списка, индекс
   указывает на строки таблицы) существуют только внутри одной публичной структуры. Обе части объявляет один
   `layout` или `open layout` вместе со своим расширением (раздел 10), и одна структура хранит обе значениями в
-  своих полях: `struct Lru { var list: List; var table: … }`. Класс с полями `list: List` и
+  своих полях: `struct Lru { var list: List; var table: own Buckets.Area? }`. Класс с полями `list: List` и
   `table: Map<Key, Items.Item>` хранит две публичные структуры, и запись указателя в таблицу вызывает ошибку.
   Обычная структура вне `layout` таких указателей не хранит, и два независимых `layout` взаимных указателей не
   описывают.
@@ -1361,7 +1371,7 @@ set area Boxes: Box {
 
 ```efen
 fn rotateRootLeft(tree: edit Tree) {          // edit: все узлы остались в дереве, ни один не перенесён
-    guard let top = tie tree.root else { return }
+    let top = tie tree.root ?? return
     guard let pivot = tie top.right else { tree.root = tie top; return }
     top.right = tie pivot.left
     if let l = top.right { l.parent = top }
@@ -1400,14 +1410,16 @@ fn rotateRootLeft(tree: edit Tree) {          // edit: все узлы оста�
 
 1. Приведение сохраняет право указателя: из `own Pointer` получается владеющий указатель на элемент. Приведение
    `Pointer` к виду поглощает `Pointer`.
-2. Компилятор доказывает, что размер памяти не меньше вида и выравнивание не меньше `@align` вида.
-3. Приведение с аргументами (`as Item(value: 0)`) записывает названные поля, как вызов `Item(…)`. Поле со
-   значением по умолчанию (`var next: … = null`) получает его.
+2. Компилятор доказывает, что размер памяти не меньше вида и выравнивание не меньше `@align` вида. Размер памяти
+   от менеджера памяти он знает из условия `ensures result.size == bytes` у `allocate`
+   ([аллокатор](allocator.md)), поэтому размер в вызове пишется явно: `mm.allocate(bytes: sizeOf(Item)) as Item`.
+3. Приведение с аргументами (`as Item(value: 0)`) записывает названные поля, как вызов `Item(value: 0)`. Поле со
+   значением по умолчанию (`var next: anchor Items.Item? = null`) получает его.
 4. Поле не инициализировано, если оно не имеет значения по умолчанию, не записано в приведении и не записано
    кодом после приведения. «Не инициализировано» и `null` различаются: `null` считается значением.
 5. Инициализатор `_` пишется только явно, у имени поля в строке приведения. На поле-числе (целом или с плавающей
-   точкой) он оставляет прежние байты и при выполнении ничего не делает. На опциональном поле (`S.Item?`,
-   `own …?`, `anchor …?`) он записывает `null`.
+   точкой) он оставляет прежние байты и при выполнении ничего не делает. На опциональном поле (`Items.Item?`,
+   `own Items.Item?`, `anchor Items.Item?`) он записывает `null`.
 6. Запись во владеющее поле требует доказательства, что поле равно `null`.
 7. Элемент, обязательные указатели которого связывают его с другим новым элементом (пара встречных полурёбер),
    вводится одной операцией вместе с ним.
@@ -1422,11 +1434,11 @@ fn rotateRootLeft(tree: edit Tree) {          // edit: все узлы оста�
 
 ```efen
 fn newNode -> own Items.Item {
-    return mm.allocate(…) as Item           // own Pointer стал own Items.Item
+    return mm.allocate(bytes: sizeOf(Item)) as Item     // own Pointer стал own Items.Item
 }
 
 fn addVertex(graph: edit Graph, label: Int) -> Vertices.Item {
-    let v = mm.allocate(…) as Vertex(label: label, neighbors: Vector<Vertices.Item>())
+    let v = mm.allocate(bytes: sizeOf(Vertex)) as Vertex(label: label, neighbors: Vector<Vertices.Item>())
     v.nextAll = tie graph.first             // поле пусто по умолчанию; прежняя первая вершина теперь под v
     graph.first = tie v                     // вершина принадлежит графу
     return graph.first!                     // указатель без владения, источник: graph
@@ -1695,7 +1707,7 @@ fn grow(table: mut Table) {
 
 Правила инициализации полей нового вида те же, что при создании (раздел 6.2). После смены вида ни одно поле не
 сохраняет значение неявно, в том числе поля общего первого поля видов (`Header`): каждое поле нового вида записано
-в приведении, кодом после него или инициализатором `_`. Аргумент `slots: Slot(size: …)` задаёт раскладку области:
+в приведении, кодом после него или инициализатором `_`. Аргумент `slots: Slot(size: SIZES[index])` задаёт раскладку области:
 особый параметр `size` называет полный размер одного слота, а число слотов компилятор выводит из размера памяти
 ([сырая память](pointer.md#поле-area-и-параметр-size)). У области с разным шагом параметра `size` нет: размер слота
 задаёт его собственный инвариант (раздел 2.6).
@@ -2040,7 +2052,7 @@ layout {
 }
 
 fn register(id: Int) {
-    let name = mm.allocate(…) as Name(id: id)
+    let name = mm.allocate(bytes: sizeOf(Name)) as Name(id: id)
     name.next = tie Registry.first
     Registry.first = tie name                // запись через one: эффект in edit Registry
 }
@@ -2260,7 +2272,7 @@ Edge        внутренняя в Graph; нечистая: указывает 
    доверия (раздел 1). Объявление функции C без тела, во время вызова которой C может вызвать такую функцию, пишет
    её эффект, например `in mut Registry` (раздел 8.3). Сам компилятор этот эффект не добавляет: верность
    объявления остаётся точкой доверия. Функция, которую C вызывает из нескольких потоков, объявляет это словом
-   `shared` перед атрибутом: `shared @abi(c) fn onEvent(…) { … }`. Её тело проверяется как код многопоточного
+   `shared` перед атрибутом: `shared @abi(c) fn onEvent`. Её тело проверяется как код многопоточного
    контекста и выполняется одновременно со всей программой и с самим собой. Поэтому эффект `in edit X` или
    `in mut X` у такой функции вызывает ошибку, а эффект `in read X` допустим, только если ни один код программы не
    пишет `X` (раздел 9.5, правило 1). Объявление `shared @abi(c)` тоже служит точкой доверия: аргументы функции
@@ -2566,9 +2578,15 @@ open layout Lists<T: Movable> {
 }
 
 strategy<T> for DoublyList<T> {
-    public read fn first -> read T? { … }                // читает protected-поле value первого узла
-    public edit fn pushFirst(value: own T) { … }
-    public mut fn removeLast -> own T? { … }             // сводка: уничтожает узел tail
+    public read fn first -> read T? {
+        // тело не важно для примера: читает protected-поле value первого узла
+    }
+    public edit fn pushFirst(value: own T) {
+        // тело не важно для примера: новый узел записан в head
+    }
+    public mut fn removeLast -> own T? {
+        // тело не важно для примера; сводка: уничтожает узел tail
+    }
     public own fn release { … }
 }
 
@@ -2585,27 +2603,35 @@ layout<K: Hashable, V: Movable>: lists::Lists<Entry<K, V>> {     // расшир
         DoublyList<Entry>                                // значение базовой структуры первым полем
         private var buckets: Int = 0 { value >= 0 }
         private var table: own Buckets.Area? = null { value == null || value.count == buckets }
-        invariants { … }                                 // на узел указывает только корзина его ключа
+        invariants {                                     // на узел указывает только корзина его ключа
+            forall i in 0 ..< buckets: table![i].node == null || hash(table![i].node!.value.key) % buckets == i
+        }
     }
 }
 
 strategy<K, V> for Lru<K, V> {
     public edit fn touch(key: read K) {
-        guard let n = find(key) else { return }
+        let n = find(key) ?? return
         moveToFront(n)                                   // узел n переставлен в начало списка
     }
 
     public override mut fn removeLast -> own Entry<K, V>? {
-        guard let last = tail else { return null }
+        let last = tail ?? return null
         clearBucket(last.value.key)                      // указатель на узел убран из таблицы до вызова
         return self.DoublyList.removeLast()              // функция базового: уничтожает узел tail
     }
 
     public override own fn release { … }                 // освобождает таблицу, затем self.DoublyList.release()
 
-    private read fn find(key: read K) -> read<self> Lists<Entry<K, V>>.Nodes.Item? { … }
-    private edit fn moveToFront(node: read<self> Lists<Entry<K, V>>.Nodes.Item) { … }   // пишет protected-поля
-    private edit fn clearBucket(key: read K) { … }
+    private read fn find(key: read K) -> read<self> Lists<Entry<K, V>>.Nodes.Item? {
+        // тело не важно для примера: читает корзину ключа
+    }
+    private edit fn moveToFront(node: read<self> Lists<Entry<K, V>>.Nodes.Item) {
+        // тело не важно для примера: пишет protected-поля next, prev, head и tail
+    }
+    private edit fn clearBucket(key: read K) {
+        // тело не важно для примера: записывает null в корзину ключа
+    }
 }
 ```
 
@@ -2616,10 +2642,10 @@ strategy<K, V> for Lru<K, V> {
 
 Дополнительные правила:
 
-1. Имя пишется после слова `layout`, параметры после имени: `open layout Lists<T: Movable> { … }`. Имя есть только
+1. Имя пишется после слова `layout`, параметры после имени: `open layout Lists<T: Movable>`. Имя есть только
    у `open layout`. Расширение без `open` имени не имеет и пишет параметры сразу после слова `layout`:
-   `layout<K, V>: lists::Lists<Entry<K, V>> { … }`. Расширение со словом `open` получает имя, как любой
-   `open layout`: `open layout Cache<K, V>: lists::Lists<Entry<K, V>> { … }`.
+   `layout<K, V>: lists::Lists<Entry<K, V>>`. Расширение со словом `open` получает имя, как любой
+   `open layout`: `open layout Cache<K, V>: lists::Lists<Entry<K, V>>`.
 2. Имя `layout` типом не служит: экземпляров у `layout` по-прежнему нет (раздел 2.3).
 3. Аргументом базового `layout` может быть структура самого расширения: `Entry<K, V>`. Так расширение передаёт свои
    данные в каждый элемент базового (раздел 10.2, правило 5).
@@ -2775,8 +2801,12 @@ public override mut fn removeLast -> own Entry<K, V>? {
 
 ```efen
 strategy<T> for DoublyList<T> {
-    protected mut fn cut(node: read<self> Lists<T>.Nodes.Item) -> anchor Lists<T>.Nodes.Item { … }
-    protected edit fn linkFirst(node: anchor Lists<T>.Nodes.Item) requires node.next == null { … }
+    protected mut fn cut(node: read<self> Lists<T>.Nodes.Item) -> anchor Lists<T>.Nodes.Item {
+        // тело не важно для примера: вырезает узел из цепочки и отдаёт его якорь
+    }
+    protected edit fn linkFirst(node: anchor Lists<T>.Nodes.Item) requires node.next == null {
+        // тело не важно для примера: записывает узел в head
+    }
 }
 ```
 
