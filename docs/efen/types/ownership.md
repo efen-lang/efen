@@ -234,8 +234,7 @@ print(t)
 var hosts = Vector<String>()
 hosts.append("primary")
 let first = &hosts
-let table: immutable Vector<String> = take hosts    // заморозка
-defer table.release()                               // роль уничтожения: единственный вызов own у замороженного
+let table: immutable Vector<String> = take hosts    // заморозка; память освободит dispose в конце области
 first.append("x")                                   // ошибка: ссылка first кончилась при заморозке
 table.append("y")                                   // ошибка: table — immutable Vector<String>
 ```
@@ -255,9 +254,8 @@ table.append("y")                                   // ошибка: table — i
   уничтожается.
 - **Уничтожение.** Владелец `own immutable T` уничтожает значение и вызывает роль деструктора, в том числе
   `explicit`, когда FLOW доказал, что заимствований нет. Это единственный разрешённый `own` метод, и он последний.
-  У структуры из `layout` ролью уничтожения служит её освобождающая функция (`release`): владелец замороженной
-  коллекции вызывает её, и `defer table.release()` допустим
-  ([ничего не теряется](../memory/layout-reference.md#74-ничего-не-теряется)).
+  Замороженную структуру из `layout` освобождает её `dispose`, и вызывает его компилятор, как у незамороженного
+  значения ([освобождение структуры](../disposable.md#освобождение-структуры-disposable)).
 - **Параметр.** `own immutable T` принимает замороженное значение во владение. Одолженный параметр пишут `T`: он и
   так только читается и принимает `immutable T`; запись `immutable T` у одолженного параметра — ошибка стиля.
 
@@ -491,8 +489,9 @@ print(first)                // ошибка: слот больше не прин
 освобождения выбирает компилятор.
 
 Исключение составляет коллекция из `layout`, которая заимствует через тип элемента: `Vector<read<g> Vertices.Item>`,
-`Vector<ListCursor<Src: l>>`. Она владеет своей областью и неявно не уничтожается. После события коллекция
-существует, вызовы `count` и `release` допустимы, а ошибку вызывает чтение её слотов
+`Vector<ListCursor<Src: l>>`. Она владеет своей областью и перед событием не уничтожается: её `dispose` вызывается
+в конце области видимости. После события коллекция существует, вызов `count` допустим, а ошибку вызывает чтение её
+слотов
 ([указатель вне layout](../memory/layout-reference.md#указатели-вне-layout)).
 
 `take` в уже существующий слот (`y = take x`) переносит значение и убивает все
@@ -538,11 +537,8 @@ print(first)                // ошибка: слот больше не прин
 
 ```efen
 class Index {
-    conforms Destructible
     var data: Vector<Item>
     var memo: Map<Key, Item>      // хранит свои Item: копии или переданные через take
-
-    @destructor fn deinit { data.release(); memo.release() }
 }
 
 let first = &index.data[0]
@@ -972,9 +968,7 @@ print(cell)                                 // ошибка: cell мог уме�
 
 ```efen
 class Doc {
-    conforms Destructible
     var title: Vector<Pair>
-    @destructor fn deinit { title.release() }
 }
 
 fn titleOf(doc: Doc) -> read<&doc.title> Vector<Pair> {    // ровно слот doc.title
@@ -1045,10 +1039,7 @@ fn findOrAdd(list: mut Vector<Shape>, id: Int) -> edit<list> Shape {
 
 ```efen
 class Scene {
-    conforms Destructible
     var shapes: own Vector<Shape>
-
-    @destructor fn deinit { shapes.release() }
 
     fn shape(id: Int) -> edit<self.shapes> Shape? {
         return find(list: self.shapes, id: id)      // ссылка в self.shapes
@@ -1146,11 +1137,8 @@ next = script.count - (rest?.count ?? 0)    // rest — ссылка на script
 
 ```efen
 class Node {
-    conforms Destructible
     var children: [Node]
     var current: read<self.children> Node?
-
-    @destructor fn deinit { children.release() }
 
     edit fn pick(i: Int) {
         current = children[i]          // значение лежит внутри self.children
@@ -1211,11 +1199,8 @@ prune(node.children)                   // ошибка здесь, если node
 
 ```efen
 class Node2 {
-    conforms Destructible
     var children: [Node2]
     var current: read<self.children> Node2?
-
-    @destructor fn deinit { children.release() }
 
     edit fn reset(other: read Node2) {
         current = other                // ошибка: other не внутри self.children
@@ -1241,8 +1226,7 @@ fn head(values: edit Vector<Int>, n: Int) -> edit<values> [Int] {
     return &values[0..<n]
 }
 
-var nums = [1, 2, 3, 4]
-defer nums.release()                    // массив владеет областью: её возвращает явный код
+var nums = [1, 2, 3, 4]                 // массив владеет областью: её возвращает dispose в конце области видимости
 let first = head(values: nums, n: 2)    // смотрит в nums[0] и nums[1]
 first[0] = 10                           // пишет в nums
 ```

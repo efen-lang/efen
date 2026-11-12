@@ -771,12 +771,9 @@ fn countUsers(db: mut sqlite3, query: read String) -> Int throws SqliteError {
 
 ```efen
 class Connection {
-    conforms Destructible
     var db: own sqlite3
-    var cache: Dictionary<String, own sqlite3_stmt>
+    var cache: Dictionary<String, own sqlite3_stmt>   // область словаря возвращает его dispose вместе с объектом
     layout { forall s in cache.values: s.db == db }   // cache уничтожается раньше db; db не заменить, пока cache не пуст
-
-    @destructor fn deinit { cache.release() }         // область словаря возвращает явный код
 }
 ```
 

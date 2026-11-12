@@ -321,11 +321,8 @@ generator linked(items: edit [Item], names: read [String]) yield edit<items> Ite
 
 ```efen
 class Index {
-    conforms Destructible
     var data: Vector<Item>
     var memo: Map<Key, Item>
-
-    @destructor fn deinit { data.release(); memo.release() }
 
     edit generator active yield edit<self.data> Item {
         for i in 0 ..< data.count {
@@ -426,8 +423,7 @@ generator walk(items: [Int]) yield Int {
 
 fn consume(items: own [Int]) {
     print(items.count)
-    items.release()                  // область массива возвращает явный код
-}
+}                                    // конец области: область массива возвращает его dispose
 
 fn main() {
     var items = [5, 6]
@@ -488,7 +484,9 @@ let sum = total(it: mut g.iterator())
 - `own` — перемещается в кадр;
 - `read` типа `Copyable` — одалживается, как другие типы; копию даёт `copy` в аргументе;
 - `read` или `edit` другого типа: временный аргумент перемещается в кадр; именованное значение одалживается на время
-  жизни генератора;
+  жизни генератора. Кадр владеет перемещённым значением и уничтожает его вместе с собой: массив из
+  `walk(items: [5, 6])` освобождает его `dispose` при уничтожении генератора
+  ([освобождение структуры](disposable.md#освобождение-структуры-disposable));
 - генератор с таким заёмом покидает функцию только результатом, тип которого называет источник; сохранить его в
   поле или в переменной, которая живёт дольше источника, нельзя.
 

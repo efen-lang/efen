@@ -133,7 +133,7 @@ mut<self.cache> fn pick -> edit<self.items> Item?              // ошибка: 
 
 ```efen
 class Index {
-    conforms Storage, Destructible
+    conforms Storage
     part Storage.items = data
     part Storage.cache = memo, stats
 
@@ -145,8 +145,6 @@ class Index {
     fn first -> read<self.data> Item? { return &data[0] }
     mut fn clearCache { memo.clear() }               // путь не написан: тело сверяется с привязкой
     mut fn compact { log.clear(); data.shrink() }
-
-    @destructor fn deinit { data.release(); memo.release(); log.release() }
 }
 ```
 
@@ -369,7 +367,7 @@ class Guarded<S: Storage> {
 
 ```efen
 open class Catalog {
-    conforms OpenClass, Storage, Destructible
+    conforms OpenClass, Storage
     part Storage.items = data
     part Storage.cache = memo
 
@@ -379,8 +377,6 @@ open class Catalog {
     fn first -> read<self.data> Item? { return &data[0] }
     open mut fn clearCache { memo.clear() }
     mut fn compact { data.shrink() }
-
-    @destructor fn deinit { data.release(); memo.release() }
 }
 
 class Fancy: Catalog {
@@ -427,17 +423,15 @@ fn sweep<S: Shelf>(s: mut S) {
 }
 
 class Rack {
-    conforms Shelf<Cursor: _>, Destructible
+    conforms Shelf<Cursor: _>
     part Shelf.items = data
     part Shelf.cache = memo
 
     var data: Vector<Item>
     var memo: Map<Key, Item>
 
-    fn each -> ArrayIterator<read Item, Src: self.data> { … }
+    fn each -> ArrayIterator<read Item, Src: self.data> { /* тело не важно для примера */ }
     mut fn clearCache { memo.clear() }
-
-    @destructor fn deinit { data.release(); memo.release() }
 }
 ```
 

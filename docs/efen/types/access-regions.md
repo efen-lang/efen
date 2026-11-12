@@ -452,7 +452,8 @@ print(r)
 ### Временное значение без имени
 
 **Правило.** Временное значение без имени принадлежит инструкции, в которой создано, и
-уничтожается в её конце. Уточнения для составных инструкций:
+уничтожается в её конце. Временное значение структуры из `layout` в этой точке освобождает её `dispose`
+([освобождение структуры](../disposable.md#освобождение-структуры-disposable)). Уточнения для составных инструкций:
 
 - источник обхода `for` живёт до конца цикла;
 - временное значение в условии `if`, `while` и в выражении `match` уничтожается сразу после проверки, если
@@ -894,22 +895,17 @@ strategy<T, Src: Origin> for DrainCursor<T, Src> {
 
 ```efen
 class Log {
-    conforms Destructible
     var handlers: Vector<() -> Void>                          // колбэки ничего не заимствуют
-    @destructor fn deinit { handlers.release() }
 }
-struct Bus<Mem: Origin> {                                     // функции on, fire и release даёт стратегия
+struct Bus<Mem: Origin> {                                     // функции on и fire даёт стратегия
     var handlers: Vector<mut<Mem> () mut -> Void>             // колбэки могут менять память Mem
 }
 
 fn main {
     var items: Vector<Item> = [Item(hp: 1), Item(hp: 2)]
-    defer items.release()
     var orders: Vector<Order> = []
-    defer orders.release()
     var log = Log()
     var bus = Bus<items>()                                    // структура: источник на локальной переменной
-    defer bus.release()
 
     let total = items.count
     log.on(() -> Void {
