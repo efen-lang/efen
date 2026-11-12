@@ -56,16 +56,39 @@ contract Allocator<Type>
   блока линейной памяти, поэтому `tryExtend` чаще возвращает `false`, а коллекции с резервом
   выделяют всю ёмкость сразу или объявляют предел.
 
+Пример реализует все семь методов контракта: каждый передаёт операцию менеджеру памяти `memory::Manager`, у функций
+которого те же сигнатуры и условия.
+
 ```efen
 strategy MyAllocator<Type> {
     conforms Allocator<Type>
 
-    fn allocate(bytes: Int) -> own Pointer {
-        return memory::Manager.allocate(bytes)
+    fn allocate(bytes: Int) -> own Pointer throws AllocationError {
+        return memory::Manager.allocate(bytes: bytes)
+    }
+
+    fn tryAllocate(bytes: Int) -> own Pointer? {
+        return memory::Manager.tryAllocate(bytes: bytes)
+    }
+
+    fn extend(pointer: mut Pointer, bytes: Int) throws AllocationError {
+        memory::Manager.extend(pointer: pointer, bytes: bytes)
+    }
+
+    fn tryExtend(pointer: mut Pointer, bytes: Int) -> Bool {
+        return memory::Manager.tryExtend(pointer: pointer, bytes: bytes)
+    }
+
+    fn reallocate(pointer: mut Pointer, bytes: Int) throws AllocationError {
+        memory::Manager.reallocate(pointer: pointer, bytes: bytes)
+    }
+
+    fn tryReallocate(pointer: mut Pointer, bytes: Int) -> Bool {
+        return memory::Manager.tryReallocate(pointer: pointer, bytes: bytes)
     }
 
     fn deallocate(pointer: own Pointer) {
-        memory::Manager.deallocate(take pointer)
+        memory::Manager.deallocate(pointer: take pointer)
     }
 }
 
