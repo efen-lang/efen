@@ -569,7 +569,7 @@ while j < count {
 [Области доступа](../types/access-regions.md#итератор-как-структура)):
 
 ```efen
-var numbers = [1, 2, 3, 4, 5]
+var numbers: Vector<Int> = [1, 2, 3, 4, 5]
 
 for number in edit numbers {
     number = number * 2          // допустимо: меняется значение элемента

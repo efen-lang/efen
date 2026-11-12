@@ -17,7 +17,7 @@ projection, например «мьютекс захвачен этой кору
 ```efen
 shared struct Pool {
     var mutex: Mutex
-    var idle: [Connection]
+    var idle: Vector<Connection>
     var openCount: Int
     let maxConnections: Int
 }
@@ -891,7 +891,7 @@ fn replace(cache: mut Cache, key: String, fresh: own Connection)
 ```efen
 shared struct Pool {
     var mutex: Mutex
-    var idle: [Connection]
+    var idle: Vector<Connection>
     var busy: Int
     var openCount: Int
     let maxConnections: Int

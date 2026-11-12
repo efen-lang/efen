@@ -147,9 +147,10 @@ pairs.sorted((left, right) => left.key < right.key) // тип без имён п
 
 Замыкание в качестве аргумента метода:
 ```efen
-object.method((param1: Type1, param2: Type2) -> Type {
-    тело_функции
-}, другие_аргументы)
+// замыкание с телом-блоком стоит первым аргументом, за ним идут остальные аргументы
+timer.schedule((tick: Int, total: Int) -> Bool {
+    return tick < total
+}, 10)
 ```
 
 ## Примеры использования
@@ -553,7 +554,7 @@ error[flow.structure]: `items.append` may move the elements of `items`, and `cur
 **Изменение структуры вызываемой функцией, пока замыкание живо:**
 
 ```efen
-fn scanAndGrow(items: mut [Task], visit: (Int) -> Void) {
+fn scanAndGrow(items: mut Vector<Task>, visit: (Int) -> Void) {
     items.append(Task())
     visit(0)
 }

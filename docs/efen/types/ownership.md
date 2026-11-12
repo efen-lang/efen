@@ -1143,7 +1143,7 @@ next = script.count - (rest?.count ?? 0)    // rest — ссылка на script
 
 ```efen
 class Node {
-    var children: [Node]
+    var children: Vector<Node>
     var current: read<self.children> Node?
 
     edit fn pick(i: Int) {
@@ -1151,7 +1151,7 @@ class Node {
     }
 
     mut fn removeFirst {
-        children.removeAt(at: 0)       // источник изменился: связь кончилась
+        children.remove(at: 0)         // источник изменился: связь кончилась
         current = null                 // поле записано заново до выхода
     }
 }
@@ -1197,7 +1197,7 @@ class Node {
 9. Поле `read<self> T?` в типе, который привязывает части, — ошибка: такое поле смотрит во все части сразу.
 
 ```efen
-fn prune(kids: mut [Node]) { kids.removeAt(at: 0) }
+fn prune(kids: mut Vector<Node>) { kids.remove(at: 0) }
 
 prune(node.children)                   // ошибка здесь, если node.current этой функции не видно:
                                        // источник изменён, а поле записать заново некому
@@ -1205,7 +1205,7 @@ prune(node.children)                   // ошибка здесь, если node
 
 ```efen
 class Node2 {
-    var children: [Node2]
+    var children: Vector<Node2>
     var current: read<self.children> Node2?
 
     edit fn reset(other: read Node2) {
@@ -1213,7 +1213,7 @@ class Node2 {
     }
 
     mut fn drop {
-        children.removeAt(at: 0)
+        children.remove(at: 0)
     }                                  // ошибка: children изменён, current не записан заново
 }
 ```
