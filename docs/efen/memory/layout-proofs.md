@@ -68,8 +68,8 @@ Dryad): рекурсивное определение раскрывается �
 `layout`. `layout` — логическое пространство без экземпляров, множество одно на программу
 ([алгоритм](layout-algorithm.md#свободный-граф)).
 
-**Освобождение принимает только `own`.** Переход к владению пишется `node as own Pointer`, где `node` — указатель
-`anchor` или `mut` (в том числе на элемент под множеством); память уходит туда, откуда пришла:
+**Освобождение принимает только `own`.** Переход к владению пишется `node as own Pointer`, где `node` — значение
+под `anchor`; память уходит туда, откуда пришла:
 `mm.free(node as own Pointer)`. Кроме невладеющих указателей компилятор проверяет, что владеющее поле, которое
 держало элемент, отпущено в этой функции через `tie` (поле `own` — через `take`); указатели вызывающего на элемент недействительны по сводке.
 На этом переходе компилятор по всем законам `layout` проверяет, что на память больше никто не ссылается; без
@@ -539,7 +539,7 @@ fn removeVertex(g: mut Graph, v: read<g> Vertices.Item) {
    этого типа внутри `layout` (`Edge.from`, `Edge.to`, `Cursor.current`), в переменных функций, в коллекциях
    (`Vector<Vertices.Item>`), в захватах замыканий и в состоянии корутин. Полей конечное число. Хранимые указатели
    в структурах того же графа функция освобождения обходит сама. Переменные вызывающего проверяются у вызывающего
-   по условию 2. Если функция учла только `Edge.to`, а в `layout` есть структура `Cursor` с полем `current`,
+   по условию 2. Если функция учла только `Edge.to`, а граф хранит в своём поле структуру `Cursor` с полем `current`,
    компилятор выдаёт ошибку «поле `Cursor.current` может указывать на `v`». Требование относится и к рёбрам:
    `removeVertex` освобождает их тоже.
 2. **Сводка называет освобождённые элементы, и у вызывающего становятся недействительными указатели, которые могут
@@ -598,12 +598,20 @@ layout {
     struct Element {
         var parent: Elements.Item               // self у корня
         var rank: Int
+        var nextAll: anchor Elements.Item? = null    // цепочка всех элементов: владеет следующим
         invariants { parent == self || parent.rank > rank }
     }
 
+    public struct Partition {                   // владеет элементами
+        var first: anchor Elements.Item? = null
+        invariants {
+            let all = Elements.chain(from: first, by: Element.nextAll, until: null)
+            forall e in Elements: all.contains(e)
+        }
+    }
 }
 
-fn find(x: mut Elements.Item) -> Elements.Item {
+fn find(sets: edit Partition, x: read<sets> Elements.Item) -> Elements.Item {
     var root = x
     while root.parent != root { root = root.parent }
     var y = x
@@ -615,9 +623,9 @@ fn find(x: mut Elements.Item) -> Elements.Item {
     return root
 }
 
-fn union(a: mut Elements.Item, b: mut Elements.Item) {
-    let ra = find(x: a)
-    let rb = find(x: b)
+fn union(sets: edit Partition, a: read<sets> Elements.Item, b: read<sets> Elements.Item) {
+    let ra = find(sets, x: a)
+    let rb = find(sets, x: b)
     if ra == rb { return }
     if ra.rank < rb.rank { ra.parent = rb }
     else if ra.rank > rb.rank { rb.parent = ra }
@@ -625,11 +633,14 @@ fn union(a: mut Elements.Item, b: mut Elements.Item) {
 }
 ```
 
-- **Память.** Элементы — элементы под множеством, `parent` — указатель. Элементы не удаляются, поэтому висячих указателей нет по
-  построению: каждое `parent` указывает в живой член.
+- **Память.** Элементами владеет структура `Partition`: цепочка якорей идёт от `first` по полю `nextAll`. Поле
+  `parent` хранит невладеющий указатель на элемент той же `Partition`. Пока структура существует, элементы не
+  удаляются, поэтому каждое `parent` указывает на существующий элемент. Функция, которая уничтожает `Partition`,
+  проходит цепочку и освобождает каждый элемент. Писать `parent` и `rank` разрешает право `edit` на `Partition`, а
+  параметры `read<sets>` называют элементы именно этой структуры.
 - **Закон в `union`** проверяется на двух корнях: после `rb.parent = ra; ra.rank += 1` у `rb` верно
   `ra.rank > rb.rank`, а у элементов с `parent == ra` ранг родителя только вырос. Но это верно, только если `ra`
-  остался корнем после второго вызова `find(x: b)`, а он пишет `parent` на пути `b`. Сводка «`find` пишет только
+  остался корнем после второго вызова `find(sets, x: b)`, а он пишет `parent` на пути `b`. Сводка «`find` пишет только
   не-корни на пути» требует того же инварианта цепочки, что и сжатие пути.
 - **Закон при сжатии пути** требует `root.rank > y.rank` для каждого `y` на пути. Это транзитивность по цепочке
   `parent` любой длины: инвариант второго цикла «ранг корня больше рангов на пройденном пути» не типовой, и FLOW его
@@ -651,11 +662,13 @@ layout {
 
     struct Vertex {
         var incident: HalfEdges.Item?
+        var nextAll: anchor Vertices.Item? = null     // цепочка всех вершин: владеет следующей
         invariants { incident == null || incident!.origin == self }
     }
 
     struct Face {
         var edge: HalfEdges.Item?
+        var nextAll: anchor Faces.Item? = null        // цепочка всех граней
         invariants { edge == null || edge!.face == self }
     }
 
@@ -665,6 +678,7 @@ layout {
         var prev: HalfEdges.Item
         var origin: Vertices.Item
         var face: Faces.Item
+        var nextAll: anchor HalfEdges.Item? = null    // цепочка всех полурёбер
         invariants {
             twin.twin == self && twin != self
             next.prev == self && prev.next == self
@@ -672,8 +686,19 @@ layout {
             twin.origin == next.origin
         }
     }
+
+    public struct Mesh {                              // владеет тремя цепочками
+        var vertices: anchor Vertices.Item? = null
+        var halfEdges: anchor HalfEdges.Item? = null
+        var faces: anchor Faces.Item? = null
+    }
 }
 ```
+
+- **Владение.** Вершинами, полурёбрами и гранями владеет структура `Mesh`: три цепочки якорей идут от её полей по
+  полям `nextAll`. Инвариант «каждый элемент входит в свою цепочку» пишется, как у `Graph`
+  ([пример C](layout-reference.md#пространство-layout)). Остальные поля хранят невладеющие указатели внутрь той же
+  `Mesh`.
 
 - **Указатели на полуребро `h`.** Законы фиксируют каждый: `twin` — только у `h.twin` (из `g.twin.twin == g`),
   `next` — только у `h.prev`, `prev` — только у `h.next`, `incident` — только у `h.origin`, `edge` — только у
@@ -699,7 +724,7 @@ layout {
 Обход графа без стека: спускаясь в соседа, алгоритм разворачивает указатель назад, а поднимаясь, восстанавливает его.
 Пока обход идёт, граф испорчен: часть указателей смотрит не туда.
 
-- **Память.** Ничего не освобождается, все указатели во время обхода ведут в живые элементы под множеством. Безопасность
+- **Память.** Ничего не освобождается, все указатели во время обхода ведут в существующие элементы графа. Безопасность
   памяти доказывается сразу: это записи указателей на живые элементы.
 - **Законы.** Компилятор не доказывает, что после обхода граф стал прежним: это правильность алгоритма, другая
   задача. Он доказывает то же, что для любой функции: на выходе законы `layout` верны. С одним законом рёбер
