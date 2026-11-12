@@ -495,9 +495,12 @@ fn evens(limit: Int) -> Int {
 отбрасывает возвращённый элемент несоответствующего типа (`a.replace(…)` без имени для результата), ошибка стоит в
 точке вызова: значение не израсходовано ([`ImplicitlyDestroyable`](../disposable.md#implicitlydestroyable)).
 
-`removeLast` обещает `ensures result == null ==> count == 0`. После цикла `while let x = a.removeLast() { … }` FLOW
-знает, что коллекция пуста, и уничтожает её неявно, даже если элемент не `ImplicitlyDestroyable`; доказанный
-`count == 0` снимает и все заимствования элементов ([заимствования](../models.md#заимствования)).
+`removeLast` обещает `ensures result == null ==> count == 0`. После цикла
+`while let x = a.removeLast() { use(take x) }` FLOW знает, что коллекция пуста, и доказанный `count == 0` снимает
+все заимствования элементов ([заимствования](../models.md#заимствования)). Область коллекции при этом ещё не
+возвращена. Коллекцию с элементом типа `ImplicitlyDestroyable` освобождает её `dispose`. Коллекция с другим
+элементом неявно не уничтожается и при `count == 0`: её расходует `drain(each:)`, который отдаёт элементы и
+возвращает область ([`ImplicitlyDestroyable`](../disposable.md#implicitlydestroyable)).
 
 ## Итераторы
 
