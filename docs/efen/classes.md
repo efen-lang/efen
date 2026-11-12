@@ -444,13 +444,18 @@ class Parser {
 
   ```efen
   class App {
-      thread var handlers: Vector<Handler>? = null
+      thread var handler: Handler? = null
       thread var log: Journal = Journal()
   }
 
-  let list = take App.handlers                // в поле теперь null
+  let current = take App.handler              // в поле теперь null
   let old = replace(App.log, Journal())       // take App.log — ошибка: у поля нет null
   ```
+
+- слот поля потока принимает только `ImplicitlyDestroyable`: при завершении потока программа значение не
+  освобождает. Запись `thread var x: own T` со значением другого типа, например со структурой из `layout`, служит
+  точкой доверия ([деструкторы](disposable.md#implicitlydestroyable),
+  [кому доступно доверие](memory/system.md#кому-доступно-доверие)).
 
 **`static let` в классе — одно значение на весь процесс.** Его видят все потоки, поэтому правила те же, что у поля
 [контекста процесса](context-and-effects.md#контекст-процесса--общая-память): тип поля — `shared`-тип или
@@ -766,9 +771,12 @@ fn countUsers(db: mut sqlite3, query: read String) -> Int throws SqliteError {
 
 ```efen
 class Connection {
+    conforms Destructible
     var db: own sqlite3
     var cache: Dictionary<String, own sqlite3_stmt>
     layout { forall s in cache.values: s.db == db }   // cache уничтожается раньше db; db не заменить, пока cache не пуст
+
+    @destructor fn deinit { cache.release() }         // область словаря возвращает явный код
 }
 ```
 

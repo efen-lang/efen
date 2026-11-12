@@ -142,7 +142,7 @@ class Index {
     var stats: Stats
     var log: Vector<String>                          // ни в какой части
 
-    fn first -> read<self.data> Item? { return data[0] }
+    fn first -> read<self.data> Item? { return &data[0] }
     mut fn clearCache { memo.clear() }               // путь не написан: тело сверяется с привязкой
     mut fn compact { log.clear(); data.shrink() }
 
@@ -376,7 +376,7 @@ open class Catalog {
     var data: Vector<Item>
     var memo: Map<Key, Item>
 
-    fn first -> read<self.data> Item? { return data[0] }
+    fn first -> read<self.data> Item? { return &data[0] }
     open mut fn clearCache { memo.clear() }
     mut fn compact { data.shrink() }
 
