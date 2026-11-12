@@ -26,7 +26,7 @@
 | Общая модель управления памятью | [Обзор](../memory.md), [тематическая модель](index.md) |
 | Layout и заимствования | [руководство](layout.md), [справочник правил](layout-reference.md), [модели поведения](../models.md) |
 | Сырая память, `Pointer`, выдача и возврат | [Сырая память](pointer.md) |
-| Физическое хранение | [колоночные layout](columnar-layouts.md), [варианты representation](layout-representations.md) |
+| Физическое хранение | [представления типов в памяти](../representations.md) |
 | Доказательная граница | [условия и доказательства](../conditions.md) |
 | Проверка при выполнении | [проверочная сборка](checking-build.md) |
 | Сравнение и исторический контекст | [prior art](prior-art.md), [allocator](allocator.md), [class internals](classes-internal.md) |
