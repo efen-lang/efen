@@ -2,7 +2,7 @@ private layout<T: Movable> {
     area Items: T
 
     public struct FixedArray {
-        private var items: own Items.Area? = null { value == null || value.count == count }
+        private var items: own Items.Area? = null { (value == null) == (count == 0) && (value == null || value.count == count) }
         public  var count: Int = 0 { value >= 0 }
     }
 }
@@ -12,7 +12,7 @@ strategy<T> for FixedArray<T> {
         requires items == null && count == 0 && size >= 0
     {
         if size > 0 {
-            let fresh: Items<T>.Area = mm.allocate(bytes: size * sizeOf(T)) as Items<T>.Area { value.count == size }
+            let fresh = Items<T>.Area(count: size)
             var i = 0
             while i < size {
                 let value = make(i)
@@ -39,8 +39,7 @@ strategy<T> for FixedArray<T> {
                 each(take old[i])
                 i += 1
             }
-            mm.free(old as Pointer)
-        }
+        }                                       // old кончается: ни один слот не инициализирован, область возвращается
         count = 0
     }
 }
@@ -55,8 +54,7 @@ strategy<T> for FixedArray<T> {
                 let dead = take old[i]          // значение T уничтожается в конце шага
                 i += 1
             }
-            mm.free(old as Pointer)
-        }
+        }                                       // old кончается: ни один слот не инициализирован, область возвращается
         count = 0
     }
 }

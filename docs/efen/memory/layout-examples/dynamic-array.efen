@@ -2,7 +2,7 @@ private layout<T: Movable> {
     area Items: T
 
     public struct Vector {
-        private var items: own Items.Area? = null { value == null || value.count == capacity }
+        private var items: own Items.Area? = null { (value == null) == (capacity == 0) && (value == null || value.count == capacity) }
         public  var capacity: Int = 0 { value >= 0 }
         public  var count: Int = 0 { value >= 0 && value <= capacity }
     }
@@ -10,7 +10,7 @@ private layout<T: Movable> {
 
 private fn grow<T: Movable>(v: mut Vector<T>, minimum: Int) {
     let next = max(minimum, max(8, v.capacity * 2))
-    let fresh: Items<T>.Area = mm.allocate(bytes: next * sizeOf(T)) as Items<T>.Area { value.count == next }
+    let fresh = Items<T>.Area(count: next)
 
     if let old = take v.items {
         var i = 0
@@ -18,8 +18,7 @@ private fn grow<T: Movable>(v: mut Vector<T>, minimum: Int) {
             fresh[i] = take old[i]
             i += 1
         }
-        mm.free(old as Pointer)
-    }
+    }                                           // old кончается: ни один слот не инициализирован, область возвращается
 
     v.items = take fresh
     v.capacity = next
@@ -78,8 +77,7 @@ strategy<T> for Vector<T> {
                 each(take old[i])
                 i += 1
             }
-            mm.free(old as Pointer)
-        }
+        }                                       // old кончается: ни один слот не инициализирован, область возвращается
         count = 0
         capacity = 0
     }
@@ -95,8 +93,7 @@ strategy<T> for Vector<T> {
                 let dead = take old[i]          // значение T уничтожается в конце шага
                 i += 1
             }
-            mm.free(old as Pointer)
-        }
+        }                                       // old кончается: ни один слот не инициализирован, область возвращается
         count = 0
         capacity = 0
     }

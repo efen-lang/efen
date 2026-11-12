@@ -10,7 +10,9 @@ private layout<T: Movable> {
     }
 
     public struct ChunkedArray {
-        private var directory: own Chunks.Area? = null { value == null || value.count == directoryCapacity }
+        private var directory: own Chunks.Area? = null {
+            (value == null) == (directoryCapacity == 0) && (value == null || value.count == directoryCapacity)
+        }
         private var directoryCapacity: Int = 0 { value >= 0 }
         private var directoryLength: Int = 0 { value >= 0 && value <= directoryCapacity }
         public  var count: Int = 0 { value >= 0 }
@@ -18,7 +20,7 @@ private layout<T: Movable> {
         invariants {
             count <= directoryLength * CHUNK_SIZE
             forall i in 0 ..< directoryLength:
-                directory![i].length == min(CHUNK_SIZE, max(0, count - i * CHUNK_SIZE))
+                directory![i].root != null && directory![i].length == min(CHUNK_SIZE, max(0, count - i * CHUNK_SIZE))
         }
     }
 }
@@ -29,7 +31,7 @@ private fn growDirectory<T: Movable>(a: mut ChunkedArray<T>, minimum: Int) {
     }
 
     let next = max(minimum, max(4, a.directoryCapacity * 2))
-    let fresh: Chunks<T>.Area = mm.allocate(bytes: next * sizeOf(Chunk<T>)) as Chunks<T>.Area { value.count == next }
+    let fresh = Chunks<T>.Area(count: next)
 
     if let old = take a.directory {
         var i = 0
@@ -37,8 +39,7 @@ private fn growDirectory<T: Movable>(a: mut ChunkedArray<T>, minimum: Int) {
             fresh[i] = take old[i]
             i += 1
         }
-        mm.free(old as Pointer)
-    }
+    }                                           // old кончается: ни один слот не инициализирован, область возвращается
 
     a.directory = take fresh
     a.directoryCapacity = next
@@ -48,7 +49,7 @@ private fn ensureChunks<T: Movable>(a: mut ChunkedArray<T>, required: Int) {
     while a.directoryLength < required {
         growDirectory(a, minimum: a.directoryLength + 1)
 
-        let block: Items<T>.Area = mm.allocate(bytes: CHUNK_SIZE * sizeOf(T)) as Items<T>.Area { value.count == CHUNK_SIZE }
+        let block = Items<T>.Area(count: CHUNK_SIZE)
         a.directory![a.directoryLength] = Chunk<T>(root: take block, length: 0)
         a.directoryLength += 1
     }
@@ -111,18 +112,17 @@ strategy<T> for ChunkedArray<T> {
         if let dir = take directory {
             var c = 0
             while c < directoryLength {
-                if let area = take dir[c].root {
+                let chunk = take dir[c]
+                if let area = take chunk.root {
                     var j = 0
-                    while j < dir[c].length {
+                    while j < chunk.length {
                         each(take area[j])
                         j += 1
                     }
-                    mm.free(area as Pointer)
-                }
+                }                                  // area кончается: ни один слот не инициализирован
                 c += 1
-            }
-            mm.free(dir as Pointer)
-        }
+            }                                      // chunk кончается в конце шага: поле root равно null
+        }                                          // dir кончается: ни один слот не инициализирован, область возвращается
         directoryLength = 0
         directoryCapacity = 0
         count = 0
@@ -136,18 +136,17 @@ strategy<T> for ChunkedArray<T> {
         if let dir = take directory {
             var c = 0
             while c < directoryLength {
-                if let area = take dir[c].root {
+                let chunk = take dir[c]
+                if let area = take chunk.root {
                     var j = 0
-                    while j < dir[c].length {
+                    while j < chunk.length {
                         let dead = take area[j]         // значение T уничтожается в конце шага
                         j += 1
                     }
-                    mm.free(area as Pointer)
-                }
+                }                                  // area кончается: ни один слот не инициализирован
                 c += 1
-            }
-            mm.free(dir as Pointer)
-        }
+            }                                      // chunk кончается в конце шага: поле root равно null
+        }                                          // dir кончается: ни один слот не инициализирован, область возвращается
         directoryLength = 0
         directoryCapacity = 0
         count = 0

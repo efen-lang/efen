@@ -20,8 +20,8 @@ private layout<T: Movable> {
     }
 }
 
-private fn newNode<T>(value: own T) -> anchor Nodes<T>.Item {
-    return mm.allocate(bytes: sizeOf(Node<T>)) as Node<T>(value: take value)
+private fn newNode<T>(value: own T) -> own Nodes<T>.Item {
+    return Node<T>(value: take value)
 }
 
 private fn nodeAt<T>(list: edit SinglyList<T>, index: Int) -> edit Nodes<T>.Item
@@ -114,7 +114,7 @@ strategy<T> for SinglyList<T> {
         guard index >= 0 && index < count else { return null }
         let node = unlinkAt(self, index: index) ?? return null
         let value = take node.value
-        mm.free(node as own Pointer)
+        let dead = node as own Nodes<T>.Item
         return value
     }
 
@@ -122,7 +122,7 @@ strategy<T> for SinglyList<T> {
         requires index >= 0 && index < count
     {
         let node = nodeAtMut(self, index: index)
-        return replace(node.value, value)
+        return replace(node.value, take value)
     }
 }
 
@@ -133,8 +133,7 @@ strategy<T> for SinglyList<T> {
         tail = null
         while let node = tie head {
             head = tie node.next
-            let dead = take node.value          // значение T уничтожается в конце шага
-            mm.free(node as own Pointer)
+            let dead = node as own Nodes<T>.Item     // указателей на узел нет; в конце шага value уничтожается, память возвращается
         }
         count = 0
     }
