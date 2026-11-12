@@ -55,6 +55,11 @@ void remove_first(struct List *list) {
 друг на друга. Остальное компилятор доказывает сам по схеме и по телам функций: время жизни каждого указателя,
 отсутствие висячих указателей, возврат всей взятой памяти.
 
+Доказательство опирается на один механизм. Память существует от вызова, который её даёт (`mm.allocate`, `lend`),
+до вызова, который её возвращает (`mm.free`, возврат слота, `dispose` структуры). Компилятор отслеживает эти вызовы
+через выводы о каждой функции и знает, после какого вызова какие указатели недействительны. Аннотаций времени
+жизни в сигнатурах поэтому нет ([механизм времени жизни](layout-reference.md#механизм-времени-жизни)).
+
 По общему правилу языка поля не делят память ([владение](../types/ownership.md#поля-не-делят-память)). Есть два
 способа сказать, что два поля указывают на одну память: `layout` и право с источником,
 `право<поле или параметр>`. Руководство описывает первый.
@@ -97,7 +102,7 @@ private layout<T: Movable> {
 - `public struct List` объявляет тип, которым пользуется программа. Поле `head` владеет первым узлом, поэтому
   список владеет всей цепочкой.
 - `{ value >= 0 }` после поля задаёт условие на значение этого поля.
-- `invariants { … }` содержит инварианты: правила, которые программист задаёт, а компилятор проверяет
+- Строки `invariants` содержат инварианты: правила, которые программист задаёт, а компилятор проверяет
   ([подробнее](#инвариант)). Выражение `Nodes.chain(from: head, by: Node.next, until: null)` даёт узлы, достижимые от
   `head` по полю `next` до `null`. Инвариант `count == nodes.count` связывает счётчик с длиной цепочки. Компилятор
   доказывает его на выходе каждой публичной функции списка.
@@ -106,7 +111,7 @@ private layout<T: Movable> {
 
 ```efen
 private fn newNode<T>(value: own T) -> anchor Nodes<T>.Item {
-    return mm.allocate(…) as Node<T>(value: take value)
+    return mm.allocate(bytes: sizeOf(Node<T>)) as Node<T>(value: take value)
 }
 
 strategy<T> for List<T> {
@@ -119,9 +124,10 @@ strategy<T> for List<T> {
 }
 ```
 
-- Операции «создать узел» в языке нет. `mm.allocate(…)` возвращает сырую память `own Pointer`. Приведение
-  `as Node<T>(…)` делает из неё узел: записывает `value`, а полю `next` даёт значение по умолчанию `null`. Имя `mm`
-  обозначает внешний менеджер памяти ([аллокатор](allocator.md)).
+- Операции «создать узел» в языке нет. `mm.allocate(bytes: sizeOf(Node<T>))` возвращает сырую память
+  `own Pointer` названного размера. Приведение `as Node<T>(value: take value)` делает из неё узел: записывает
+  `value`, а полю `next` даёт значение по умолчанию `null`. Имя `mm` обозначает внешний менеджер памяти
+  ([аллокатор](allocator.md)).
 - `private fn newNode` служит помощником модуля. Результат `anchor` значит, что узлом теперь владеет вызывающая
   функция: она привязывает узел в структуру или освобождает его.
 - `strategy<T> for List<T>` даёт списку методы. `edit fn` в стратегии равносильна функции с параметром
@@ -144,7 +150,7 @@ strategy<T> for List<T> {
 ```efen
 strategy<T> for List<T> {
     public mut fn popFirst -> own T? {
-        guard let node = tie head else { return null }
+        let node = tie head ?? return null
         head = tie node.next
         count -= 1
         let value = take node.value
@@ -168,7 +174,8 @@ strategy<T: Copyable> for List<T> {
 }
 ```
 
-- `guard let node = tie head`. Первым узлом теперь владеет локальная переменная `node`. Такой узел неявно не
+- `let node = tie head ?? return null`. Первым узлом теперь владеет локальная переменная `node`; у пустого списка
+  функция возвращает `null` ([короткая форма `guard let`](../blocks/guard.md#короткая-форма-через-)). Такой узел неявно не
   уничтожается: до каждого выхода функция привязывает его в структуру, возвращает или освобождает.
 - `head = tie node.next`. Остатком цепочки снова владеет `head`, а владеющее поле узла `node` равно `null`.
 - `let value = take node.value`. Значение `T` забрано из узла. После этого узел можно только освободить.
@@ -186,34 +193,35 @@ strategy<T: Copyable> for List<T> {
 
 ```efen
 strategy<T> for List<T> {
-    public mut fn release
-        requires T conforms ImplicitlyDestroyable || count == 0
-    {
+    implements Disposable
+
+    fn dispose {
         while let node = tie head {
             head = tie node.next
-            let dead = take node.value
+            let dead = take node.value          // значение T уничтожается в конце шага
             mm.free(node as own Pointer)
         }
         count = 0
     }
 }
 
-var list = List<Int>()
-defer list.release()
-list.pushFirst(1)
-list.pushFirst(0)
-let second = list.read(1)
+fn example {
+    var list = List<Int>()
+    list.pushFirst(1)
+    list.pushFirst(0)
+    let second = list.read(1)
+}                                               // конец области: компилятор вызывает dispose
 ```
 
-- У структуры из `layout` нет деструктора. Память возвращает явный код: публичная функция, после которой все владеющие
-  поля равны `null`.
-- `requires T conforms ImplicitlyDestroyable || count == 0`. Функция сама уничтожает значения `T`, поэтому требует,
-  чтобы их можно было уничтожить неявно ([деструкторы](../disposable.md)). Для остальных `T` список отдаёт значения
-  вызывающему, как `popFirst`, и `release` вызывается у пустого списка: условие `count == 0` разрешает такой вызов
-  при любом `T`.
-- `defer list.release()` стоит сразу после создания. Выход из области со списком, у которого `head` может быть не
-  `null`, компилятор отвергает. Выход через исключение тоже считается выходом. `defer` вызывает `release` на каждом
-  пути.
+- Пользовательского деструктора у структуры из `layout` нет. Память списка возвращает `dispose`: стратегия пишет
+  `implements Disposable` и тело функции, а вызывает её компилятор там, где значение кончается. Это конец области
+  видимости, конец инструкции у временного значения, выход через исключение и запись в слот целиком. Обычным
+  вызовом `dispose` не вызывается ([ничего не теряется](layout-reference.md#74-ничего-не-теряется)).
+- Компилятор проверяет `dispose`, как любую функцию модуля: на выходе владеющее поле `head` равно `null`.
+- `dispose` уничтожает значения `T` (`let dead`), поэтому неявно освобождается только список, значения которого
+  можно уничтожить неявно: `List<Int>` ([`ImplicitlyDestroyable`](../disposable.md#implicitlydestroyable)).
+  Список остальных значений программа опустошает сама, через `popFirst`, и выход из области допустим, когда
+  доказано, что `head` равен `null`.
 
 ## Понятия
 
@@ -246,6 +254,20 @@ private layout<T: Movable> {
 менеджера памяти), `one X` объявляет один экземпляр на программу
 ([множества и области](layout-reference.md#множества-и-области)).
 
+Множество и область дают имена типам:
+
+| Запись | Что называет | Пример |
+|---|---|---|
+| `Nodes.Item`, `Nodes.Item?` | невладеющий указатель на узел; с `?` допускает `null` | `var prev: Nodes.Item? = null` |
+| `own Nodes.Item` | исключительное владение узлом | `var next: own Nodes.Item? = null` |
+| `anchor Nodes.Item` | якорь: владение узлом, на который указывают другие поля | `var head: anchor Nodes.Item? = null` |
+| `read<list> Nodes.Item` | указатель на узел списка `list` | `fn after(list: read List, node: read<list> Nodes.Item)` |
+| `Items.Area` | область целиком | `var items: own Items.Area? = null` |
+| `Block.data.Item` | слот области-поля `data` структуры `Block` | `-> own Block.data.Item?` |
+| `Nodes<Int>.Item` | узел множества `layout` с параметром, названный снаружи | `-> anchor Nodes<T>.Item` |
+
+Все формы с пояснениями перечисляет справочник ([формы типов](layout-reference.md#формы-типов)).
+
 Слоты области обычно одного размера. Область, структура слота которой задаёт свой размер собственным инвариантом
 (`text.count == length`), состоит из слотов разного размера. Номером слота в ней служит смещение его начала в
 байтах, а компилятор доказывает, что слоты занимают область без промежутков
@@ -257,14 +279,13 @@ private layout<T: Movable> {
 
 ```efen
 var list = List<Int>()            // поля получили значения по умолчанию: head == null, count == 0
-defer list.release()              // память возвращает явный вызов
-list.pushFirst(1)
+list.pushFirst(1)                 // память списка вернёт dispose в конце области видимости
 ```
 
 Структура хранится по значению: в локальной переменной, параметре или поле. Своих методов, инициализатора и деструктора
-у неё нет. Методы даёт стратегия того же модуля или пакета, память возвращает явный вызов. Класс с полем такой структуры
-освобождает её в своём деструкторе. Класс без деструктора с таким полем компилятор отвергает
-([деструкторы](../disposable.md)).
+у неё нет. Методы даёт стратегия того же модуля или пакета, память возвращает её функция `dispose`, которую вызывает
+компилятор. Поле класса с такой структурой освобождается вместе с объектом
+([ничего не теряется](layout-reference.md#74-ничего-не-теряется)).
 
 ### `own` и якорь `anchor`
 
@@ -280,11 +301,11 @@ struct Node {
 }
 
 let job = take queue.head                                 // own переносится через take
-guard let top = tie tree.root else { return }             // якорь переносится через tie
+let top = tie tree.root ?? return                         // якорь переносится через tie
 ```
 
 Владелец у значения один. Два поля `anchor` на одно значение запрещены, как и `anchor` вместе с `own`. Значение
-`own` переносит `take`: указателей на него нет, и переписывать нечего. Якорь переносит `tie`. В каждый момент якорь
+`own` переносит `take`: хранимых указателей на него нет, и переписывать нечего. Якорь переносит `tie`. В каждый момент якорь
 у значения один, а указатели на значение при переносе внутри одной структуры остаются верными. `take` слота под
 якорем запрещён. Значение `own` записывается в поле `anchor` через `tie` без отдельного шага, потому что на него ещё
 никто не указывает. Обратный переход, от якоря к `own`, делает только приведение `as own`. К этой строке код уже
@@ -292,7 +313,7 @@ guard let top = tie tree.root else { return }             // якорь пере
 
 ### Невладеющий указатель
 
-Невладеющим указателем называется поле типа `S.Item` без слова владения. Оно хранит адрес элемента, которым владеет
+Невладеющим указателем называется поле с типом элемента множества (`Nodes.Item`) без слова владения. Оно хранит адрес элемента, которым владеет
 другое поле.
 
 ```efen
@@ -328,10 +349,10 @@ struct Node {
 }
 ```
 
-На входе публичной функции структуры компилятор считает инварианты верными. Доказывает он их в пяти местах: на
-выходе публичной функции, перед `throw`, перед приостановкой, перед вызовом кода, способного обратиться к структуре,
-и при записи значения структуры в поле другого значения или публикации указателя на неё. Между этими местами
-инвариант можно нарушить. Вспомогательная функция `private` получает структуру, инвариант которой может быть
+На входе функции без `private`, пишет она поля или только читает, компилятор считает инварианты верными. Доказывает
+он их везде, где структуру видит другой код: на выходе публичной функции, перед `throw`, перед приостановкой и
+перед вызовом кода, способного обратиться к структуре, в том числе функции, которая поля только читает. Все пять
+мест перечисляет справочник. Между этими местами инвариант можно нарушить. Вспомогательная функция `private` получает структуру, инвариант которой может быть
 нарушен ([места, где инвариант верен](layout-reference.md#инварианты)).
 
 Инвариант решает две задачи. Первая: он связывает значения полей, например `count == nodes.count`. Вторая: он
@@ -369,12 +390,13 @@ print(node.value)
 ### Публичная функция структуры и помощник
 
 Публичной функцией структуры называется функция без `private`, которая пишет поля `layout`. Инварианты верны на её входе
-и выходе. Функция `private` служит помощником. Помощник может получить и вернуть структуру в промежуточном состоянии,
+и выходе. Функция без `private`, которая поля только читает, тоже получает их верными на входе. Функция `private`
+служит помощником. Помощник может получить и вернуть структуру в промежуточном состоянии,
 когда инвариант ещё не восстановлен.
 
 ```efen
 private fn unlinkFirst<T>(list: mut List<T>) -> anchor Nodes<T>.Item? {
-    guard let first = tie list.head else { return null }
+    let first = tie list.head ?? return null
     list.head = tie first.next
     return first                      // count ещё не уменьшен: инвариант не восстановлен
 }
@@ -388,7 +410,7 @@ private fn unlinkFirst<T>(list: mut List<T>) -> anchor Nodes<T>.Item? {
 ### Инициализация после `as` и `_`
 
 Приведение `as` делает из сырой памяти элемент. Инициализация при нём явная. Приведение с аргументами работает как
-вызов `Item(…)`: записывает названные поля, а полю со значением по умолчанию даёт это значение.
+вызов `Item(value: 0, next: NONE)`: записывает названные поля, а полю со значением по умолчанию даёт это значение.
 
 ```efen
 let a = memory as Item(value: 0, next: NONE)    // все поля записаны в приведении
@@ -430,8 +452,7 @@ private layout<T: Movable> {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)
             count == nodes.count
             head == null || head!.prev == null
-            (head == null) == (tail == null)
-            tail == null || tail!.next == null
+            tail == nodes.last
         }
     }
 }
@@ -471,7 +492,7 @@ strategy<T> for DoublyList<T> {
 ```efen
 private fn unlinkAt<T>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.Item? {
     if index == 0 {
-        guard let first = tie list.head else { return null }
+        let first = tie list.head ?? return null
         list.head = tie first.next
         if let newHead = list.head {
             newHead.prev = null
@@ -483,7 +504,7 @@ private fn unlinkAt<T>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.I
     }
 
     let before = nodeAtMut(list, index: index - 1)
-    guard let victim = tie before.next else { return null }
+    let victim = tie before.next ?? return null
     before.next = tie victim.next
     if let after = before.next {
         after.prev = before
@@ -498,7 +519,7 @@ private fn unlinkAt<T>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.I
 strategy<T> for DoublyList<T> {
     public mut fn remove(index: Int) -> own T? {
         guard index >= 0 && index < count else { return null }
-        guard let node = unlinkAt(self, index: index) else { return null }
+        let node = unlinkAt(self, index: index) ?? return null
         let value = take node.value
         mm.free(node as own Pointer)
         return value
@@ -506,13 +527,15 @@ strategy<T> for DoublyList<T> {
 }
 ```
 
-`nodeAtMut` служит помощником модуля: проходит по `next` от `head` и возвращает `mut Nodes<T>.Item`. Указатель
-получает право значения, через которое он получен, поэтому `before` несёт `mut` списка-параметра. С указателем
-`edit` строка `tie before.next` была бы ошибкой: после неё узел уходит из списка.
+`nodeAtMut` служит помощником модуля: проходит по `next` от `head` и возвращает `mut Nodes<T>.Item`. Право на узел
+функция берёт из своего права на список, которому узел принадлежит. У `unlinkAt` это `mut`, поэтому `tie before.next`
+допустим и через указатель без слова права; слово `mut` в результате `nodeAtMut` называет право, которое указатель
+даёт сам ([право на элемент](layout-reference.md#82-право-на-элемент)). В функции с параметром `list: edit`
+строка `tie before.next` была бы ошибкой: после неё узел уходит из списка.
 
 Вторая ветка `unlinkAt` по строкам:
 
-1. `guard let victim = tie before.next`. Узлом владеет локальная переменная, `before.next` пуст.
+1. `let victim = tie before.next ?? return null`. Узлом владеет локальная переменная, `before.next` пуст.
 2. `before.next = tie victim.next`. Остатком цепочки владеет `before`; владеющее поле `victim` теперь `null`.
 3. `after.prev = before`. Инвариант `before.next!.prev == before` восстановлен. До этой строки `after.prev` хранил адрес
    `victim`.
@@ -547,19 +570,19 @@ strategy<T> for DoublyList<T> {
 | Что получает внешний код | Запись | Строка в `layout` |
 |---|---|---|
 | значение структуры (`List<Int>`, `Graph`) | тип структуры | не нужна |
-| элемент целиком | `own S.Item` | `public own S` |
+| элемент целиком | `own Nodes.Item` | `public own Nodes` |
 | слот области | `own Block.data.Item` | `public lend Block.data` |
 | заимствование | `-> read T?`, `-> edit<list> T?` | не нужна |
-| указатель без права записи | `S.Item` | не нужна |
+| указатель без права записи | `Nodes.Item` | не нужна |
 
 ### Значение структуры
 
 Значение структуры ведёт себя как обычное значение: его хранят в переменной, передают параметром `own`, записывают
 в поле класса. Вместе со значением переходят все элементы, которыми оно владеет. Структура с владеющим полем,
-видимая внешнему коду, имеет функцию той же видимости, которая оставляет все владеющие поля равными `null`. Без
-такой функции компилятор отвергает объявление структуры.
+видимая внешнему коду, имеет `dispose` или функцию той же видимости, которая оставляет все владеющие поля равными
+`null`. Без них компилятор отвергает объявление структуры.
 
-### Элемент целиком: `public own S`
+### Элемент целиком: `public own Nodes`
 
 ```efen
 private layout {
@@ -571,10 +594,31 @@ private layout {
     public struct Queue { var head: own Nodes.Item? = null }
 }
 
-public fn newNode(value: Int) -> own Nodes.Item { … }
-public fn push(queue: edit Queue, node: own Nodes.Item) { … }
-public fn pop(queue: mut Queue) -> own Nodes.Item? { … }
-public fn freeNode(node: own Nodes.Item) { … }
+public fn newNode(value: Int) -> own Nodes.Item {
+    return mm.allocate(bytes: sizeOf(Node)) as Node(value: value)
+}
+
+public fn pop(queue: mut Queue) -> own Nodes.Item? {
+    let node = take queue.head ?? return null
+    queue.head = take node.next
+    return node
+}
+```
+
+В строке `public own Nodes` имя `Nodes` называет множество узлов. Функции `push(queue:node:)` и `freeNode(node:)`
+принимают узел обратно; их тела и `dispose` очереди приведены в справочнике
+([что уходит наружу](layout-reference.md#выдача-наружу)). Внешний код берёт узел, ставит его в очередь, снимает и
+освобождает:
+
+```efen
+fn example {
+    var queue = Queue()
+    let node = newNode(value: 7)        // own Nodes.Item: узлом владеет переменная node
+    push(queue, take node)              // узел перешёл в очередь
+    if let first = pop(queue) {         // узел вернулся внешнему коду
+        freeNode(take first)            // без этой строки ошибка: владелец first потерян
+    }
+}
 ```
 
 Строка `public own Nodes` разрешает публичным функциям отдавать и принимать `own Nodes.Item`. Без неё
@@ -586,7 +630,7 @@ public fn freeNode(node: own Nodes.Item) { … }
 функции из модуля `layout` или передаёт дальше. Поле `own Nodes.Item` в классе или обычной структуре запрещено.
 Дольше одного вызова элемент хранится в контейнере `layout`, например в `Vector<own Nodes.Item>`.
 
-### Выданный слот: `public lend T.поле`
+### Выданный слот: `public lend Block.data`
 
 ```efen
 layout {
@@ -607,7 +651,15 @@ layout {
     }
 }
 
-public fn acquire(pool: mut Pool) -> own Block.data.Item? { … }
+public fn acquire(pool: mut Pool) -> own Block.data.Item? {
+    let block = unlinkFree(pool) ?? return null  // первый участок из Pool.free
+    let n = block.data.count
+    let data = lend block.data[0 ..< n]          // выдан диапазон: все байты области data
+    block.used += n
+    linkBusy(pool, tie block)                    // участок привязан к Pool.busy и остаётся у пула
+    return data
+}
+
 public fn release(pool: mut Pool, data: own Block.data.Item) {
     let block = blockOf(pool, data)              // участок пула pool, из которого выдан data
     let n = block.data.count
@@ -631,12 +683,15 @@ public fn release(pool: mut Pool, data: own Block.data.Item) {
 ```efen
 strategy<T> for List<T> {
     public fn first -> read T? {
-        guard let node = head else { return null }
+        let node = head ?? return null
         return &read node.value
     }
 }
 
-fn firstOf<T>(list: List<T>) -> read<list> T? { … }
+fn firstOf<T>(list: List<T>) -> read<list> T? {
+    let node = list.head ?? return null
+    return &read node.value
+}
 ```
 
 Заимствование даёт доступ к памяти, которой `layout` продолжает пользоваться; владение не переходит. Источник
@@ -654,7 +709,7 @@ fn firstOf<T>(list: List<T>) -> read<list> T? { … }
 
 ### Якорь наружу не уходит
 
-`anchor S.Item` в сигнатуре функции, видимой внешнему коду, запрещён при любой схеме владения. Якорь означает, что на
+`anchor Nodes.Item` в сигнатуре функции, видимой внешнему коду, запрещён при любой схеме владения. Якорь означает, что на
 элемент указывают хранимые указатели, и перед уничтожением элемента каждый из них нужно переписать. Хранятся они в
 полях `layout`, а писать эти поля внешний код не может. Поэтому якорь переходит только между функциями, которым
 `layout` разрешает писать поля. Чтобы отдать элемент внешнему коду, такая функция сначала убирает
@@ -671,7 +726,7 @@ fn firstOf<T>(list: List<T>) -> read<list> T? { … }
 
 ```efen
 fn broken(list: mut List<Int>) {
-    guard let node = list.head else { return }   // указатель с источником list
+    let node = list.head ?? return               // указатель с источником list
     let dropped = list.popFirst()                // освобождает первый узел
     print(node.value)                            // error[flow.slot-left]: указатель `node` использован после конца жизни узла
 }
@@ -679,16 +734,17 @@ fn broken(list: mut List<Int>) {
 
 Если `node` после `popFirst` не используется, ошибки нет.
 
-**2. Выход из области с неосвобождённым списком.**
+**2. Выход из области со списком, который неявно не освобождается.**
 
 ```efen
-fn build {
-    var list = List<Int>()
-    list.pushFirst(1)
-}                                // ошибка: list выходит из области, а владеющее поле head может быть не null
+fn build(worker: own Thread) {   // Thread уничтожает только явный вызов
+    var list = List<Thread>()
+    list.pushFirst(take worker)
+}                                // ошибка: List<Thread> неявно не освобождается, а head может быть не null
 ```
 
-Исправление: `defer list.release()` сразу после создания.
+Исправление: снять каждое значение через `popFirst` и уничтожить его явным вызовом. `List<Int>` в том же коде
+освобождает `dispose`.
 
 **3. Чтение поля до инициализации.**
 
@@ -710,15 +766,19 @@ fn share(a: edit DoublyList<Int>, b: DoublyList<Int>) {
 **5. Наружу отдано то, чего не называет ни одна строка.**
 
 ```efen
-public fn popNode(list: mut List<Int>) -> own Nodes<Int>.Item? { … }      // ошибка: нет строки `public own Nodes`
-public fn peekNode(list: mut List<Int>) -> anchor Nodes<Int>.Item? { … }  // ошибка: якорь внешнему коду не выдаётся
+public fn popNode(list: mut List<Int>) -> own Nodes<Int>.Item? {      // ошибка: нет строки `public own Nodes`
+    // тело не важно для примера
+}
+public fn peekNode(list: mut List<Int>) -> anchor Nodes<Int>.Item? {  // ошибка: якорь внешнему коду не выдаётся
+    // тело не важно для примера
+}
 ```
 
 **6. Изменение структуры под `edit`.**
 
 ```efen
 public edit fn dropFirst {       // ошибка: узел ушёл из списка в уничтожение, нужен mut
-    guard let node = tie head else { return }
+    let node = tie head ?? return
     head = tie node.next
     count -= 1
     let dead = take node.value
@@ -741,7 +801,7 @@ list.head = tie node             // ошибка: поле head не доказ�
 | Что реализовано в Amber | [Состояние в компиляторе](layout-reference.md#состояние-в-компиляторе) |
 | Структура между потоками и под блокировкой | [Многопоточность](layout-reference.md#многопоточность) |
 | Указатели в узлы коллекции из другого пакета: `open layout` и его расширение | [Расширение layout](layout-reference.md#расширение-layout) |
-| Строки `own S` и `lend`, проверка функций, печать схемы | [Схема владения](layout-reference.md#схема-владения) |
+| Строки `public own` и `public lend`, проверка функций, печать схемы | [Схема владения](layout-reference.md#схема-владения) |
 | Что такое структура элемента, источник указателя и чистая структура | [Структура, источник, чистота](layout-reference.md#структура-источник-чистота) |
 | Какое право нужно каждой операции | [`edit` и `mut` в `layout`](layout-reference.md#edit-и-mut-в-layout) |
 | Права и заимствования языка одной таблицей | [Правила доступа к памяти](memory-rules.md) |
