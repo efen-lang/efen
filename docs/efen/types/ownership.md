@@ -355,7 +355,7 @@ fn resize(memory: own Pointer?, size: Int) -> own Pointer?
     try {
         copyBytes(from: old, to: moved)          // CopyError: old забран, строка throws это разрешает
     } catch e: CopyError {
-        free(take old)                           // на выходе через исключение обе памяти возвращены
+        free(take old)                           // на выходе через исключение возвращены оба блока
         free(take moved)
         throw e
     }

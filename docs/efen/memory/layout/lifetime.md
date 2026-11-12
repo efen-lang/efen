@@ -139,7 +139,7 @@ print(p.value)                      // ошибка: p недействител�
 fn shrink(table: mut Table, n: mut Nodes.Item) {
     let k = n.key                          // Keys.Item: слот области table.keys
     let old = take table.keys              // ошибка: k используется ниже и указывает в прежнюю область
-    table.keys = smallerKeys()             // новая область в пустое владеющее поле
+    table.keys = smallerKeys()             // новая область записана в пустое поле
     freeKeys(take old)                     // прежняя область возвращена менеджеру памяти
     print(k)
 }
