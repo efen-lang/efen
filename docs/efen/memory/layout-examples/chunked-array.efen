@@ -108,7 +108,7 @@ strategy<T> for ChunkedArray<T> {
     }
 
     public mut fn release
-        requires T conforms ImplicitlyDestroyable
+        requires T conforms ImplicitlyDestroyable || count == 0
     {
         if let dir = take directory {
             var c = 0
@@ -135,7 +135,7 @@ strategy<T: Copyable> for ChunkedArray<T> {
     public fn read(index: Int) -> T
         requires index >= 0 && index < count
     {
-        return directory![index / CHUNK_SIZE].root![index % CHUNK_SIZE]
+        return copy directory![index / CHUNK_SIZE].root![index % CHUNK_SIZE]
     }
 }
 

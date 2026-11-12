@@ -72,7 +72,7 @@ strategy<T> for Vector<T> {
     }
 
     public mut fn release
-        requires T conforms ImplicitlyDestroyable
+        requires T conforms ImplicitlyDestroyable || count == 0
     {
         if let old = take items {
             var i = 0
@@ -91,7 +91,7 @@ strategy<T: Copyable> for Vector<T> {
     public fn read(index: Int) -> T
         requires index >= 0 && index < count
     {
-        return items![index]
+        return copy items![index]
     }
 }
 

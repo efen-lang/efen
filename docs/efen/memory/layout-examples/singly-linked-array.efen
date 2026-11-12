@@ -15,7 +15,7 @@ private layout<T: Movable> {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)
             count == nodes.count
             (head == null) == (tail == null)
-            tail == null || tail!.next == null
+            tail == nodes.last
         }
     }
 }
@@ -126,7 +126,7 @@ strategy<T> for SinglyList<T> {
     }
 
     public mut fn release
-        requires T conforms ImplicitlyDestroyable
+        requires T conforms ImplicitlyDestroyable || count == 0
     {
         tail = null
         while let node = tie head {
@@ -148,7 +148,7 @@ strategy<T: Copyable> for SinglyList<T> {
             current = current.next!
             position += 1
         }
-        return current.value
+        return copy current.value
     }
 }
 

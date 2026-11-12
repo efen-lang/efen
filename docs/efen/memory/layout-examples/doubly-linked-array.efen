@@ -19,7 +19,7 @@ private layout<T: Movable> {
             count == nodes.count
             head == null || head!.prev == null
             (head == null) == (tail == null)
-            tail == null || tail!.next == null
+            tail == nodes.last
         }
     }
 }
@@ -161,7 +161,7 @@ strategy<T> for DoublyList<T> {
     }
 
     public mut fn release
-        requires T conforms ImplicitlyDestroyable
+        requires T conforms ImplicitlyDestroyable || count == 0
     {
         tail = null
         while let node = tie head {
@@ -186,7 +186,7 @@ strategy<T: Copyable> for DoublyList<T> {
             current = current.next!
             position += 1
         }
-        return current.value
+        return copy current.value
     }
 }
 
