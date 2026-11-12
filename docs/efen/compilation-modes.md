@@ -168,7 +168,7 @@ efen build --mode=testing
 ```efen
 @compilationMode("testing")
 fn resetDatabase {
-    …
+    // тело не важно для примера
 }
 ```
 

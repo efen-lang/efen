@@ -17,7 +17,7 @@ shop/
 ├── efen.lock
 ├── model/                # библиотека: есть lib.efen
 │   ├── project.efen      # config model { version: "1.2.0" }
-│   ├── lib.efen          # корневой модуль: model::…
+│   ├── lib.efen          # корневой модуль пакета model
 │   ├── product.efen      # модуль model::product
 │   └── tax/
 │       └── rates.efen    # модуль model::tax::rates

@@ -704,7 +704,9 @@ class BrokenService {
 ожидают не бросающую, — ошибка компиляции.
 
 ```efen
-fn parse(text: String) -> Int { ... }      // внутри throw: выведен throws
+fn parse(text: String) -> Int {   // внутри throw: выведен throws
+    // тело не важно для примера
+}
 fn twice(x: Int) -> Int { return x * 2 }  // не бросает
 
 let f: (Int) -> Int throws = twice      // ✅

@@ -46,7 +46,9 @@ type Имя: БазовыйТип { условие }
 Новый `type` — свой номинальный тип. Базовый и новый тип не подставляются друг вместо друга молча:
 
 ```efen
-fn printInt(x: Int) { … }
+fn printInt(x: Int) {
+    // тело не важно для примера
+}
 
 let n: Nat = 5
 printInt(x: n)          // ошибка: ожидается Int, передан Nat
@@ -65,7 +67,9 @@ type Year: Int {
 }
 
 fn next(year: Year) -> Year {
-    if year > 0 { … }       // 0 — значение Int: условие Year к нему не относится
+    if year > 0 {   // 0 — значение Int: условие Year к нему не относится
+        // тело не важно для примера
+    }
     return year + 1         // результат становится Year и проверяется
 }
 ```
@@ -82,7 +86,9 @@ fn next(year: Year) -> Year {
 (перегруженный вызов, параметр обобщённого объявления до подстановки), это ошибка:
 
 ```efen
-fn takeAge(age: Nat) { … }
+fn takeAge(age: Nat) {
+    // тело не важно для примера
+}
 
 let input: Int = readNumber()
 let age: Nat = input.refine()     // ожидается Nat

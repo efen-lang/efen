@@ -89,7 +89,7 @@ Amber переносит то, что заголовок описывает по
 занят формой ([generics](generics.md)): `Array<Row, indirection: indirect>`.
 
 ```efen
-var events: [epoll_event] = ...             // aos, direct: как struct epoll_event * в C
+var events: [epoll_event] = []              // aos, direct: как struct epoll_event * в C
 var rows: Array<Row, indirection: indirect> = []   // как struct Row ** в C
 var shapes: [Shape] = []                    // класс: indirect по умолчанию
 var particles: Array<Particle, soa> = []    // в C не передаётся
@@ -332,7 +332,7 @@ module {
 
 const SQLITE_OK = 0
 const SQLITE_ROW = 100
-const SQLITE_STATIC: sqlite3_destructor_type = …    // макрос без параметров: константа типа C
+const SQLITE_STATIC: sqlite3_destructor_type = null // макрос ((sqlite3_destructor_type)0): константа типа C
 
 @abi(c) class sqlite3 {                             // сырое значение — sqlite3*, пустое значение — NULL
     conforms Constructible, Destructible

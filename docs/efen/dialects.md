@@ -534,13 +534,13 @@ efen compile --dialect-debug main.efen
 2. **Валидируйте диалекты во время компиляции**
    ```efen
    @validateAtCompileTime
-   let config = json { ... }
+   let config = json { "port": 8080 }
    ```
 
 3. **Используйте типизацию**
    ```efen
-   let data: JsonObject = json { ... }
-   let users: ResultSet<User> = sql { ... }
+   let data: JsonObject = json { "key": "value" }
+   let users: ResultSet<User> = sql { select * from users }
    ```
 
 4. **Избегайте переусложнения**
@@ -559,7 +559,9 @@ efen compile --dialect-debug main.efen
    /// Matrix dialect для линейной алгебры
    /// Пример: matrix { 1 0; 0 1 }
    @inlineDialect("matrix")
-   dialect MatrixDialect { ... }
+   dialect MatrixDialect {
+       // тело не важно для примера
+   }
    ```
 
 ## Ограничения

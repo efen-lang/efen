@@ -122,8 +122,8 @@ let bytesRead = syscall.read(fd, buffer, count)
 syscall.close(fd)
 
 // Windows
-let handle = syscall.CreateFileW(path, GENERIC_READ, ...)
-syscall.ReadFile(handle, buffer, count, ...)
+let handle = syscall.CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, 0, null)
+syscall.ReadFile(handle, buffer, count, bytesRead, null)
 syscall.CloseHandle(handle)
 ```
 
@@ -282,12 +282,12 @@ use runtime::lifecycle
 
 // Регистрация обработчика запуска
 registerStartupHandler => {
-    print("Application starting...")
+    print("Application starting")
 }
 
 // Регистрация обработчика завершения
 registerShutdownHandler => {
-    print("Application shutting down...")
+    print("Application shutting down")
     cleanup()
 }
 

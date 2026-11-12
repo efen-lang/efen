@@ -101,7 +101,9 @@ let wrong = clone tree     // ошибка: у `tree` нет счётчика с
 псевдоним ([связывание существующего значения](../types/ownership.md#связывание-существующего-значения)).
 
 ```efen
-fn square(side: Int) -> Int { … }
+fn square(side: Int) -> Int {
+    // тело не важно для примера
+}
 square(side)         // Int соответствует ImplicitlyCopyable: передаётся копией
 evaluate(expression) // indirect variant: передаётся по ссылке
 ```

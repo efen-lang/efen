@@ -69,7 +69,9 @@ class Account {
 
 ```efen
 // model/tax/rates.efen
-private fn round(x: Int) -> Int { ... }
+private fn round(x: Int) -> Int {
+    // тело не важно для примера
+}
 
 // model/invoice.efen
 use tax::rates

@@ -163,7 +163,9 @@ fn dump<S: Sink>(out: mut S, lines: read [String]) {
 public class File {
     conforms Sink
     representation Raw<Descriptor>
-    mut fn write(data: read [UInt8]) { … }       // копирует: заимствований нет, модель Sink уточнена
+    mut fn write(data: read [UInt8]) {   // копирует: заимствований нет, модель Sink уточнена
+        // тело не важно для примера
+    }
     mut fn flush { }
 }
 ```
@@ -192,12 +194,12 @@ class Ring {
     mut fn write(data: read [UInt8])
     model { self.inflight.append(data) }       // то же заимствование, что у AsyncSink.write
     {
-        …
+        // тело не важно для примера
     }
     mut fn drain
     model { self.inflight.clear() }
     {
-        …
+        // тело не важно для примера
     }
 }
 ```

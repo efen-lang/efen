@@ -238,10 +238,12 @@ let description = match status {
 let count = 5
 
 // ❌ Ошибка
-// if count { ... }
+// if count { print(count) }
 
 // ✅ Правильно
-if count > 0 { ... }
+if count > 0 {
+    // тело не важно для примера
+}
 ```
 
 ### 3. Pattern Matching

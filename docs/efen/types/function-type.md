@@ -8,7 +8,7 @@
 ## Синтаксис
 
 ```efen
-(ParameterType1, ParameterType2, ...) -> ReturnType
+(ParameterType1, ParameterType2) -> ReturnType
 ```
 
 Примеры:
@@ -204,7 +204,9 @@ fn map -> ((T) -> U throws E)          // throws у возвращаемой ф�
 тип называет источник ссылки. Источник называют именем параметра самого типа:
 
 ```efen
-fn find(list: edit Vector<Shape>, id: Int) -> edit<list> Shape? { … }
+fn find(list: edit Vector<Shape>, id: Int) -> edit<list> Shape? {
+    // тело не важно для примера
+}
 
 let pick: (list: edit Vector<Shape>, id: Int) -> edit<list> Shape? = find
 pick(list: shapes, id: 7)!.color = .red          // пишет в shapes

@@ -182,12 +182,12 @@ fn login(username: String?, password: String?) -> Bool {
 ```efen
 fn remove(n: mut Items.Item) {
     let a = n.prev ?? return            // то же, что guard let a = n.prev else { return }
-    …
+    // остальное тело не важно для примера
 }
 
 for line in lines {
     let value = parse(line) ?? continue
-    …
+    print(value)
 }
 ```
 

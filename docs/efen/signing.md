@@ -53,7 +53,7 @@ config server {
     dependencies {
         json {
             version: "^1.0"
-            key: "ed25519:9f2c…"
+            key: "ed25519:9f2c41ab07d3e5c8"
         }
     }
 }
@@ -145,7 +145,7 @@ config server {
     dependencies {
         mm {
             source: git("https://github.com/efen-lang/mm", tag: "v0.1")
-            key: "ed25519:41ab…"
+            key: "ed25519:41ab9e06c2f75d13"
             submodules: false
             lfs: false
         }

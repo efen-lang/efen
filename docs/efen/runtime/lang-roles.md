@@ -9,7 +9,9 @@
 
 ```efen
 let total = price * count       // `*` вызывает функцию контракта lang::Number; её реализует Decimal рантайма
-if name == "Привет" { … }       // `==` вызывает lang::Equatable; своего сравнения компилятор не пишет
+if name == "Привет" {   // `==` вызывает lang::Equatable; своего сравнения компилятор не пишет
+    // тело не важно для примера
+}
 ```
 
 ## Где что лежит
@@ -33,7 +35,9 @@ if name == "Привет" { … }       // `==` вызывает lang::Equatable
 ```efen
 // allocator: none
 let name = "boot"            // постоянные байты
-if name == "boot" { … }      // сравнение байтов, без выделения
+if name == "boot" {   // сравнение байтов, без выделения
+    // тело не важно для примера
+}
 throw OverflowError()        // без полей, вечное
 var full = "${name}!"        // ошибка сборки: новая строка требует аллокатора
 ```
@@ -63,7 +67,9 @@ var full = "${name}!"        // ошибка сборки: новая строк
 уйдёт.
 
 ```efen
-if name == "Привет" { … }    // пока String встроен: lang::StringEquality.equal(left: name, right: "Привет")
+if name == "Привет" {   // пока String встроен: lang::StringEquality.equal(left: name, right: "Привет")
+    // тело не важно для примера
+}
 ```
 
 Законы, которые нельзя доказать в общем виде (`a == b` влечёт `b == a`), автор типа соблюдает сам. Компилятор не
@@ -102,7 +108,9 @@ contract Trap {
 
 // рантайм
 implementation Trap {
-    fn stop(record: StopRecord) -> Never nofail { … }
+    fn stop(record: StopRecord) -> Never nofail {
+        // тело не важно для примера
+    }
 }
 ```
 

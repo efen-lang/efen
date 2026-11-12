@@ -682,7 +682,7 @@ Access fn iterator -> ArrayIterator<Access T, Src: self>
 strategy ArrayTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == read || value == edit }      // own и mut не подходят
-    …
+    // функции стратегии не важны для примера
 }
 ```
 

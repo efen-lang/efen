@@ -158,7 +158,7 @@ fn scale(values: edit [Float32], factor: Float32) {
 ```efen
 @levels("x86-64-v3", "x86-64-v4+avx512vbmi")
 fn encodeBase64(input: [UInt8], output: edit [UInt8]) {
-    ...
+    // тело не важно для примера
 }
 ```
 

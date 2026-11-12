@@ -135,7 +135,7 @@ contract ThreadBound {
 ```efen
 @abi(c) class sqlite3 {
     conforms ThreadBound          // соединение SQLite в режиме NOMUTEX
-    …
+    // остальные объявления не важны для примера
 }
 ```
 

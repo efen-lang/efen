@@ -67,7 +67,9 @@ strategy<T: Copyable, U: Copyable> for Pair<T, U> {          // для кажд�
 }
 
 strategy for Pair<Int, Bool> {           // только для Pair<Int, Bool>: Int и Bool — типы, не параметры
-    fn describe -> String { … }
+    fn describe -> String {
+        // тело не важно для примера
+    }
 }
 ```
 
@@ -406,21 +408,27 @@ strategy ArrayTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == read || value == edit }
     conforms Iterable<Item: Access T, Cursor: _>
-    Access fn iterator -> ArrayIterator<Access T, Src: self> { … }
+    Access fn iterator -> ArrayIterator<Access T, Src: self> {
+        // тело не важно для примера
+    }
 }
 
 strategy ArrayMutTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == mut }
     conforms Iterable<Item: Access T, Cursor: _>   // элемент — ссылка mut
-    Access fn iterator -> IndexIter<Access T, Src: self> { … }
+    Access fn iterator -> IndexIter<Access T, Src: self> {
+        // тело не важно для примера
+    }
 }
 
 strategy ArrayDrain for Array<T> {
     generic T: Type
     generic Access: Access { value == own }
     conforms Iterable<Item: T, Access: Access, Cursor: _>   // элемент — значение, забирается
-    Access fn iterator -> DrainIterator<T> { … }
+    Access fn iterator -> DrainIterator<T> {
+        // тело не важно для примера
+    }
 }
 ```
 
@@ -507,7 +515,9 @@ config server {
 // пакет shop
 strategy PointHash for geo::Point {
     conforms Hashable
-    fn hash -> Int { … }
+    fn hash -> Int {
+        // тело не важно для примера
+    }
 }
 
 let orders = Dictionary<geo::Point, Order>()   // внутри словаря — PointHash

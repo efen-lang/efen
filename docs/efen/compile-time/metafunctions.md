@@ -120,7 +120,7 @@ inline (param1: Type1, param2: Type2) -> ReturnType {
 ```efen
 meta fn withLogging(code: InlineClosure) -> InlineClosure {
     return inline {
-        println("Starting...")
+        println("Starting")
         ${code}  // Вставка InlineClosure
         println("Finished")
     }
@@ -133,7 +133,7 @@ withLogging => {
 }
 
 // Компилируется в:
-// println("Starting...")
+// println("Starting")
 // processData()
 // saveResults()
 // println("Finished")
@@ -338,7 +338,7 @@ ifElse(x > 0,
 ```efen
 meta fn withLogging(code: InlineClosure) -> InlineClosure {
     return inline {
-        println("Starting...")
+        println("Starting")
         ${code}
         println("Finished")
     }
@@ -836,7 +836,9 @@ withTransaction(
 // ❌ ОШИБКА - placeholder вне inline closure
 meta fn bad(code: Statement) -> InlineClosure {
     ${code}  // ОШИБКА КОМПИЛЯЦИИ - вне inline closure
-    return inline { ... }
+    return inline {
+        // тело не важно для примера
+    }
 }
 
 // ✅ ПРАВИЛЬНО - placeholder внутри inline closure
@@ -1000,7 +1002,7 @@ meta fn logAndMeasure(name: String, body: InlineClosure) -> InlineClosure {
 ### Базовый синтаксис
 
 ```efen
-meta fn functionName(…) -> InlineClosure {
+meta fn functionName(code: Statement) -> InlineClosure {
     // Compile-time код для генерации замыкания
     return inline {
         // Runtime код, который будет встроен
@@ -1948,19 +1950,27 @@ meta fn optimizedLoop(body: Statement) -> InlineClosure {
 **1. Читаемость**
 ```efen
 // ❌ Магические константы
-if __BUILD_MODE__ == "debug" { ... }
+if __BUILD_MODE__ == "debug" {
+    // тело не важно для примера
+}
 
 // ✅ Ясный API
-if project.isDebug() { ... }
+if project.isDebug() {
+    // тело не важно для примера
+}
 ```
 
 **2. Типобезопасность**
 ```efen
 // ❌ Строковое сравнение - можно ошибиться
-if __BUILD_MODE__ == "debuf" { ... }  // Опечатка!
+if __BUILD_MODE__ == "debuf" {   // Опечатка!
+    // тело не важно для примера
+}
 
 // ✅ Функция - проверка компилятором
-if project.isDebug() { ... }  // Типобезопасно
+if project.isDebug() {   // Типобезопасно
+    // тело не важно для примера
+}
 ```
 
 **3. Расширяемость**

@@ -476,7 +476,9 @@ class TaskQueue {
         count += 1                 // к выходу снова верна
     }
 
-    private mut fn log() { … }
+    private mut fn log() {
+        // тело не важно для примера
+    }
 }
 ```
 
@@ -619,7 +621,7 @@ fn returnSlot(block: mut SlotBlock, slot: Int)
     requires slot >= 0 && slot < block.frontier
     requires block.slots.taken.contains(slot)
 {
-    …                                        // slot уходит из slots.taken
+    // возврат слота не важен для примера: slot уходит из slots.taken
     block.used -= 1
     block.slots[slot].next = UInt16(block.firstFreeSlot)
     block.firstFreeSlot = slot               // slot встал в голову freeSlots

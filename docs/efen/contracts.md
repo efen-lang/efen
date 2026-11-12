@@ -203,7 +203,7 @@ class Document {
     implements Storable    // Доступ через интерфейс
 
     fn serialize -> String {
-        return "..."
+        return "Config"
     }
 
     fn save(path: String) {
@@ -631,10 +631,10 @@ contract Tracing {
 При частичной реализации диагностика указывает на уже написанное требование:
 
 ```text
-error[E....]: `Config` implements part of `Tracing`
+error[E0412]: `Config` implements part of `Tracing`
   --> app.efen:4:5
    |
- 4 |     fn note(event: Event) { … }
+ 4 |     fn note(event: Event) { log(event) }
    |     ^^^^^^^^^^^^^^^^^^^^^ `note` is written here, `flush` is not
    |
    = help: write every requirement of `Tracing`, or none and let an implementation be chosen

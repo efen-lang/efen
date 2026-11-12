@@ -115,7 +115,7 @@ public class Audit {
     fn checkForeignCalls(body: compiler::SealedBody, report: mut compiler::Diagnostics) {
         for call in body.calls where call.target.isForeign {
             if !call.attributes.has<reason>() {
-                report.add(at: call.span, message: "вызову функции C нужна причина: @reason(\"…\")")
+                report.add(at: call.span, message: "вызову функции C нужна причина: @reason(\"текст причины\")")
             }
         }
     }
@@ -179,10 +179,18 @@ class TaintAnalysis {
     let bound = 64
     let reads = [compiler::kernelFacts]
 
-    fn transfer(node: compiler::Node, fact: mut Taint) { … }
-    fn call(callee: compiler::Callee<TaintSummary>, arguments: [compiler::Place], fact: mut Taint) { … }
-    fn summary(exit: Taint) -> TaintSummary { … }
-    fn finish(facts: compiler::Facts<Taint>, report: mut compiler::Diagnostics) { … }
+    fn transfer(node: compiler::Node, fact: mut Taint) {
+        // тело не важно для примера
+    }
+    fn call(callee: compiler::Callee<TaintSummary>, arguments: [compiler::Place], fact: mut Taint) {
+        // тело не важно для примера
+    }
+    fn summary(exit: Taint) -> TaintSummary {
+        // тело не важно для примера
+    }
+    fn finish(facts: compiler::Facts<Taint>, report: mut compiler::Diagnostics) {
+        // тело не важно для примера
+    }
 }
 
 public class TaintPlugin {
