@@ -882,7 +882,7 @@ layout {
 }
 
 fn grow(table: mut Table) requires table.size == BUCKETS {
-    var fresh = newBuckets(count: 2 * BUCKETS)
+    var fresh = Buckets.Area(count: 2 * BUCKETS)
     var i = 0
     while i < BUCKETS {
         while let e = tie table.buckets![i].head {      // снять первую запись старой корзины i
@@ -894,7 +894,7 @@ fn grow(table: mut Table) requires table.size == BUCKETS {
         }
         i = i + 1                                        // инвариант цикла: корзины 0 ..< i пусты
     }
-    freeBuckets(take table.buckets)                      // все слоты A пусты: освобождение разрешено
+    let dead = take table.buckets                        // все слоты A пусты: область освобождается с концом dead
     table.size = 2 * BUCKETS                             // поле из условия области пишется вместе с её заменой
     table.buckets = take fresh
 }
