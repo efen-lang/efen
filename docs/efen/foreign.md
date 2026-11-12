@@ -68,8 +68,8 @@ Amber переносит то, что заголовок описывает по
 
 | C | Efen |
 |---|---|
-| `int8_t` … `int64_t`, `uint8_t` … `uint64_t` | `Int8` … `Int64`, `UInt8` … `UInt64` |
-| `signed char`, `short`, `int`, `long long` и `unsigned`-пары | `Int8`, `Int16`, `Int32`, `Int64`, `UInt8` … `UInt64` |
+| от `int8_t` до `int64_t`, от `uint8_t` до `uint64_t` | от `Int8` до `Int64`, от `UInt8` до `UInt64` |
+| `signed char`, `short`, `int`, `long long` и `unsigned`-пары | `Int8`, `Int16`, `Int32`, `Int64`, от `UInt8` до `UInt64` |
 | `char` | `CChar`: знак зависит от цели |
 | `long`, `unsigned long` | `CLong`, `CULong`: отдельные типы, 4 байта на Windows, 8 на Linux и macOS |
 | `size_t`, `uintptr_t` | `UInt`: ширина указателя цели ([ширина чисел](types/constants.md#ширина-числовых-типов)) |
@@ -130,7 +130,7 @@ struct Header {
 по-своему: у `struct { unsigned char a:4; unsigned short b:4; }` GCC даёт размер 2, MSVC — 4), поэтому Amber
 пишет у каждого поля смещение в битах, взятое у clang для цели, и при различии пишет структуру под `@platform`.
 Запись проверяется по ширине: `h.doff = value` требует доказанного `value < 16`. Безымянные поля (`int :3`,
-`int :0`) Amber пишет явно, как `@bits(3, at: …) _: Int32`.
+`int :0`) Amber пишет явно, как `@bits(3, at: 5) _: Int32`.
 
 ```efen
 @abi(c)
@@ -413,7 +413,7 @@ echo text                       // ошибка: text погашен вызов�
 
 | Вид указателя в C | Запись в Efen |
 |---|---|
-| `T*` непрозрачного `T` | `self` метода `@abi(c) class T`; у другого параметра — `own T`, `own T? { ... ==> take }`, `read T`, `mut T` |
+| `T*` непрозрачного `T` | `self` метода `@abi(c) class T`; у другого параметра — `own T`, `own T? { result == 0 ==> take }`, `read T`, `mut T` |
 | `T*` на одну структуру или число | `read T`, `edit T`, `mut T`; в результате — `read<x> T`, `edit<x> T` |
 | `T*` на массив | `read [T]`, `edit [T]` и `requires x.count == n` ([условия функций](conditions.md)) |
 | `T**` на массив структур | `read Array<T, indirection: indirect>` и `requires x.count == n` |
@@ -551,7 +551,7 @@ print(home)                       // ошибка: setenv поменял LibcPro
 - У функции C тела нет, поэтому `in` у неё обязателен; функция, которая контекстов не трогает, пишет `nocontext`
   после сигнатуры. Функция без того и другого — ошибка компиляции. `in` у функции C говорит только о контекстах:
   ждёт ли она, решает обещание `without Waiting` ([ниже](#блок-объявлений-c)). `in LibcThread` без права у функции C
-  значит `read LibcThread`, как любое право без пометки; функция, которая пишет контекст, пишет `in mut …`.
+  значит `read LibcThread`, как любое право без пометки; функция, которая пишет контекст, пишет `in mut LibcThread`.
 - `amber import-c` ставит `@fill` вместо `in` у каждой функции каждого модуля. Много функций сразу закрывает
   [блок объявлений](#блок-объявлений-c). `--update` оставляет заполненный `in`, пока не изменились контексты,
   которые он называет, и прототип `@c`.
@@ -738,7 +738,7 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 только для чтения), — остановка с именами обоих объявлений: так ловятся `localtime` и `gmtime`, разведённые по двум
 полям там, где у библиотеки буфер один.
 
-Хендлеры записываются тоже. Любой хендлер, пришедший из C (результатом, через `self?`, `self { … ==> out }` или
+Хендлеры записываются тоже. Любой хендлер, пришедший из C (результатом, через `self?`, `self { result == 0 ==> out }` или
 массив) или принятый `Self(raw:)`, — «выдан» с типом и строкой объявления. Выдать значение, которое уже выдано, —
 остановка: так ловится второй `File.adopt(raw: 1)`. «Вернулся» — только на пути, где деструктор или параметр его
 забрал: у `own fn sqlite3_close(self { result == SQLITE_OK ==> take })` — при `SQLITE_OK`. Передача вернувшегося хендлера в любой параметр останавливает программу (двойной `sqlite3_close`, `sqlite3_step` после
@@ -807,14 +807,14 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
   `p: out T { посылка ==> out }`, `own fn m(self { посылка ==> take })`, метка `self:` у вызова конструктора;
 - массивы `mut [T?]` и `out [T] { посылка ==> out }` у конструктора, `tail: out read<sql> CString? = null`,
   `= null` у параметра `mut Pointer?` и `out Pointer?` функции без тела;
-- блок объявлений в теле класса, `layout { … }` в теле класса, интерфейса и контракта, `model { … }`, `forall x in
+- блок объявлений в теле класса, блок `layout` в теле класса, интерфейса и контракта, блок `model`, `forall x in
   collection:`, `shared layout`;
 - `Self(raw:)`, `@destructor(explicit)`, несколько ролей `@destructor` у класса, контракты `ImplicitlyDestroyable` и
   `ThreadBound`;
 - `@fill` и тип C после него;
 - `CString`, `CChar`, `CLong`, `CULong`;
 - `@abi(c)` на `variant` и `struct` как раскладка C; `{ data is .ptr(read T) }` — условие на случай поля;
-  `{ kind == 1 ==> as is .number }` на внешней структуре; `requires event.data is .u64` у параметра и `ensures forall i in 0 ..< …: events[i].data is .u64` у
+  `{ kind == 1 ==> as is .number }` на внешней структуре; `requires event.data is .u64` у параметра и `ensures forall i in 0 ..< result: events[i].data is .u64` у
   элементов, которые функция записала ([условия функций](conditions.md));
 - в примере `epoll`: `Pollable`, `Descriptor` как тип только для чтения, `Epoll<T>`, `Key`, `event.item`,
   `event.remove()`, `epoll.item(key)`;
