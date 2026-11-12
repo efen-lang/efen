@@ -74,9 +74,8 @@ Dryad): рекурсивное определение раскрывается �
 [«Право на элемент»](layout/functions.md#82-право-на-элемент). Экземпляров у `layout` нет, множество одно на программу
 ([множества и области](layout/declaration.md#множества-и-области), правило 1).
 
-**Освобождение принимает только `own`.** Переход к владению пишется `node as own Pointer`, где `node` — значение
-под `anchor`; память уходит туда, откуда пришла:
-`mm.free(node as own Pointer)`. Кроме невладеющих указателей компилятор проверяет, что функция владеет элементом:
+**Освобождение принимает только `own`.** Переход к владению пишется `let dead = node as own Nodes.Item`, где `node` —
+значение под `anchor`; с концом `dead` память уходит туда, откуда пришла. Кроме невладеющих указателей компилятор проверяет, что функция владеет элементом:
 якорь взят в этой функции через `tie` (значение `own` через `take`) либо пришёл параметром `anchor`
 ([удаление элемента](layout/operations.md#переход-к-владению-as-own), правило 2). Указатели вызывающего на элемент недействительны по сводке.
 На этом переходе компилятор по всем инвариантам `layout` проверяет, что на память больше никто не ссылается; без
@@ -89,7 +88,7 @@ Dryad): рекурсивное определение раскрывается �
 **Держатели указателей считаются от входа в функцию.** Внутри тела инвариант бывает нарушен, его проверяют в точках передачи.
 Поэтому на событии уничтожения FLOW ищет указатели не по инварианту в этой точке, а по состоянию на входе в функцию и записям
 тела до события. Пример: в `A→B→C` после `n.next = tie old.next` у `C` осталось `C.prev == B`; инвариант в этой точке
-нарушен и о нём не говорит, но запись тела видна, и `old as own Pointer` до починки `C.prev` — ошибка.
+нарушен и о нём не говорит, но запись тела видна, и `old as own Nodes.Item` до починки `C.prev` — ошибка.
 
 **Отсутствие висячих указателей делится между структурой и кодом.** Инвариант говорит, где указатели на значение могут лежать;
 код события показывает, что каждое из них мертво, переписано или верно. Чем точнее инвариант, тем больше работы в шагах,
@@ -182,7 +181,7 @@ fn pop(list: mut List) -> anchor Nodes.Item? {
 перепишет якорь собственного хвоста `n`, а если в этом хвосте лежит узел списка, цикл замкнётся с другой стороны.
 Второе обязательство FLOW выводит в предусловие `push`.
 
-**Крайнее состояние.** `mm.free(first as own Pointer)` после `pop`: указателей на узел нет, висячих указателей нет. Доказательство целиком в
+**Крайнее состояние.** `let dead = first as own Nodes.Item` после `pop`: указателей на узел нет, висячих указателей нет. Доказательство целиком в
 структуре.
 
 ## Двусвязный список
@@ -233,7 +232,7 @@ fn remove(list: mut List, n: read<list> Nodes.Item) {
     let node = tie p.next ?? return            // якорь n: n в списке, его поле-якорь находится у n.prev
     p.next = tie node.next
     if let b = p.next { b.prev = p }           // единственный указатель на n переписан
-    mm.free(node as own Pointer)
+    let dead = node as own Nodes.Item
 }
 ```
 
@@ -296,7 +295,7 @@ fn rotateLeft(x: anchor Nodes.Item) -> anchor Nodes.Item {
 fn freeTree(t: anchor Nodes.Item) {
     if let l = tie t.left { freeTree(t: tie l) }
     if let r = tie t.right { freeTree(t: tie r) }
-    mm.free(t as own Pointer)
+    let dead = t as own Nodes.Item
 }
 ```
 
@@ -332,7 +331,7 @@ fn makePair(pairs: edit Pairs, a: read<pairs> Nodes.Item, b: read<pairs> Nodes.I
 fn dropPeer(pairs: mut Pairs, a: read<pairs> Nodes.Item, b: read<pairs> Nodes.Item) {
     a.peer = null                       // по инварианту указатель peer на b хранит только a
     let cut = unlinkNode(pairs, b)      // anchor Nodes.Item: узел вырезан из цепочки pairs
-    mm.free(cut as own Pointer)         // b.peer уничтожается вместе с b
+    let dead = cut as own Nodes.Item    // b.peer уничтожается вместе с b
 }
 ```
 
@@ -410,7 +409,7 @@ fn removeVertex(g: mut Graph, v: read<g> Vertices.Item) {
         u = w.nextInGraph
     }
     freeOwnEdges(g, v: v)
-    mm.free(unlinkVertex(g: g, v: v) as own Pointer)
+    let dead = unlinkVertex(g: g, v: v) as own Vertices.Item
 }
 ```
 
@@ -480,7 +479,7 @@ struct Edge   { invariants { nextIn == null || nextIn!.to == to } }
 fn removeVertex(g: mut Graph, v: read<g> Vertices.Item) {
     while let e = v.inbound { removeEdge(g, e) }      // removeEdge(g: mut Graph, e: read<g> Edges.Item)
     while let e = v.out { removeEdge(g, e) }
-    mm.free(unlinkVertex(g: g, v: v) as own Pointer)
+    let dead = unlinkVertex(g: g, v: v) as own Vertices.Item
 }
 ```
 
@@ -528,7 +527,7 @@ layout {
 fn removeVertex(g: mut Graph, v: read<g> Vertices.Item) {
     dropEdgesOf(g: g, v: v)                     // проход по цепочке рёбер до null: рёбра с from == v или to == v вынуты и освобождены
     let cut = unlinkVertex(g: g, v: v)          // anchor Vertices.Item: вершина вырезана из цепочки графа
-    mm.free(cut as own Pointer)                 // доказано: указателей на v нет
+    let dead = cut as own Vertices.Item         // доказано: указателей на v нет
 }
 ```
 
@@ -544,7 +543,7 @@ fn removeVertex(g: mut Graph, v: read<g> Vertices.Item) {
 | Свойство | Почему выполняется |
 |---|---|
 | нет обращения к освобождённой вершине | проход убрал все рёбра с указателем на `v`; по правилу чистоты хранимых указателей на `v` вне графа нет; у вызывающего указатели с источником `g`, которые могут быть равны `v`, недействительны с точки вызова |
-| нет двойного освобождения | после `cut as own Pointer` якоря у функции нет, а указатель `v` недействителен; второй вызов вызывает ошибку |
+| нет двойного освобождения | после `cut as own Vertices.Item` якоря у функции нет, а указатель `v` недействителен; второй вызов вызывает ошибку |
 | вершины не пересекаются | каждая вершина занимает свою память, полученную от менеджера памяти |
 | память не теряется | вершина без рёбер остаётся в цепочке графа; функция, которая уничтожает граф, проходит обе цепочки и освобождает каждый элемент |
 

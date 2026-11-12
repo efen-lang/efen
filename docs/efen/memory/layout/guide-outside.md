@@ -31,9 +31,10 @@
 ### Значение структуры
 
 Значение структуры ведёт себя как обычное значение: его хранят в переменной, передают параметром `own`, записывают
-в поле класса. Вместе со значением переходят все элементы, которыми оно владеет. Структура с владеющим полем,
-видимая внешнему коду, имеет `dispose` или функцию той же видимости, которая оставляет все владеющие поля равными
-`null`. Без них компилятор отвергает объявление структуры.
+в поле класса. Вместе со значением переходят все элементы, которыми оно владеет. Структура, память которой план не
+обходит ([ничего не теряется](lifetime.md#74-ничего-не-теряется), правило 2 о значении структуры), имеет `dispose`
+или функцию той же видимости, которая оставляет её владеющие поля равными `null`. Без них компилятор отвергает
+объявление структуры.
 
 ### Элемент целиком: `public own Nodes`
 
@@ -48,7 +49,7 @@ private layout {
 }
 
 public fn newNode(value: Int) -> own Nodes.Item {
-    return mm.allocate(bytes: sizeOf(Node)) as Node(value: value)
+    return Node(value: value)
 }
 
 public fn pop(queue: mut Queue) -> own Nodes.Item? {
@@ -181,7 +182,7 @@ fn firstOf<T>(list: List<T>) -> read<list> T? {
 fn broken(list: mut List<Int>) {
     let node = list.head ?? return               // указатель с источником list
     let dropped = list.popFirst()                // освобождает первый узел
-    print(node.value)                            // error[flow.slot-left]: указатель `node` использован после конца жизни узла
+    print(node.value)                            // error[flow.slot-left]: указатель `node` использован после конца времени жизни узла
 }
 ```
 
@@ -235,8 +236,7 @@ strategy<T> for List<T> {
         let node = tie head ?? return
         head = tie node.next
         count -= 1
-        let dead = take node.value
-        mm.free(node as own Pointer)
+        let dead = node as own Nodes<T>.Item
     }
 }
 ```

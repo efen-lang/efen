@@ -66,13 +66,12 @@ strategy<T> for DoublyList<T> {
     implements Disposable
 
     fn dispose {                                         // вызывает только компилятор (раздел 7.4)
+        tail = null                                      // хранимого указателя на последний узел не остаётся
         while let node = tie head {
             head = tie node.next
             if let next = head { next.prev = null }      // указатель на node переписан до as own
-            let dead = take node.value                   // значение T уничтожается в конце шага
-            mm.free(node as own Pointer)
+            let dead = node as own Nodes<T>.Item         // в конце шага value уничтожается, память возвращается
         }
-        tail = null
         length = 0
     }
 }
@@ -123,7 +122,13 @@ strategy<K, V> for Lru<K, V> {
     implements Disposable
 
     fn dispose {                                         // освобождает таблицу; список освобождает его dispose
-        if let old = take table { mm.free(old as Pointer) }
+        if let old = take table {
+            var i = 0
+            while i < buckets {
+                let bucket = take old[i]                 // корзина хранит только невладеющий указатель
+                i += 1
+            }
+        }                                                // old кончается: ни один слот не инициализирован
         buckets = 0
     }
 }

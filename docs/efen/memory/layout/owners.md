@@ -76,7 +76,7 @@ struct Node {
 ```efen
 fn destroyBlock(pool: mut Pool, node: anchor Blocks.Item) {
     unlink(pool, node)                       // указатели на node в цепочках пула сняты
-    mm.free(node as own Pointer)             // якорь стал own, память вернулась менеджеру памяти
+    let dead = node as own Blocks.Item       // якорь стал own; в конце функции память вернётся аллокатору множества
 }
 
 fn pop(list: mut List) -> anchor Items.Item? {
@@ -88,13 +88,12 @@ fn pop(list: mut List) -> anchor Items.Item? {
 }
 ```
 
-Имя `mm.free` здесь и далее обозначает функцию внешнего менеджера памяти, которая принимает `own Pointer`.
-
 До выхода функция с параметром `anchor` уничтожает значение или передаёт якорь дальше. Пока она этого не сделала,
 указатели на значение у остального кода действительны.
 
 **Запрещено.** Якорь переходит только между функциями кода `layout`. Коду расширения его отдаёт и от него принимает
-функция `protected fn` (раздел 10.4). Локальный владелец неявно не уничтожается (раздел 7.4).
+функция `protected fn` (раздел 10.4). Локальный якорь неявно не уничтожается; локальный `own` в коде `layout` кончается
+по разделу 7.4.
 
 **Почему.** Между снятием элемента с одного поля и записью в другое им кто-то владеет. Если бы владельцем считалось
 только поле, такой промежуток был бы утечкой.
@@ -269,7 +268,7 @@ public fn destroy(pool: own Pool) requires pool.busy == null {       // выда
     while let block = tie pool.free {
         pool.free = tie block.next
         if let next = pool.free { next.prev = null }                 // указатель на block переписан до as own
-        mm.free(block as own Pointer)
+        let dead = block as own Blocks.Item
     }
 }
 ```
@@ -293,17 +292,15 @@ private layout {
 }
 
 public fn newNode(value: Int) -> own Nodes.Item {
-    return mm.allocate(bytes: sizeOf(Node)) as Node(value: value)    // next равен null по умолчанию
+    return Node(value: value)                 // next равен null по умолчанию
 }
 
 public fn freeNode(node: own Nodes.Item) {
     var rest = take node.next                 // цепочка под узлом; у узла из newNode и pop она пуста
-    mm.free(node as Pointer)                  // владеющее поле узла пусто, хранимых указателей на узел нет
     while let next = take rest {
         rest = take next.next
-        mm.free(next as Pointer)
-    }
-}
+    }                                         // next кончается в конце шага: его поле next равно null
+}                                             // node кончается: поле next равно null, память возвращается
 
 public fn push(queue: edit Queue, node: own Nodes.Item) {
     if let first = queue.head {

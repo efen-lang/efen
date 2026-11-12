@@ -35,8 +35,8 @@
 | Примеры | [layout examples](layout-examples/README.md) |
 
 `allocator.md` нормативен в части сигнатур контракта аллокатора: на него опираются правила справочника о
-`mm.allocate` и `AllocationError`
-([создание элемента](layout/operations.md#выделение-и-освобождение--переход-между-множествами), правило 8).
+стратегии `Allocator` и `AllocationError`
+([создание элемента](layout/operations.md#выделение-и-освобождение--переход-между-множествами), правила 1 и 2).
 `classes-internal.md` и `index.md` остаются историческими набросками и не заменяют правила ownership и layout выше.
 
 ---
