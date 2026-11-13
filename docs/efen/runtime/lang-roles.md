@@ -57,10 +57,78 @@ var full = "${name}!"        // ошибка сборки: новая строк
 | `==` `!=` | `lang::Equatable` | Аргументы только читаются; `nothrows`; `!=` — отрицание `==` |
 | `<` `>` `<=` `>=` `<=>` | `lang::Comparable` | Аргументы только читаются; `nothrows` |
 | `+` `-` `*` `/` `%`, унарный `-` | `lang::Number` | Аргументы только читаются; результат — новое значение во владении вызывающего. Реализуют только `lang::`, рантайм и std |
-| `v[i]`, `v[] = x` у коллекции из библиотеки | семейство функций стратегии `at(index:)` по праву и `append` | `v[i]` — вызов члена семейства `at` ([стратегия с правом доступа](../strategies.md#стратегия-с-правом-доступа)): в позиции чтения `read`; в позиции записи (`v[i] = x`, `&v[i]`, аргумент `edit` или `mut`, `swap`) `edit`, если коллекция его объявила, иначе `mut`. Результат `Access<&self.items![index]> T` — ровно слот `i` ([ссылка ровно на слот](../types/ownership.md#ссылка-ровно-на-слот)). `v[] = x` — вызов `v.append(x)`. У `Array`, области и среза `[]` встроен |
+| `v[i]` у коллекции из библиотеки | `lang::Indexable` | `v.at(index: i)`. Член выбирает позиция, не шире права получателя: чтение — `read`; запись (`v[i] = x`, `v[i] += x`, `v[i]++`, `v[i].f = x`, `&v[i]`, аргумент `edit` или `mut`, получатель метода `edit` или `mut`, `v[i][] = x`, `swap`, `take v[i]` у `T?`) — `edit`, если он есть, иначе `mut`. В обобщённом коде — самый узкий член, который даёт ограничение. Результат реализации — ровно слот, `Access<&self.items![index]> T` ([ссылка ровно на слот](../types/ownership.md#ссылка-ровно-на-слот)); ссылка из члена `edit` разрешает `mut` над значением слота. Индекс вне `0 ..< count`, который FLOW не доказал, бросает `BoundsError`; `nothrows` |
+| `v[range]`, все восемь форм, у коллекции из библиотеки | `lang::Sliceable` | Компилятор приводит диапазон к `start ..< end` (`a + 1`, `b + 1` бросают `OverflowError`; открытая граница — `0` или `v.count` в момент вызова) и вызывает `v.slice(start:end:)`. Результат — срез `Slice<T>` ровно на слоты `start ..< end`: `Access<&self.items![start ..< end]> Slice<T>`; срез хранит свою длину. Вне `0 <= start <= end <= count` — `BoundsError`; `nothrows` |
+| `v[] = x` | `lang::Appendable` | `v.append(value: x)` по правилам параметра `own`; `nothrows` |
+| `d[k]`, `d[k] = x` | `lang::KeyIndexable`, `lang::KeyInsertable` | `d[k]` — `d.at(key: k)`, результат `Access<self> V?`; остальные позиции записи — член `edit`, ключ должен быть. Присваивание `d[k] = x` — `d.insert(key: k, value: x)`, вызов `mut`; прежнее значение отбрасывается и требует `V: ImplicitlyDestroyable` |
+| литерал `[a, b]` | `lang::ArrayLiteral` | Компилятор заполняет `Area<T>(count: n)` и вызывает `adopt`; `nofail` |
 | `copy x` | `lang::Copyable` | Источник только читается; результат независим от источника ([контракты](value-operations.md#оператор-copy)) |
 | `clone x` | `lang::Cloneable` | Источник только читается; данные в куче становятся общими, их владение доказано счётчиком или layout ([контракты](value-operations.md#оператор-clone)) |
 | `"${x}"` | `lang::Interpolatable` | `fn writeText(buffer: mut TextBuffer) -> Int`: пишет в буфер столько текста, сколько входит, и возвращает, сколько байт нужно всему тексту. Текст примитивов пишет рантайм через `lang::PrimitiveText`; `TextBuffer` объявлен в `lang::` |
+
+У `Area<T>` `[i]` и `[range]` встроены; `Area` длины не хранит, и каждый доступ к нему доказывает FLOW по коду
+владельца; `area[a ..< b]` даёт `Slice<T>`, который хранит свою длину, и доступ через срез без доказательства
+проверяется при выполнении.
+
+Коллекция поддерживает ровно те формы `[]`, контрактам которых соответствует; другая форма — ошибка компиляции.
+`v[range]` с диапазоном или значением `Interval` вызывает `Sliceable.slice`; любое другое `v[x]` вызывает
+`KeyIndexable.at(key:)`, когда тип ему соответствует, иначе `Indexable.at(index:)`. Соответствие обоим с одним типом
+индекса — ошибка у объявления. `Array<T>` — код рантайма и соответствует контрактам, как любая коллекция. Контракты
+объявлены в `lang::`:
+
+```efen
+// lang/indexing.efen
+
+contract Indexable<Access Item, Index = Int> {
+    var count: Int { get }
+    Access fn at(index: Index) -> Access<self> Item nothrows
+
+    #if Access == edit || Access == mut
+        edit fn swapAt(i: Index, j: Index) nothrows
+    #endif
+
+    invariants {
+        Access == read || Access == edit || Access == mut
+    }
+}
+
+contract Sliceable<Access Item> : Indexable<Access Item> {
+    Access fn slice(start: Int, end: Int) -> Access<self> Slice<Item> nothrows
+
+    invariants {
+        Access == read || Access == edit
+    }
+}
+
+contract Appendable<Item> {
+    mut fn append(value: own Item) nothrows
+}
+
+contract KeyIndexable<Key, Access Value> {
+    var count: Int { get }
+    Access fn at(key: Key) -> Access<self> Value? nothrows
+
+    invariants {
+        Access == read || Access == edit
+    }
+}
+
+contract KeyInsertable<Key, Value> {
+    mut fn insert(key: own Key, value: own Value) -> own Value? nothrows
+}
+
+@unique
+contract ArrayLiteral<Item> {
+    static fn adopt(items: own Area<Item>?, count: Int) -> Self nofail
+        requires (items == null) == (count == 0)
+        requires items == null || items!.count == count
+}
+```
+
+Контракт пишет источник как `<self>`: частей через `&` контракт не называет
+([ссылка ровно на слот](../types/ownership.md#ссылка-ровно-на-слот), правило 5); реализация сужает его до ровно слота
+или ровно отрезка своего поля. Литерал `[a, b]` компилятор строит, заполняя `Area<T>(count: 2)` и вызывая `adopt`:
+каждый слот `0 ..< count` к вызову инициализирован.
 
 Пока `String` — встроенный тип компилятора, а не тип рантайма, `==` строк вызывает временный контракт
 `lang::StringEquality` (`fn equal(left: String, right: String) -> Bool nofail`). Его реализует рантайм на Efen,

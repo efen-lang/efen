@@ -24,13 +24,15 @@ private fn grow<T: Movable>(v: mut Vector<T>, minimum: Int) {
 }
 
 strategy<T> for Vector<T> {
+    conforms Appendable<Item: T>
+
     public mut fn reserve(minimum: Int) {
         if minimum > capacity {
             grow(self, minimum: minimum)
         }
     }
 
-    public mut fn append(value: own T) {
+    public mut fn append(value: own T) nothrows {
         reserve(count + 1)
         items![count] = take value
         count += 1
@@ -113,10 +115,29 @@ fn example {
     let first = v.read(0)
 }                                               // конец области: компилятор вызывает dispose
 
-strategy VectorAccess<T, Access: Access> for Vector<T>
-where Access == read || Access == edit || Access == mut {
-    public Access fn at(index: Int) -> Access<&self.items![index]> T {
+strategy VectorAccess for Vector<T> {
+    generic T: Movable
+    generic Access: Access { value == read || value == edit }
+    conforms Sliceable<Item: Access T>
+
+    Access fn at(index: Int) -> Access<&self.items![index]> T nothrows {
         guard index >= 0 && index < count else { throw BoundsError() }
         return &items![index]
+    }
+
+    Access fn slice(start: Int, end: Int) -> Access<&self.items![start ..< end]> Slice<T> nothrows {
+        guard 0 <= start && start <= end && end <= count else { throw BoundsError() }
+        return &items![start ..< end]
+    }
+}
+
+strategy VectorSwap for Vector<T> {
+    generic T: Movable
+
+    edit fn swapAt(i: Int, j: Int) nothrows {
+        guard i >= 0 && i < count && j >= 0 && j < count else { throw BoundsError() }
+        if i != j {
+            swap(items![i], items![j])
+        }
     }
 }

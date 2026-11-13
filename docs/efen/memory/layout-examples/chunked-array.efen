@@ -60,7 +60,9 @@ private fn movePosition<T: Movable>(a: mut ChunkedArray<T>, from: Int, to: Int) 
 }
 
 strategy<T> for ChunkedArray<T> {
-    public mut fn append(value: own T) {
+    conforms Appendable<Item: T>
+
+    public mut fn append(value: own T) nothrows {
         ensureChunks(self, required: 1 + count / CHUNK_SIZE)
 
         directory![count / CHUNK_SIZE].root![count % CHUNK_SIZE] = take value
@@ -157,6 +159,24 @@ strategy<T: Copyable> for ChunkedArray<T> {
         requires index >= 0 && index < count
     {
         return copy directory![index / CHUNK_SIZE].root![index % CHUNK_SIZE]
+    }
+}
+
+strategy ChunkedAccess for ChunkedArray<T> {
+    generic T: Movable
+    generic Access: Access { value == read || value == edit }
+    conforms Indexable<Item: Access T>
+
+    Access fn at(index: Int) -> Access<self> T nothrows {
+        guard index >= 0 && index < count else { throw BoundsError() }
+        return &directory![index / CHUNK_SIZE].root![index % CHUNK_SIZE]
+    }
+
+    edit fn swapAt(i: Int, j: Int) nothrows {
+        guard i >= 0 && i < count && j >= 0 && j < count else { throw BoundsError() }
+        if i != j {
+            swap(directory![i / CHUNK_SIZE].root![i % CHUNK_SIZE], directory![j / CHUNK_SIZE].root![j % CHUNK_SIZE])
+        }
     }
 }
 

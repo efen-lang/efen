@@ -66,6 +66,29 @@ strategy<T: Copyable> for FixedArray<T> {
     }
 }
 
+strategy FixedArrayAccess for FixedArray<T> {
+    generic T: Movable
+    generic Access: Access { value == read || value == edit }
+    conforms Sliceable<Item: Access T>
+
+    Access fn at(index: Int) -> Access<&self.items![index]> T nothrows {
+        guard index >= 0 && index < count else { throw BoundsError() }
+        return &items![index]
+    }
+
+    Access fn slice(start: Int, end: Int) -> Access<&self.items![start ..< end]> Slice<T> nothrows {
+        guard 0 <= start && start <= end && end <= count else { throw BoundsError() }
+        return &items![start ..< end]
+    }
+
+    edit fn swapAt(i: Int, j: Int) nothrows {
+        guard i >= 0 && i < count && j >= 0 && j < count else { throw BoundsError() }
+        if i != j {
+            swap(items![i], items![j])
+        }
+    }
+}
+
 fn square(i: Int) -> own Int {
     return i * i
 }
