@@ -93,17 +93,23 @@ let first = priorities[0]
 стратегии, а не в теле:
 
 ```efen
-struct Range<T> { }
+struct Range<T> {
+    let items: Array<T>
+}
 
-strategy for Range<T> {
+strategy<T> for Range<T> {
     conforms Constructible
 
     @constructor
-    fn init(source: own Array<T>) -> Self
+    fn init(source: own Array<T>) -> Self {
+        // Принимает память source как своё хранилище, не перемещая элементов.
+    }
 
     #if T conforms Copyable
         @constructor
-        fn init(source: read Array<T>) -> Self
+        fn init(source: read Array<T>) -> Self {
+            // Копирует элементы в собственное хранилище.
+        }
 
         @constructor
         fn init(source: read Slice<T>) -> Self {
@@ -112,6 +118,10 @@ strategy for Range<T> {
     #endif
 }
 ```
+
+Форма с полями `Range<Int>(items: take other)` остаётся конструктором `Range` по умолчанию
+([правила выбора стратегии](../strategies.md#правила-выбора-стратегии)); она забирает массив во владение,
+поэтому тоже даёт независимое значение.
 
 Именованный аргумент без `take` предоставляет конструктору только
 доступ без передачи владения. Перегрузка `own` для него не является кандидатом.
