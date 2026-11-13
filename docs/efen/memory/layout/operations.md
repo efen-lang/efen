@@ -125,7 +125,7 @@ fn rotateRootLeft(tree: edit Tree) {          // edit: все узлы оста�
 Правила формы с полями:
 
 1. Компилятор запрашивает у стратегии `allocate(bytes: sizeOf(V(поля)), aligned: alignOf(V))`. Условие
-   `ensures result.size == bytes && result.alignment == aligned` у `allocate` доказывает, что память вмещает вид.
+   `ensures result.size >= bytes && result.alignment == aligned` у `allocate` доказывает, что память вмещает вид.
    У структуры, размер которой задаёт инвариант через поле (`invariants { text.count == length }`), такое поле
    среди аргументов — число, константа или неизменяемое имя.
 2. Память выделяется до вычисления аргументов. Когда памяти нет, `allocate` бросает `AllocationError`: аргументы

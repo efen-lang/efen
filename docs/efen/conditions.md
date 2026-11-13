@@ -322,7 +322,7 @@ contract System {
         requires PAGE > 0 && bytes % PAGE == 0
         ensures result == null || (result.size == bytes && result.alignment == aligned)
 
-    fn unmap(memory: own Pointer, bytes: Int)
+    fn unmap(memory: own Pointer, bytes: Int) nofail
 }
 ```
 

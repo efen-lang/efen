@@ -2,35 +2,37 @@
 
 `Allocator<Type>` — стратегия, которая даёт память значениям одного типа: объекту класса, элементу множества
 `layout`, области. Компилятор вызывает её сам, когда создаёт значение формой с полями (`Box(value: 10)`,
-`Node<T>(value: take value)`), и когда значение кончается. Программа выделение и освобождение не пишет.
+`Node<T>(value: take value)`), и когда значение кончается. У типа со стандартным аллокатором программа выделение и
+освобождение не пишет; тип с нестандартным аллокатором может потребовать ручного выделения
+([ручное выделение](#ручное-выделение)).
 
 ```efen 
 contract Allocator<Type>
 {
     for Type
 
-    // Выделяет блок памяти заданного размера и выравнивания; без памяти бросает AllocationError.
-    static fn allocate(bytes: Int, aligned: Int) -> own Pointer throws AllocationError
-        ensures result.size == bytes && result.alignment == aligned
+    // Выделяет блок памяти не меньше заданного размера и с заданным выравниванием; без памяти бросает AllocationError.
+    static fn allocate(bytes: Int, aligned: Int) -> own Pointer throws only AllocationError
+        ensures result.size >= bytes && result.alignment == aligned
 
     // То же, но без памяти возвращает null.
-    static fn tryAllocate(bytes: Int, aligned: Int) -> own Pointer?
-        ensures result == null || (result.size == bytes && result.alignment == aligned)
+    static fn tryAllocate(bytes: Int, aligned: Int) -> own Pointer? nofail
+        ensures result == null || (result.size >= bytes && result.alignment == aligned)
 
     // Расширяет блок на месте; никогда не перемещает; если на месте нельзя, бросает AllocationError.
-    static fn extend(pointer: mut Pointer, bytes: Int) throws AllocationError
+    static fn extend(pointer: mut Pointer, bytes: Int) throws only AllocationError
 
     // То же, но если на месте нельзя, возвращает false.
-    static fn tryExtend(pointer: mut Pointer, bytes: Int) -> Bool
+    static fn tryExtend(pointer: mut Pointer, bytes: Int) -> Bool nofail
 
     // Расширяет блок на месте или переносит в новый; без памяти бросает AllocationError, старый блок цел.
-    static fn reallocate(pointer: mut Pointer, bytes: Int) throws AllocationError
+    static fn reallocate(pointer: mut Pointer, bytes: Int) throws only AllocationError
 
     // То же, но без памяти возвращает false, старый блок цел.
-    static fn tryReallocate(pointer: mut Pointer, bytes: Int) -> Bool
+    static fn tryReallocate(pointer: mut Pointer, bytes: Int) -> Bool nofail
 
-    // Освобождает ранее выделенный блок памяти по указанному указателю.
-    static fn deallocate(pointer: own Pointer)
+    // Освобождает блок; bytes и aligned — те, с которыми блок выделен.
+    static fn deallocate(pointer: own Pointer, bytes: Int, aligned: Int) nofail
 }
 ```
 
@@ -42,7 +44,7 @@ contract Allocator<Type>
 
 Для элемента компилятор вызывает `allocate(bytes: sizeOf(V(поля)), aligned: alignOf(V))` до вычисления
 аргументов формы и приводит память к виду `V`; условие `ensures` доказывает, что память вмещает вид. Когда значение
-`own` кончается, он вызывает `deallocate` той же стратегии
+`own` кончается, он вызывает `deallocate` той же стратегии с теми же `bytes` и `aligned`
 ([создание элемента](layout/operations.md#62-создание-элемента)). `tryAllocate` и функции роста служат коду, который
 работает с сырой памятью сам: менеджерам памяти и коллекциям. Формы создания, которая вместо исключения даёт
 `null`, нет: такой код вызывает `tryAllocate` и приводит память сам.
@@ -81,32 +83,32 @@ contract Allocator<Type>
 public strategy Heap<Type> {
     conforms Allocator<Type>
 
-    static fn allocate(bytes: Int, aligned: Int) -> own Pointer throws AllocationError {
+    static fn allocate(bytes: Int, aligned: Int) -> own Pointer throws only AllocationError {
         return mm.allocate(bytes: bytes, aligned: aligned)
     }
 
-    static fn tryAllocate(bytes: Int, aligned: Int) -> own Pointer? {
+    static fn tryAllocate(bytes: Int, aligned: Int) -> own Pointer? nofail {
         return mm.tryAllocate(bytes: bytes, aligned: aligned)
     }
 
-    static fn extend(pointer: mut Pointer, bytes: Int) throws AllocationError {
+    static fn extend(pointer: mut Pointer, bytes: Int) throws only AllocationError {
         mm.extend(pointer: pointer, bytes: bytes)
     }
 
-    static fn tryExtend(pointer: mut Pointer, bytes: Int) -> Bool {
+    static fn tryExtend(pointer: mut Pointer, bytes: Int) -> Bool nofail {
         return mm.tryExtend(pointer: pointer, bytes: bytes)
     }
 
-    static fn reallocate(pointer: mut Pointer, bytes: Int) throws AllocationError {
+    static fn reallocate(pointer: mut Pointer, bytes: Int) throws only AllocationError {
         mm.reallocate(pointer: pointer, bytes: bytes)
     }
 
-    static fn tryReallocate(pointer: mut Pointer, bytes: Int) -> Bool {
+    static fn tryReallocate(pointer: mut Pointer, bytes: Int) -> Bool nofail {
         return mm.tryReallocate(pointer: pointer, bytes: bytes)
     }
 
-    static fn deallocate(pointer: own Pointer) {
-        mm.deallocate(pointer: take pointer)
+    static fn deallocate(pointer: own Pointer, bytes: Int, aligned: Int) nofail {
+        mm.deallocate(pointer: take pointer, bytes: bytes, aligned: aligned)
     }
 }
 ```
@@ -120,11 +122,11 @@ public strategy Heap<Type> {
 public strategy ThreadHeap<Type: ThreadBound> {
     conforms Allocator<Type>
 
-    static fn allocate(bytes: Int, aligned: Int) -> own Pointer throws AllocationError {
+    static fn allocate(bytes: Int, aligned: Int) -> own Pointer throws only AllocationError {
         return threadheap::take(bytes: bytes, aligned: aligned)
     }
 
-    static fn deallocate(pointer: own Pointer) {
+    static fn deallocate(pointer: own Pointer, bytes: Int, aligned: Int) nofail {
         threadheap::give(pointer: take pointer)
     }
 
@@ -168,3 +170,25 @@ class MyObject {
 
 provide ThreadHeap for MyObject                 // MyObject привязан к потоку: ThreadHeap к нему применим
 ```
+
+<a id="ручное-выделение"></a>
+
+## Ручное выделение
+
+Правило выделения одно для каждого типа. Тип со стандартным аллокатором работает, как описано выше: память
+выделяет и освобождает компилятор. Тип с нестандартным аллокатором через API времени компиляции может потребовать,
+чтобы аллокатор и явный конструктор вызывались вручную, или назвать другой аллокатор. Тип в ручном режиме
+освобождает память вызовом `(take old).deallocate()`.
+
+## Отказ при освобождении
+
+`deallocate` объявлен `nofail`, и стратегия повторяет это слово. Он не ждёт
+([эффекты ожидания](../shared.md#эффекты-ожидания)) и памяти у менеджера не просит: служебную запись хранит сам блок.
+Компилятор вызывает его на каждом выходе, в том числе во время раскрутки, и сообщать об отказе некому.
+
+Отказ, после которого инварианты кучи верны, реализация поглощает: блок остаётся у аллокатора или теряется.
+Нарушение инвариантов (адрес не выдан этой стратегией или уже возвращён, заголовок блока испорчен) останавливает
+программу вызовом `halt()` в каждой сборке: при раскрутке каждый кадр вернул бы свои значения в ту же кучу.
+
+Возврат старого блока в `reallocate` и `tryReallocate` — то же освобождение: `reallocate` бросает только
+`AllocationError` и только до переноса.
