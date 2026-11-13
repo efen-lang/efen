@@ -109,8 +109,8 @@ var particles: Array<Particle, soa> = []    // в C не передаётся
 ```efen
 @abi(c) @packed
 struct Header {
-    kind: UInt8
-    length: UInt32              // смещение 1, не 4
+    var kind: UInt8
+    var length: UInt32              // смещение 1, не 4
 }
 ```
 
@@ -137,12 +137,22 @@ struct Header {
 ```efen
 @abi(c)
 struct tcphdr {
-    source: UInt16
-    dest: UInt16
-    // ...
-    @bits(4, at: 96) res1: UInt16
-    @bits(4, at: 100) doff: UInt16
-    @bits(1, at: 104) fin: UInt16
+    var source: UInt16
+    var dest: UInt16
+    var seq: UInt32
+    var ack_seq: UInt32
+    @bits(4, at: 96) var res1: UInt16
+    @bits(4, at: 100) var doff: UInt16
+    @bits(1, at: 104) var fin: UInt16
+    @bits(1, at: 105) var syn: UInt16
+    @bits(1, at: 106) var rst: UInt16
+    @bits(1, at: 107) var psh: UInt16
+    @bits(1, at: 108) var ack: UInt16
+    @bits(1, at: 109) var urg: UInt16
+    @bits(2, at: 110) var res2: UInt16
+    var window: UInt16
+    var check: UInt16
+    var urg_ptr: UInt16
 }
 ```
 
@@ -181,8 +191,8 @@ variant epoll_data_t {
    ```efen
    @abi(c)
    struct Value {
-       kind: Int32
-       value: Value_value { kind == 1 ==> value is .number, kind == 2 ==> value is .text }
+       var kind: Int32
+       var value: Value_value { kind == 1 ==> value is .number, kind == 2 ==> value is .text }
    }
    ```
 

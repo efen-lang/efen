@@ -29,14 +29,14 @@ class Box {
     }
 }
 
-// Вызорв конструктора
+// Вызов конструктора
 let box1 = Box(value: 10)
 ```
 
 ```efen
 struct Point {
-    x: Float
-    y: Float
+    var x: Float
+    var y: Float
 }
 
 // Инициализация структуры
@@ -179,8 +179,8 @@ class Box {
     var point: Point
 
     @constructor
-    fn init(value: Point) -> Self {
-        self.point = value
+    fn init(value: own Point) -> Self {
+        self.point = take value
     }
     
     fn dispose {
@@ -194,9 +194,8 @@ class Box {
 
 fn example {
     let p1 = Point(x: 1.0, y: 2.0) // Point живёт в области видимости example
-    let box1 = Box(value: p1)      // Box живёт в области видимости example
-                                   // Box владеет Point на чтение
-}                                  // Освобождение box1 и p1
+    let box1 = Box(value: take p1) // p1 перенесён в Box; Box живёт в области видимости example
+}                                  // Освобождение box1 вместе с его Point
 ```
 
 ## Особые случаи
