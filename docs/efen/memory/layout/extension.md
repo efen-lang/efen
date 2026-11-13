@@ -88,6 +88,7 @@ layout<K: Hashable, V: Movable>: lists::Lists<Entry<K, V>> {     // расшир
         var buckets: Int = 0 { value >= 0 }
         var table: own Area<Bucket>? = null { value == null || value.count == buckets }
         invariants {                                     // на узел указывает только корзина его ключа
+            table == null || table!.initialized == buckets
             forall i in 0 ..< buckets: table![i].node == null || hash(table![i].node!.value.key) % buckets == i
         }
     }

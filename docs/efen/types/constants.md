@@ -507,7 +507,7 @@ enum LogLevel {
 
 // Использование
 if status == HttpStatus.OK {
-    // ...
+    // тело не важно для примера
 }
 ```
 

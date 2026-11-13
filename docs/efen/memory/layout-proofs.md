@@ -130,7 +130,7 @@ Dryad): рекурсивное определение раскрывается �
 |---|---|
 | `n.next = tie list.head` в `push`, `n.next = tie a.next` в `insertAfter` | «а»: `n` пришёл параметром `anchor` и владеет собой |
 | `list.head = tie n` в `push` | «в»: `head` служит полем корня `list`, а отделение корень не затрагивает |
-| `a.next = tie n` в `insertAfter` | ни один: `a` служит указателем-параметром без источника в типе; FLOW выводит предусловие `a != n && n.next == null` |
+| `a.next = tie n` в `insertAfter` | параметры `a` и `n` без объявленного отношения не пересекаются ([источник ссылки](layout/pointers.md#источник-указателя), правило 3); FLOW выводит предусловие `n.next == null` |
 | `p.next = tie node.next` в `remove` | «в»: узел `node` отделён от поля `p.next`, а отделение сам элемент `p` не затрагивает |
 | `x.right = tie y.left`, `y.left = tie x` в `rotateLeft` | «а»: `x` пришёл параметром `anchor`, `y` служит локальным владельцем |
 | `e.next = tie fresh![b].head` в `grow` | «а»: `e` служит локальным владельцем |
@@ -877,6 +877,7 @@ layout {
     struct Table {
         var size: Int = BUCKETS { value > 0 }
         var buckets: own Area<Bucket>? = null { value == null || value.count == size }
+        invariants { buckets == null || buckets!.initialized == size }
     }
 }
 

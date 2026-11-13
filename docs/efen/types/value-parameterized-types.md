@@ -54,7 +54,7 @@ fn changeSystemConfiguration(user: User<root>) {
 
 ```efen
 fn manageUsers(user: User<root> | User<admin>) {
-    // ...
+    // тело не важно для примера
 }
 ```
 
@@ -63,7 +63,7 @@ fn manageUsers(user: User<root> | User<admin>) {
 ```efen
 fn displayProfile<Kind: UserKind>(user: User<Kind>) {
 
-    // ...
+    // тело не важно для примера
 }
 ```
 

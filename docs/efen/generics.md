@@ -340,7 +340,7 @@ alias Transformer<T, U> = (T) -> U
 // Использование
 fn processData<T>(handler: Handler<T>) {
 
-    // ...
+    // тело не важно для примера
 }
 ```
 
@@ -396,15 +396,15 @@ type ParticleColumns: Array<Particle, soa>
 Здесь `Particle` — аргумент параметра типа `Element`, а `soa` — значение перечисления
 внутри `Array`.
 Конкретная инстанциация имеет одну определённое представление в памяти.
-Запись `[T]` сокращает `Array<T, default>`.
+Запись `[T]` сокращает `Array<T>`: остальные параметры берут умолчания.
 
 Полная форма позволяет явно указать тип параметра и значение по умолчанию:
 
 ```efen
 struct Array {
     generic Element: Type
-    generic Form: Representation = default
-    generic indirection: Indirection = default
+    generic Form: Representation = .aos
+    generic indirection: Indirection          // умолчание зависит от типа элемента: текст ниже
 
     enum Representation {
         aos
@@ -419,7 +419,7 @@ struct Array {
 ```
 
 `indirection` говорит, лежит ли в ячейке само значение (`direct`) или указатель на отдельно лежащее значение
-(`indirect`). Умолчания: `aos`; `direct` у структуры, `indirect` у класса. Третий параметр
+(`indirect`). Умолчания: `aos`; у `indirection` оно зависит от типа элемента: `direct` у структуры, `indirect` у класса. Как объявление `Array` записывает такое умолчание, не решено. Третий параметр
 называют по имени: `Array<Row, indirection: indirect>`. Подробно — [библиотеки на C](foreign.md#массивы).
 
 Атрибут можно передать отдельным параметром:
@@ -866,7 +866,7 @@ mut fn removeLast -> own T?
 ```efen
 fn printAll<Items: Iterable<Item: String>>(items: Items) {
 
-    // ...
+    // тело не важно для примера
 }
 ```
 
@@ -875,7 +875,7 @@ fn printAll<Items: Iterable<Item: String>>(items: Items) {
 ```efen
 fn printAll<T: Iterable<Item: String>>(first: T, second: T) {
 
-    // ...
+    // тело не важно для примера
 }
 ```
 

@@ -567,7 +567,7 @@ fn process(data: Data?) {
     if data != null {
         // Вся логика вложена
         let d = data!
-        // ... много кода
+        // тело не важно для примера
     }
 }
 ```
@@ -580,7 +580,7 @@ fn process(data: Data?) {
     }
 
     // Логика на верхнем уровне
-    // ... много кода
+    // тело не важно для примера
 }
 ```
 
@@ -831,12 +831,12 @@ fn findUser(id: Int) -> User? {
 
 // ✅ Result - для операций с возможными ошибками
 fn loadUser(id: Int) -> Result<User, DatabaseError> {
-    // ...
+    // тело не важно для примера
 }
 
 // ✅ Throws - для исключительных ситуаций
 fn loadUser(id: Int) -> User throws DatabaseError {
-    // ...
+    // тело не важно для примера
 }
 ```
 
