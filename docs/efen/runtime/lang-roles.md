@@ -60,8 +60,8 @@ var full = "${name}!"        // ошибка сборки: новая строк
 | `v[i]` у коллекции из библиотеки | `lang::Indexable` | `v.at(index: i)`. Член выбирает позиция, не шире права получателя: чтение — `read`; запись (`v[i] = x`, `v[i] += x`, `v[i]++`, `v[i].f = x`, `&v[i]`, аргумент `edit` или `mut`, получатель метода `edit` или `mut`, `v[i][] = x`, `swap`, `take v[i]` у `T?`) — `edit`, если он есть, иначе `mut`. В обобщённом коде — самый узкий член, который даёт ограничение. Результат реализации — ровно слот, `Access<&self.items![index]> T` ([ссылка ровно на слот](../types/ownership.md#ссылка-ровно-на-слот)); ссылка из члена `edit` разрешает `mut` над значением слота. Индекс вне `0 ..< count`, который FLOW не доказал, бросает `BoundsError`; `nothrows` |
 | `v[range]`, все восемь форм, у коллекции из библиотеки | `lang::Sliceable` | Компилятор приводит диапазон к `start ..< end` (`a + 1`, `b + 1` бросают `OverflowError`; открытая граница — `0` или `v.count` в момент вызова) и вызывает `v.slice(start:end:)`. Результат — срез `Slice<T>` ровно на слоты `start ..< end`: `Access<&self.items![start ..< end]> Slice<T>`; срез хранит свою длину. Вне `0 <= start <= end <= count` — `BoundsError`; `nothrows` |
 | `v[] = x` | `lang::Appendable` | `v.append(value: x)` по правилам параметра `own`; `nothrows` |
-| `d[k]`, `d[k] = x` | `lang::KeyIndexable`, `lang::KeyInsertable` | `d[k]` — `d.at(key: k)`, результат `Access<self> V?`; остальные позиции записи — член `edit`, ключ должен быть. Присваивание `d[k] = x` — `d.insert(key: k, value: x)`, вызов `mut`; прежнее значение отбрасывается и требует `V: ImplicitlyDestroyable` |
-| литерал `[a, b]` | `lang::ArrayLiteral` | Компилятор заполняет `Area<T>(count: n)` и вызывает `adopt`; `nofail` |
+| `d[k]`, `d[k] = x` | `lang::KeyIndexable`, `lang::KeyInsertable` | `d[k]` — `d.at(key: k)`, результат `Access<self> V?`; остальные позиции записи — член `edit`, ключ должен быть. Присваивание `d[k] = x` — `d.insert(key: k, value: x)`; право вызова следует из тела: `edit`, когда тело `insert` никогда не перестраивает таблицу, иначе `mut`. Запись по существующему ключу в других позициях идёт через член `edit` у `at(key:)`. Прежнее значение отбрасывается и требует `V: ImplicitlyDestroyable` |
+| литерал `[a, b, c]` | — | Тип литерала — `Array` рантайма, который назван в конфигурации программы ([конфигурация сборки](../build-config.md)). Компилятор создаёт этот `Array` на месте литерала и выбирает, где лежит его память: на стеке, в куче или в образе программы для постоянных данных. Контракта нет |
 | `copy x` | `lang::Copyable` | Источник только читается; результат независим от источника ([контракты](value-operations.md#оператор-copy)) |
 | `clone x` | `lang::Cloneable` | Источник только читается; данные в куче становятся общими, их владение доказано счётчиком или layout ([контракты](value-operations.md#оператор-clone)) |
 | `"${x}"` | `lang::Interpolatable` | `fn writeText(buffer: mut TextBuffer) -> Int`: пишет в буфер столько текста, сколько входит, и возвращает, сколько байт нужно всему тексту. Текст примитивов пишет рантайм через `lang::PrimitiveText`; `TextBuffer` объявлен в `lang::` |
@@ -116,19 +116,11 @@ contract KeyIndexable<Key, Access Value> {
 contract KeyInsertable<Key, Value> {
     mut fn insert(key: own Key, value: own Value) -> own Value? nothrows
 }
-
-@unique
-contract ArrayLiteral<Item> {
-    static fn adopt(items: own Area<Item>?, count: Int) -> Self nofail
-        requires (items == null) == (count == 0)
-        requires items == null || items!.count == count
-}
 ```
 
 Контракт пишет источник как `<self>`: частей через `&` контракт не называет
 ([ссылка ровно на слот](../types/ownership.md#ссылка-ровно-на-слот), правило 5); реализация сужает его до ровно слота
-или ровно отрезка своего поля. Литерал `[a, b]` компилятор строит, заполняя `Area<T>(count: 2)` и вызывая `adopt`:
-каждый слот `0 ..< count` к вызову инициализирован.
+или ровно отрезка своего поля.
 
 Пока `String` — встроенный тип компилятора, а не тип рантайма, `==` строк вызывает временный контракт
 `lang::StringEquality` (`fn equal(left: String, right: String) -> Bool nofail`). Его реализует рантайм на Efen,
