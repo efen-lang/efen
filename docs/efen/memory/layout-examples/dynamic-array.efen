@@ -7,9 +7,8 @@ private layout<T: Movable> {
     }
 }
 
-private fn grow<T: Movable>(v: mut Vector<T>, minimum: Int) {
-    let next = max(minimum, max(8, v.capacity * 2))
-    let fresh = Area<T>(count: next)
+private fn grow<T: Movable>(v: mut Vector<T>, to: Int) {
+    let fresh = Area<T>(count: to)
 
     if let old = take v.items {
         var i = 0
@@ -20,28 +19,68 @@ private fn grow<T: Movable>(v: mut Vector<T>, minimum: Int) {
     }                                           // old кончается: ни один слот не инициализирован, область возвращается
 
     v.items = take fresh
-    v.capacity = next
+    v.capacity = to
 }
 
 strategy<T> for Vector<T> {
-    conforms Appendable<Item: T>
+    conforms RoomAppendable<Item: T>
 
-    public mut fn reserve(minimum: Int) {
-        if minimum > capacity {
-            grow(self, minimum: minimum)
+    // доводит ёмкость до той, которой достигло бы добавление по одному: те же шаги, одно выделение
+    public mut fn reserve(room: Int) nothrows
+        requires room >= 0
+    {
+        var next = capacity
+        while next - count < room {
+            next = max(8, next * 2)
+        }
+        if next != capacity {
+            grow(self, to: next)
         }
     }
 
     public mut fn append(value: own T) nothrows {
-        reserve(count + 1)
+        if count == capacity {
+            grow(self, to: max(8, capacity * 2))
+        }
         items![count] = take value
         count += 1
+    }
+
+    public edit fn append(value: own T) nofail   // запас взят заранее: ни один слот не двигается
+        requires count < capacity
+    {
+        items![count] = take value
+        count += 1
+    }
+
+    // переносит элементы source по порядку с начала и оставляет его пустым; если reserve бросит, ничего не перенесено
+    public mut fn append(moving source: mut Vector<T>) nothrows {
+        reserve(room: source.count)
+        if let old = take source.items {
+            var i = 0
+            while i < source.count {
+                items![count + i] = take old[i]
+                i += 1
+            }
+        }                                       // old кончается: ни один слот не инициализирован, область возвращается
+        count += source.count
+        source.count = 0
+        source.capacity = 0
+    }
+
+    public mut fn append<I: ValueIterator<T>>(contentsOf source: mut I) nothrows {
+        #if I conforms CountedIterator<T>
+            reserve(room: source.remaining)     // число значений известно заранее: один рост
+        #endif
+        while let value = source.next() {
+            append(value: take value)
+        }
     }
 
     public mut fn insert(index: Int, value: own T)
         requires index >= 0 && index <= count
     {
-        reserve(count + 1)
+        reserve(room: 1)
         var i = count
         while i > index {
             items![i] = take items![i - 1]
@@ -71,7 +110,7 @@ strategy<T> for Vector<T> {
         return previous
     }
 
-    public mut fn drain(each: (own T) -> Void) {
+    public mut fn drain(each: (own T) -> Void nofail) {
         if let old = take items {
             var i = 0
             while i < count {
@@ -105,6 +144,17 @@ strategy<T: Copyable> for Vector<T> {
         requires index >= 0 && index < count
     {
         return copy items![index]
+    }
+
+    // один reserve, затем копия каждого элемента; для ImplicitlyCopyable генератор кода пишет одно блочное копирование
+    public mut fn append(contentsOf source: read Slice<T>) nothrows {
+        reserve(room: source.count)
+        var i = 0
+        while i < source.count {
+            items![count] = copy source[i]
+            count += 1
+            i += 1
+        }
     }
 }
 
