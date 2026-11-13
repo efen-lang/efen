@@ -340,7 +340,7 @@ fn example {
     var queue = Queue()
     let node = newNode(value: 7)              // own Nodes.Item: узлом владеет переменная node
     let seven = node.value                    // чтение public-поля
-    push(queue, take node)                    // узел перешёл в очередь; имя node недействительно
+    push(queue, take node)                    // узел перешёл в очередь; переменная node недействительна
     if let first = pop(queue) {               // own Nodes.Item вернулся внешнему коду
         freeNode(take first)                  // обратный путь; без этой строки ошибка: владелец first потерян
     }
