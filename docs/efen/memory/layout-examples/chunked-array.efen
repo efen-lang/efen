@@ -24,7 +24,7 @@ private layout<T: Movable> {
     }
 }
 
-private fn growDirectory<T: Movable>(a: mut ChunkedArray<T>, minimum: Int) {
+private fn growDirectory<T: Movable>(a: edit ChunkedArray<T>, minimum: Int) {
     if minimum <= a.directoryCapacity {
         return
     }
@@ -44,7 +44,7 @@ private fn growDirectory<T: Movable>(a: mut ChunkedArray<T>, minimum: Int) {
     a.directoryCapacity = next
 }
 
-private fn ensureChunks<T: Movable>(a: mut ChunkedArray<T>, required: Int) {
+private fn ensureChunks<T: Movable>(a: edit ChunkedArray<T>, required: Int) {
     while a.directoryLength < required {
         growDirectory(a, minimum: a.directoryLength + 1)
 
@@ -62,7 +62,7 @@ private fn movePosition<T: Movable>(a: mut ChunkedArray<T>, from: Int, to: Int) 
 strategy<T> for ChunkedArray<T> {
     conforms Appendable<Item: T>
 
-    public mut fn append(value: own T) nothrows {
+    public edit fn append(value: own T) nothrows {
         ensureChunks(self, required: 1 + count / CHUNK_SIZE)
 
         directory![count / CHUNK_SIZE].root![count % CHUNK_SIZE] = take value
