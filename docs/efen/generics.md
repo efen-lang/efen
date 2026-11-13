@@ -580,7 +580,7 @@ enum Access { read, edit, mut, own }
 
 ```efen
 struct ArrayIterator<Access T, Src: Origin> {
-    let items: Access<Src> Array<T>     // поле: ссылка с правом Access на Src
+    let items: Access<Src> Array<T>     // поле: заимствование Src с правом Access, а не ссылка
     var index: Int = 0 { value >= 0 }
 
     invariants {
@@ -596,7 +596,7 @@ for ArrayIterator<Access T, Src: Src> {
     mut fn next -> Access<Src> T? {     // ссылка на слот массива Src
         if index == items.count { return null }
         index += 1
-        return items[index - 1]
+        return &items[index - 1]
     }
 }
 ```
