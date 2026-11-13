@@ -55,8 +55,8 @@ private layout<T: Movable> {
     }
 
     public struct List {
-        private var head: anchor Nodes.Item? = null
-        public  var count: Int = 0 { value >= 0 }
+        var head: anchor Nodes.Item? = null
+        var count: Int = 0 { value >= 0 }
 
         invariants {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)

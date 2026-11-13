@@ -289,7 +289,7 @@ private layout {
     set Nodes: Node
     public own Nodes                          // узел уходит внешнему коду целиком: хранимых указателей на него нет
 
-    public struct Node  { var next: own Nodes.Item? = null; public var value: Int }
+    public struct Node  { var next: own Nodes.Item? = null; var value: Int }
     public struct Queue { var head: own Nodes.Item? = null }
 }
 
@@ -331,7 +331,7 @@ strategy for Queue {
 }
 ```
 
-Слово `public` у поля `value` открывает внешнему коду чтение. Пишут поле функции кода `layout` (раздел 2.5).
+Поля публичной структуры `Node` внешний код читает. Пишут поля функции кода `layout` (раздел 2.5).
 
 Внешний код, другой модуль того же пакета, берёт узел, ставит его в очередь, снимает и освобождает:
 

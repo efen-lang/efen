@@ -40,7 +40,7 @@ open layout Lists<T: Movable> {
     public struct DoublyList {
         protected var head: anchor Nodes.Item? = null
         protected var tail: Nodes.Item? = null
-        public var length: Int = 0 { value >= 0 }
+        var length: Int = 0 { value >= 0 }
 
         invariants {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)
@@ -85,8 +85,8 @@ layout<K: Hashable, V: Movable>: lists::Lists<Entry<K, V>> {     // расшир
 
     public struct Lru {
         DoublyList<Entry>                                // значение базовой структуры первым полем
-        private var buckets: Int = 0 { value >= 0 }
-        private var table: own Area<Bucket>? = null { value == null || value.count == buckets }
+        var buckets: Int = 0 { value >= 0 }
+        var table: own Area<Bucket>? = null { value == null || value.count == buckets }
         invariants {                                     // на узел указывает только корзина его ключа
             forall i in 0 ..< buckets: table![i].node == null || hash(table![i].node!.value.key) % buckets == i
         }

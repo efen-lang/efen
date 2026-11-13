@@ -36,9 +36,9 @@
 ```efen
 private layout<T: Movable> {
     public struct Vector {
-        private var items: own Area<T>? = null { value == null || value.count == capacity }
-        private var capacity: Int = 0 { value >= 0 }
-        public  var count: Int = 0 { value >= 0 && value <= capacity }
+        var items: own Area<T>? = null { value == null || value.count == capacity }
+        var capacity: Int = 0 { value >= 0 }
+        var count: Int = 0 { value >= 0 && value <= capacity }
         invariants { items == null || items!.initialized == count }
     }
 }
@@ -116,8 +116,8 @@ let top = tie tree.root ?? return                         // якорь пере
 
 ```efen
 public struct Queue {
-    private var head: anchor Nodes.Item? = null
-    private var tail: Nodes.Item? = null                  // указатель на последний узел
+    var head: anchor Nodes.Item? = null
+    var tail: Nodes.Item? = null                  // указатель на последний узел
 }
 ```
 
@@ -244,9 +244,9 @@ private layout<T: Movable> {
     }
 
     public struct DoublyList {
-        private var head: anchor Nodes.Item? = null
-        private var tail: Nodes.Item? = null
-        public  var count: Int = 0 { value >= 0 }
+        var head: anchor Nodes.Item? = null
+        var tail: Nodes.Item? = null
+        var count: Int = 0 { value >= 0 }
 
         invariants {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)

@@ -1157,8 +1157,8 @@ n!.value = 1                                      // в коде layout: мож�
 a.remove(n!)                                      // ошибка: remove ждёт узел с источником a
 ```
 
-Запись поля элемента пишет только код `layout`. Внешний код поле не пишет и при `public var`: это слово открывает
-ему чтение ([кто пишет поля](../memory/layout/declaration.md#25-кто-пишет-поля)).
+Запись поля элемента пишет только код `layout`. Внешний код поле не пишет, даже когда структура ему видна:
+видимость открывает ему только чтение ([кто пишет поля](../memory/layout/declaration.md#25-кто-пишет-поля)).
 
 Указатель с двумя источниками становится недействительным от изменения структуры в любом из них. Узел переходит из
 одной структуры в другую только владением: это `mut` для структуры, из которой он ушёл, и указатели с источником в
@@ -1229,7 +1229,7 @@ private layout<T: Movable> {
     public struct FixedVector {
         let items: own Area<T> { value.count == capacity }   // задаётся при создании значения FixedVector
         let capacity: Int
-        public var count: Int = 0 { value >= 0 && value <= capacity }
+        var count: Int = 0 { value >= 0 && value <= capacity }
         invariants { items.initialized == count }
     }
 }

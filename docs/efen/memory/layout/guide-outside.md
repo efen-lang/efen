@@ -44,7 +44,7 @@ private layout {
 
     public own Nodes
 
-    public struct Node  { var next: own Nodes.Item? = null; public var value: Int }
+    public struct Node  { var next: own Nodes.Item? = null; var value: Int }
     public struct Queue { var head: own Nodes.Item? = null }
 }
 
