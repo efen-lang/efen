@@ -227,6 +227,19 @@ strategy<T> for Store<T> {
     }
 }
 
+fn newStore<T: Movable>(capacity: Int) -> Store<T?>
+    requires capacity > 0
+    ensures result.cells != null
+{
+    let cells = Area<T?>(count: capacity)
+    var i = 0
+    while i < capacity {
+        cells[i] = null                                  // ячейка свободна
+        i += 1
+    }
+    return Store<T?>(capacity: capacity, cells: take cells)
+}
+
 shared struct Ring<T: Movable> {
     var head: AtomicInt = AtomicInt(0) { value >= previous(value) }
     var tail: AtomicInt = AtomicInt(0) { value >= previous(value) }
@@ -250,7 +263,7 @@ projection Consumer for Ring {
 ```
 
 Проекции называют область путём `store.cells`. Приведение `ring as Producer` доказывает условие `store.cells != null`
-(правило 3). Значение `Store` создаёт функция кода `layout` `newStore`: она берёт область и записывает `null` в каждую
+(правило 3). Значение `Store` создаёт функция кода `layout` `newStore`, объявленная выше: она берёт область и записывает `null` в каждую
 ячейку, потому что форма с полями слоты области не заполняет. `Consumer` забирает значение через `replace`, а не
 `take`, поэтому каждая ячейка хранит значение ([роли](../../shared.md#роли)).
 

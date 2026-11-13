@@ -8,7 +8,7 @@ private layout<T: Movable> {
 
 strategy<T> for FixedArray<T> {
     public mut fn fill(size: Int, make: (Int) -> own T)
-        requires items == null && count == 0 && size >= 0
+        requires items == null && count == 0 && size >= 0 && (T conforms ImplicitlyDestroyable || size == 0)
     {
         if size > 0 {
             let fresh = Area<T>(count: size)
@@ -31,7 +31,7 @@ strategy<T> for FixedArray<T> {
         return previous
     }
 
-    public mut fn drain(each: (own T) -> Void) {
+    public mut fn drain(each: (own T) -> Void nofail) {
         if let old = take items {
             var i = 0
             while i < count {

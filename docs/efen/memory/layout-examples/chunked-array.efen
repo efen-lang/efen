@@ -109,7 +109,7 @@ strategy<T> for ChunkedArray<T> {
         return previous
     }
 
-    public mut fn drain(each: (own T) -> Void) {
+    public mut fn drain(each: (own T) -> Void nofail) {
         if let dir = take directory {
             var c = 0
             while c < directoryLength {
@@ -191,3 +191,18 @@ fn example {
     a.append(2)
     let second = a.read(1)
 }                                               // конец области: компилятор вызывает dispose
+
+strategy<T> for Chunk<T> {
+    implements Disposable
+
+    fn dispose {
+        if let area = take root {
+            var j = 0
+            while j < length {
+                let dead = take area[j]         // значение T уничтожается в конце шага
+                j += 1
+            }
+        }                                       // area кончается: ни один слот не инициализирован
+        length = 0
+    }
+}

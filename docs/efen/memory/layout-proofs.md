@@ -548,7 +548,7 @@ fn removeVertex(g: mut Graph, v: read<g> Vertices.Item) {
 | память не теряется | вершина без рёбер остаётся в цепочке графа; функция, которая уничтожает граф, проходит обе цепочки и освобождает каждый элемент |
 
 Ребро нечисто: `from` и `to` указывают на вершины того же графа. `Graph` целиком чист, и внешний код получает только
-его ([чистая структура](layout/pointers.md#структура-источник-чистота)). Память берётся и возвращается явно
+его ([чистая структура](layout/pointers.md#структура-источник-чистота)). Память возвращается на каждом пути
 ([гарантия 6](layout-algorithm.md#центральные-гарантии)).
 
 **Цена цепочек.** Одно слово на ребро (поле `nextEdge`), одно слово на вершину (поле `nextAll`) и два слова на
@@ -881,20 +881,41 @@ layout {
     }
 }
 
+strategy for Bucket {
+    implements Disposable
+
+    fn dispose {
+        // тело не важно для примера: снимает записи цепочки head по одной и освобождает их
+    }
+}
+
+strategy for Table {
+    implements Disposable
+
+    fn dispose {
+        // тело не важно для примера: забирает область buckets; каждую корзину освобождает её dispose
+    }
+}
+
 fn grow(table: mut Table) requires table.size == BUCKETS {
-    var fresh = Buckets(count: 2 * BUCKETS)
+    var fresh = Area<Bucket>(count: 2 * BUCKETS)
+    var j = 0
+    while j < 2 * BUCKETS {
+        fresh[j] = Bucket()                              // новая корзина пуста: head == null
+        j = j + 1
+    }
     var i = 0
     while i < BUCKETS {
         while let e = tie table.buckets![i].head {      // снять первую запись старой корзины i
             table.buckets![i].head = tie e.next
             let b = hash(e.key) % (2 * BUCKETS)
             e.home = b
-            e.next = tie fresh![b].head                 // вставить в голову новой корзины b
-            fresh![b].head = tie e
+            e.next = tie fresh[b].head                  // вставить в голову новой корзины b
+            fresh[b].head = tie e
         }
         i = i + 1                                        // инвариант цикла: корзины 0 ..< i пусты
     }
-    let dead = take table.buckets                        // все слоты A пусты: область освобождается с концом dead
+    let dead = take table.buckets                        // все корзины A пусты: область кончается локальным значением
     table.size = 2 * BUCKETS                             // поле из условия области пишется вместе с её заменой
     table.buckets = take fresh
 }

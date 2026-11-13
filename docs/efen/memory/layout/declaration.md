@@ -168,6 +168,14 @@ layout {
         invariants { classes == null || classes!.initialized == CLASSES }
     }
 }
+
+strategy for Sizes {
+    implements Disposable
+
+    fn dispose {
+        // тело не важно для примера: забирает область classes, и она кончается локальным значением
+    }
+}
 ```
 
 **Запрещено.** Элементы `set area` и область `Area<S>` под них не индексируются ([раздача набора](../pointer.md#раздача-набора-for-element-in-take-region)). Множество областей раздаётся целиком циклом
@@ -494,6 +502,14 @@ layout {
 
     public struct Log {
         var first: anchor Pages.Item? = null         // владеет цепочкой страниц
+    }
+}
+
+strategy for Log {
+    implements Disposable
+
+    fn dispose {
+        // тело не важно для примера: снимает страницы цепочки first по одной и освобождает их
     }
 }
 

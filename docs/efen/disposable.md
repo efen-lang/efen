@@ -248,7 +248,7 @@ fn runTwo(job: edit Job) {
     ts.append(take t)
     ts.removeAll()                               // ошибка: removeAll требует T: ImplicitlyDestroyable
     if let w = ts.removeLast() { (take w).pthread_join() }      // можно: элемент возвращён, программа его расходует
-    ts.drain(each: (w: own Thread) -> Void { (take w).pthread_join() })
+    ts.drain(each: (w: own Thread) -> Void nofail { (take w).pthread_join() })
                                                  // drain отдал элементы и вернул область: владеющее поле вектора
                                                  // равно null, выход из области допустим
 }
@@ -262,7 +262,7 @@ class Pool {                                     // класс без счётч
     conforms Destructible
     var workers: [Thread]                // Pool не ImplicitlyDestroyable
     @destructor(explicit) own fn joinAll {
-        workers.drain(each: (t: own Thread) -> Void { (take t).pthread_join() })
+        workers.drain(each: (t: own Thread) -> Void nofail { (take t).pthread_join() })
                                                  // элементы отданы, область возвращена: владеющее поле массива равно null
     }
 }

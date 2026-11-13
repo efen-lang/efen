@@ -127,6 +127,14 @@ struct CellPool {
         forall c in Cells: (c.kind == FREE) == freeCells.contains(c)
     }
 }
+
+strategy for CellPool {
+    implements Disposable
+
+    fn dispose {
+        // тело не важно для примера: снимает ячейки цепочки all по одной и освобождает их
+    }
+}
 ```
 
 Цепочка свободных слотов области:
