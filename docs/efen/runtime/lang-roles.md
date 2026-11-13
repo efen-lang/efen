@@ -59,7 +59,7 @@ var full = "${name}!"        // ошибка сборки: новая строк
 | `+` `-` `*` `/` `%`, унарный `-` | `lang::Number` | Аргументы только читаются; результат — новое значение во владении вызывающего. Реализуют только `lang::`, рантайм и std |
 | `v[i]` у коллекции из библиотеки | `lang::Indexable` | `v.at(index: i)`. Член выбирает позиция, не шире права получателя: чтение — `read`; запись (`v[i] = x`, `v[i] += x`, `v[i]++`, `v[i].f = x`, `&v[i]`, аргумент `edit` или `mut`, получатель метода `edit` или `mut`, `v[i][] = x`, `swap`, `take v[i]` у `T?`) — `edit`, если он есть, иначе `mut`. В обобщённом коде — самый узкий член, который даёт ограничение. Результат реализации — ровно слот, `Access<&self.items![index]> T` ([ссылка ровно на слот](../types/ownership.md#ссылка-ровно-на-слот)); ссылка из члена `edit` разрешает `mut` над значением слота. Индекс вне `0 ..< count`, который FLOW не доказал, бросает `BoundsError`; `nothrows` |
 | `v[range]`, все восемь форм, у коллекции из библиотеки | `lang::Sliceable` | Компилятор приводит диапазон к `start ..< end` (`a + 1`, `b + 1` бросают `OverflowError`; открытая граница — `0` или `v.count` в момент вызова) и вызывает `v.slice(start:end:)`. Результат — срез `Slice<T>` ровно на слоты `start ..< end`: `Access<&self.items![start ..< end]> Slice<T>`; срез хранит свою длину. Вне `0 <= start <= end <= count` — `BoundsError`; `nothrows` |
-| `v[] = x` | `lang::Appendable` | `v.append(value: x)` по правилам параметра `own`; `nothrows` |
+| `v[] = x` | `lang::Appendable` | `v.append(value: x)` по правилам параметра `own`; `nothrows`. Член выбирает право получателя: при `mut` — `Appendable.append`; получатель только с `edit` вызывает `RoomAppendable.append`, который требует `count < capacity` |
 | `d[k]`, `d[k] = x` | `lang::KeyIndexable`, `lang::KeyInsertable` | `d[k]` — `d.at(key: k)`, результат `Access<self> V?`; остальные позиции записи — член `edit`, ключ должен быть. Присваивание `d[k] = x` — `d.insert(key: k, value: x)`; право вызова следует из тела: `edit`, когда тело `insert` никогда не перестраивает таблицу, иначе `mut`. Запись по существующему ключу в других позициях идёт через член `edit` у `at(key:)`. Прежнее значение отбрасывается и требует `V: ImplicitlyDestroyable` |
 | литерал `[a, b, c]` | — | Тип литерала — `Array` рантайма, который назван в конфигурации программы ([конфигурация сборки](../build-config.md)). Компилятор создаёт этот `Array` на месте литерала и выбирает, где лежит его память: на стеке, в куче или в образе программы для постоянных данных. Контракта нет |
 | `copy x` | `lang::Copyable` | Источник только читается; результат независим от источника ([контракты](value-operations.md#оператор-copy)) |
@@ -68,12 +68,14 @@ var full = "${name}!"        // ошибка сборки: новая строк
 
 У `Area<T>` `[i]` и `[range]` встроены; `Area` длины не хранит, и каждый доступ к нему доказывает FLOW по коду
 владельца; `area[a ..< b]` даёт `Slice<T>`, который хранит свою длину, и доступ через срез без доказательства
-проверяется при выполнении.
+проверяется при выполнении. `Slice<T>` — тип рантайма: адрес и число слотов. Формы `[]` он получает, как любая
+коллекция, соответствием контрактам. Срез — ссылка на несколько соседних слотов
+([понятия](../memory/memory-rules.md#понятия)): он пишется с правом и источником и в поле не хранится.
 
 Коллекция поддерживает ровно те формы `[]`, контрактам которых соответствует; другая форма — ошибка компиляции.
 `v[range]` с диапазоном или значением `Interval` вызывает `Sliceable.slice`; любое другое `v[x]` вызывает
 `KeyIndexable.at(key:)`, когда тип ему соответствует, иначе `Indexable.at(index:)`. Соответствие обоим с одним типом
-индекса — ошибка у объявления. `Array<T>` — код рантайма и соответствует контрактам, как любая коллекция. Контракты
+индекса — ошибка у объявления. `Array<T>` — код рантайма и соответствует контрактам, как любая коллекция. `swapAt` объявляет шестой контракт, `Swappable`: им переставляет элементы обобщённый код, которому путь к слоту не виден. Контракты
 объявлены в `lang::`:
 
 ```efen
@@ -82,10 +84,6 @@ var full = "${name}!"        // ошибка сборки: новая строк
 contract Indexable<Access Item, Index = Int> {
     var count: Int { get }
     Access fn at(index: Index) -> Access<self> Item nothrows
-
-    #if Access == edit || Access == mut
-        edit fn swapAt(i: Index, j: Index) nothrows
-    #endif
 
     invariants {
         Access == read || Access == edit || Access == mut
@@ -100,8 +98,45 @@ contract Sliceable<Access Item> : Indexable<Access Item> {
     }
 }
 
+contract Swappable<Index = Int> {
+    edit fn swapAt(i: Index, j: Index) nothrows
+}
+
 contract Appendable<Item> {
     mut fn append(value: own Item) nothrows
+}
+
+contract CountedIterator<Item> : ValueIterator<Item> {
+    var remaining: Int { get }
+
+    mut fn next -> Item?
+        ensures result != null ==> remaining == previous(remaining) - 1
+        ensures result == null ==> previous(remaining) == 0
+
+    invariants {
+        remaining >= 0
+    }
+}
+
+contract Reservable {
+    var count: Int { get }
+    var capacity: Int { get }
+
+    mut fn reserve(room: Int) nothrows
+        requires room >= 0
+        ensures capacity - count >= room && count == previous(count)
+}
+
+contract RoomAppendable<Item> : Appendable<Item>, Reservable {
+    edit fn append(value: own Item) nothrows
+        requires count < capacity
+        ensures count == previous(count) + 1 && capacity == previous(capacity)
+}
+
+contract RoomKeyInsertable<Key, Value> : KeyInsertable<Key, Value>, Reservable {
+    edit fn insert(key: own Key, value: own Value) -> own Value? nothrows
+        requires count < capacity
+        ensures count <= previous(count) + 1 && capacity == previous(capacity)
 }
 
 contract KeyIndexable<Key, Access Value> {
@@ -183,7 +218,13 @@ implementation Trap {
 | Пункт | Форма | Свойства |
 |---|---|---|
 | Тип строкового литерала | `String` | В слое `lang`; раскладка — часть версии рантайма; литерал — постоянные байты, которые никогда не освобождаются; `+` и `copy` — выше аллокатора |
-| Тип литерала массива `[1, 2]` | базовый массив | Выше аллокатора; раскладка — часть версии рантайма |
+| Тип литерала массива `[1, 2]` | `Array` рантайма, названный в конфигурации программы | Выше аллокатора; раскладка — часть версии рантайма |
+
+| Тип | Где объявлен | Что это |
+|---|---|---|
+| `Area<T>`, `T.Pointer` | типы языка, объявлены в `lang::` | память под целое число значений `T` без длины; указатель на значение `T` ([области](../memory/layout/declaration.md#множества-и-области)) |
+| `Slice<T>` | тип рантайма | результат встроенного `area[a ..< b]` и члена `slice(start:end:)` |
+| `Interval`, `Range<T>` | структуры рантайма | значение оператора диапазона; снимок данных ([коллекции](../types/collections.md)) |
 
 ### Память
 

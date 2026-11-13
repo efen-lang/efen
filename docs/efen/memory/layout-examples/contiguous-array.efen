@@ -80,6 +80,11 @@ strategy FixedArrayAccess for FixedArray<T> {
         guard 0 <= start && start <= end && end <= count else { throw BoundsError() }
         return &items![start ..< end]
     }
+}
+
+strategy FixedArraySwap for FixedArray<T> {
+    generic T: Movable
+    conforms Swappable
 
     edit fn swapAt(i: Int, j: Int) nothrows {
         guard i >= 0 && i < count && j >= 0 && j < count else { throw BoundsError() }

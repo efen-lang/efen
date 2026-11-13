@@ -171,6 +171,11 @@ strategy ChunkedAccess for ChunkedArray<T> {
         guard index >= 0 && index < count else { throw BoundsError() }
         return &directory![index / CHUNK_SIZE].root![index % CHUNK_SIZE]
     }
+}
+
+strategy ChunkedSwap for ChunkedArray<T> {
+    generic T: Movable
+    conforms Swappable
 
     edit fn swapAt(i: Int, j: Int) nothrows {
         guard i >= 0 && i < count && j >= 0 && j < count else { throw BoundsError() }
