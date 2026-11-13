@@ -80,15 +80,13 @@ strategy<T> for DoublyList<T> {
 use lists::linked
 
 layout<K: Hashable, V: Movable>: lists::Lists<Entry<K, V>> {     // расширение без open имени не имеет
-    area Buckets: Bucket
-
     public struct Entry { let key: K; var value: V }
     struct Bucket { var node: Lists<Entry>.Nodes.Item? = null }      // указатель в множество базового
 
     public struct Lru {
         DoublyList<Entry>                                // значение базовой структуры первым полем
         private var buckets: Int = 0 { value >= 0 }
-        private var table: own Buckets.Area? = null { value == null || value.count == buckets }
+        private var table: own Area<Bucket>? = null { value == null || value.count == buckets }
         invariants {                                     // на узел указывает только корзина его ключа
             forall i in 0 ..< buckets: table![i].node == null || hash(table![i].node!.value.key) % buckets == i
         }

@@ -29,17 +29,17 @@
 ### Множество и область
 
 Множество и область говорят компилятору, как расположены в памяти элементы одной формы. Множество `set X: T`
-объединяет экземпляры, которые не обязаны идти подряд: узлы списка, дерева, графа. Область `area X: T` состоит из
-непрерывных слотов одной формы с доступом по индексу `0 ..< count`.
+объединяет экземпляры, которые не обязаны идти подряд: узлы списка, дерева, графа. Область типа `Area<T>` состоит
+из непрерывных слотов одной формы с доступом по индексу `0 ..< count`; она лежит в поле структуры, которая хранит её
+длину.
 
 ```efen
 private layout<T: Movable> {
-    area Items: T
-
     public struct Vector {
-        private var items: own Items.Area? = null { value == null || value.count == capacity }
+        private var items: own Area<T>? = null { value == null || value.count == capacity }
         private var capacity: Int = 0 { value >= 0 }
         public  var count: Int = 0 { value >= 0 && value <= capacity }
+        invariants { items == null || items!.initialized == count }
     }
 }
 ```
@@ -47,7 +47,7 @@ private layout<T: Movable> {
 Множество одно на программу: `set Nodes: Node` включает все узлы этой формы, сколько бы списков ими ни
 пользовалось. Своей памяти у множества нет. Оно задаёт тип указателя (`Nodes.Item`), а принадлежность узла списку
 видна из владения. Число слотов области задаёт её владелец (`value.count == capacity`). Какие слоты заняты, говорит
-инвариант владельца. Есть ещё два объявления: `set area X: T` объявляет множество независимых областей (участки
+инвариант владельца через призрачное свойство `items.initialized`: заняты слоты `0 ..< items.initialized`. Есть ещё два объявления: `set area X: T` объявляет множество независимых областей (участки
 менеджера памяти), `one X` объявляет один экземпляр на программу
 ([множества и области](declaration.md#множества-и-области)).
 
@@ -59,7 +59,8 @@ private layout<T: Movable> {
 | `own Nodes.Item` | исключительное владение узлом | `var next: own Nodes.Item? = null` |
 | `anchor Nodes.Item` | якорь: владение узлом, на который указывают другие поля | `var head: anchor Nodes.Item? = null` |
 | `read<list> Nodes.Item` | указатель на узел списка `list` | `fn after(list: read List, node: read<list> Nodes.Item)` |
-| `Items.Area` | область целиком | `var items: own Items.Area? = null` |
+| `Area<T>` | область целиком | `var items: own Area<T>? = null { value == null \|\| value.count == capacity }` |
+| `T.Pointer` | указатель на значение типа `T`, в том числе на слот области | `-> read<v> T.Pointer` |
 | `Block.data.Item` | слот области-поля `data` структуры `Block` | `-> own Block.data.Item?` |
 | `Nodes<Int>.Item` | узел множества `layout` с параметром, названный снаружи | `-> anchor Nodes<T>.Item` |
 

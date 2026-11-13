@@ -22,7 +22,7 @@
 - [Выравнивание `@align`](#выравнивание-align)
 - [Встраивание первым полем — наследование по началу](#встраивание-первым-полем--наследование-по-началу)
 - [Условия вида](#условия-вида)
-- [Поле `area` и параметр `size`](#поле-area-и-параметр-size)
+- [Поле-область и параметр `size`](#поле-область-и-параметр-size)
 - [Цепочка свободных слотов](#цепочка-свободных-мест)
 - [Эквивалентность разной разметки одних байтов](#эквивалентность-разной-разметки-одних-байтов)
 - [Смена вида — отдельная функция](#смена-вида--отдельная-функция)
@@ -30,7 +30,7 @@
 - [Возврат памяти](#возврат-памяти)
 - [Иерархия владения](#иерархия-владения)
 - [Обнулённая память: состояние `Pointer.Zeroed`](#обнулённая-память-состояние-pointerzeroed)
-- [Область layout: `area` и `set area`, число элементов у переменной](#область-layout-area-и-set-area-число-элементов-у-переменной)
+- [Область layout: `Area` и `set area`, число элементов у переменной](#область-layout-area-и-set-area-число-элементов-у-переменной)
 - [Поле-область: доступ на месте `!`](#поле-область-доступ-на-месте-)
 - [Раздача набора: `for element in take region`](#раздача-набора-for-element-in-take-region)
 - [Выдача частей памяти: `lend`](#выдача-частей-памяти-lend)
@@ -93,13 +93,13 @@ block.Header = Header(kind: .free) // поля пишет программа
 ## Выравнивание `@align`
 
 `@align(N)` на структуре задаёт её выравнивание, на поле — смещение поля, кратное
-`N`.
+`N`. У поля-области выравнивание задаёт параметр типа: `Area<Byte, align: LINE>`.
 
 ```efen
 @align(BLOCK)
 struct Block {
     Header
-    @align(LINE) area bytes: Byte
+    inline bytes: Area<Byte, align: LINE>
 }
 ```
 
@@ -111,7 +111,7 @@ fn smallSlot(pool: mut Pool, size: Int) -> own Pointer?
     ensures result == null || (result.size >= size && result.alignment == 16)
 ```
 
-Шаг структуры, которая кончается полем `area`, равен её `@align`, как в C.
+Шаг структуры, которая кончается полем-областью, равен её `@align`, как в C.
 
 ## Встраивание первым полем — наследование по началу
 
@@ -171,7 +171,7 @@ struct LargeBlock {
 ```efen
 struct Arena {
     var top: Int = 0 { value >= 0 }
-    @align(16) area bytes: Byte
+    inline bytes: Area<Byte, align: 16>
 
     invariants { top <= bytes.count }
 }
@@ -196,9 +196,9 @@ shelf.pool`). Значение, только что приведённое из 
 
 Память вида вмещает его области: смещение области плюс `x.count · sizeOf(x.Item)` не больше `extent`.
 
-## Поле `area` и параметр `size`
+## Поле-область и параметр `size`
 
-`area x: T` последним полем структуры — область элементов `T`. Её длина в
+`inline x: Area<T>` последним полем структуры — область элементов `T` в памяти самой структуры. Её длина в
 объявлении неизвестна; её задаёт приведение особым параметром `size` — полным
 размером структуры. Область получает остаток, отсчитанный от смещения своего поля.
 
@@ -206,12 +206,12 @@ shelf.pool`). Значение, только что приведённое из 
 struct Slot {
     var next: UInt16 = NONE
     var key: UInt = SLOT_KEY
-    area rest: Byte
+    inline rest: Area<Byte>
 }
 
 struct SlotBlock {
     Header
-    @align(LINE) area slots: Slot
+    inline slots: Area<Slot, align: LINE>
 }
 
 let block = spare as SlotBlock(slots: Slot(size: s))
@@ -245,7 +245,7 @@ let block = spare as SlotBlock(slots: Slot(size: s))
 ```efen
 struct SlotBlock {
     Header                                  // used, frontier, firstFreeSlot, kind
-    @align(LINE) area slots: Slot
+    inline slots: Area<Slot, align: LINE>
 
     invariants {
         frontier <= slots.count
@@ -319,7 +319,7 @@ fn toLargeBlock(spare: own PoolBlock, offset: Int) -> own LargeBlock {
 
 ```efen
 struct Pool {
-    var classes: own Classes.Area? = null { value == null || value.count == CLASSES }
+    var classes: own Area<Class>? = null { value == null || value.count == CLASSES }
     var firstFreeBlock: own Blocks.Item? = null
     invariants { firstFreeBlock: FreeBlock? }      // цель поля имеет вид FreeBlock
 }
@@ -364,7 +364,7 @@ fn releaseBlock(pool: mut Pool, block: own PoolBlock) {
 ```efen
 struct SlotBlock {
     Header
-    @align(LINE) area slots: Slot
+    inline slots: Area<Slot, align: LINE>
 
     invariants {
         kind == .slots
@@ -387,7 +387,7 @@ struct SlotBlock {
 ### Выдача: `lend` элемента
 
 `lend block.slots[k]` даёт `own block.slots.Item` — владеющий типизированный адрес слота `k`.
-Байты не переносятся: структура, кончающаяся `area`, размера в объявлении не имеет, значением
+Байты не переносятся: структура, кончающаяся полем-областью, размера в объявлении не имеет, значением
 быть не может и `Movable` не является, поэтому слот отдаёт единственное, что у него есть, —
 адрес. Слот `k` входит в `slots.taken`. Условия:
 
@@ -403,7 +403,7 @@ struct SlotBlock {
 ([выдача и возврат слота](layout/operations.md#выдача-и-возврат), правило 5).
 
 ```efen
-fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock) -> own Pointer
+fn acquireSlot(entry: mut Class.Pointer, block: mut SlotBlock) -> own Pointer
     requires block.used > 0
 {
     var k: Int
@@ -433,7 +433,7 @@ fn acquireSlot(entry: mut Classes.Item, block: mut SlotBlock) -> own Pointer
 `block.slots[k] = take slot` слот `k` выходит из `slots.taken`, и его поля снова доступны.
 
 ```efen
-fn releaseSlot(pool: mut Pool, entry: read<pool> Classes.Item, block: read<pool> SlotBlock,
+fn releaseSlot(pool: mut Pool, entry: read<pool> Class.Pointer, block: read<pool> SlotBlock,
                slot: own block.slots.Item)
     requires block.used > 0
     requires block.slots.taken.contains(block.slots.index(slot))
@@ -638,13 +638,13 @@ Pointer.Zeroed` в коде тоже ошибка: при выполнении �
 - упорядоченные состояния вместо взаимоисключающих: `Zeroed` подходит туда, где ждут `Raw` или `Initialized`;
 - запрет вывода состояния `Pointer` через сигнатуру.
 
-## Область layout: `area` и `set area`, число элементов у переменной
+## Область layout: `Area` и `set area`, число элементов у переменной
 
-Статус: строки `area` и `set area` описаны в [множествах и областях](layout/declaration.md#множества-и-области). Строка
-объявляет только тип элемента, а число элементов указывает переменная, которая хранит область. Правила приведения и
-раздачи ниже относятся к Amber S74.8c и S74.6g.
+Статус: тип `Area<T>` и строка `set area` описаны в [множествах и областях](layout/declaration.md#множества-и-области).
+Тип области называет только тип элемента, а число элементов указывает переменная, которая хранит область. Правила
+приведения и раздачи ниже относятся к Amber S74.8c и S74.6g.
 
-Строка области в `layout` объявляет только тип элемента:
+Поле области называет только тип элемента:
 
 ```efen
 layout {
@@ -652,7 +652,6 @@ layout {
         value.kind == .slots ==> value is SlotBlock      // условие множества: после проверки метки верны инварианты вида
         value.kind == .large ==> value is LargeBlock
     }
-    area Classes: Class
 
     struct Class {
         var size: Int = 0
@@ -670,7 +669,7 @@ layout {
     }
 
     struct Pool {
-        var classes: own Classes.Area? = null { value == null || value.count == CLASSES }
+        var classes: own Area<Class>? = null { value == null || value.count == CLASSES }
         var firstFreeBlock: own Blocks.Item? = null
         invariants { firstFreeBlock: FreeBlock? }
     }
@@ -681,12 +680,12 @@ layout {
 `linked` говорит, в какой из двух цепочек блок находится. Вторая владеющая цепочка новых полей не требует: обе идут
 по `next` и `prev` заголовка.
 
-`Classes.Area` — чистый указатель на начало области, одно машинное слово; ёмкость он не хранит
+`Area<Class>` — чистый указатель на начало области, одно машинное слово; длины он не хранит
 ([области](layout/declaration.md#множества-и-области)). Число элементов — уточнение переменной, сразу после её
 типа, по форме [уточнённых типов](../types/refinement-types.md):
 
 ```efen
-let table: Classes.Area = memory as Classes.Area { value.count == CLASSES }
+let table: Area<Class> = memory as Area<Class> { value.count == CLASSES }
 ```
 
 - у необязательного поля — `{ value == null || value.count == N }`, у остальных — `{ value.count == N }`;
@@ -697,15 +696,15 @@ let table: Classes.Area = memory as Classes.Area { value.count == CLASSES }
 - переменная без записанного типа берёт тип начального значения: `if let table = take pool.classes`;
 - область без числа — тип параметра, результата, поля или переменной — ошибка компиляции.
 
-Шаг элемента — `sizeOf(Class)`. Приведение `memory as Classes.Area` поглощает `Pointer`. Компилятор доказывает:
+Шаг элемента — `sizeOf(Class)`. Приведение `memory as Area<Class>` поглощает `Pointer`. Компилятор доказывает:
 
-1. размер памяти не меньше `count · sizeOf(E)` для `area` и равен ему для `set area`: в нём каждый байт принадлежит
+1. размер памяти не меньше `count · sizeOf(E)` для `Area` и равен ему для `set area`: в нём каждый байт принадлежит
    элементу;
 2. выравнивание не меньше `alignOf(E)`;
 3. элементы не читаются до записи.
 
-Элементы `area` — значения. `table[i].size = 16` пишет поле элемента `i`, `table[i] = Class(size: 16)` — элемент целиком.
-Индекс доказан в границах `0 ..< count` или проверяется при выполнении. Поля элемента — любые типы, в том числе параметр `T` у `layout`, `own`-область и якоря
+Элементы `Area` — значения. `table[i].size = 16` пишет поле элемента `i`, `table[i] = Class(size: 16)` — элемент целиком.
+Индекс FLOW доказывает в границах `0 ..< count` по коду владельца; недоказанный индекс вызывает ошибку компиляции. Поля элемента — любые типы, в том числе параметр `T` у `layout`, `own`-область и якоря
 элементов других множеств ([владение по множествам](layout/declaration.md#множества-и-области)); владеть частью той же области
 элемент не может. Пока якорь слота не пуст, слот нельзя перезаписать целиком, а область — освободить.
 
@@ -719,7 +718,7 @@ let table: Classes.Area = memory as Classes.Area { value.count == CLASSES }
 Статус: правило справочника ([множества и области](layout/declaration.md#множества-и-области),
 [слоты области](layout/operations.md#частичная-инициализация-и-очистка)); в Amber сделано шагом S74.8c1b.
 
-Владеющее поле `var classes: own Classes.Area? = null { value == null || value.count == CLASSES }` хранит область. `pool.classes![i].size` читает и пишет элемент на
+Владеющее поле `var classes: own Area<Class>? = null { value == null || value.count == CLASSES }` хранит область. `pool.classes![i].size` читает и пишет элемент на
 месте: поле не забирается, `!` утверждает, что оно не пусто. Пустое поле останавливает программу при выполнении.
 
 ```efen
@@ -742,7 +741,7 @@ fn countUse(pool: mut Pool, index: Int) {
 fn growPool(pool: mut Pool) -> Bool {
     let memory = System.map(bytes: REGION_BLOCKS * BLOCK, aligned: BLOCK) ?? return false
 
-    let region: Blocks.Area = memory as Blocks.Area { value.count == REGION_BLOCKS }
+    let region: Area<Block> = memory as Area<Block> { value.count == REGION_BLOCKS }
     for element in take region {
         pool.firstFreeBlock = newFreeBlock(memory: take element, next: take pool.firstFreeBlock)
     }

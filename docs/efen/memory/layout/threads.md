@@ -212,11 +212,9 @@ fn peek(jobs: mut Jobs) -> Int requires jobs.mutex is Mutex.Free {
 
 ```efen
 layout<T: Movable> {
-    area Cells: T
-
     public struct Store {
         let capacity: Int { value > 0 }
-        var cells: own Cells.Area? = null { value == null || value.count == capacity }
+        var cells: own Area<T>? = null { value == null || value.count == capacity }
     }
 }
 

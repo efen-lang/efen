@@ -870,15 +870,13 @@ layout {
         var next: anchor Entries.Item? = null       // якорь следующей записи цепочки
     }
 
-    area Buckets: Bucket
-
     struct Bucket {
         var head: anchor Entries.Item? = null       // якорь первой записи корзины
     }
 
     struct Table {
         var size: Int = BUCKETS { value > 0 }
-        var buckets: own Buckets.Area? = null { value == null || value.count == size }
+        var buckets: own Area<Bucket>? = null { value == null || value.count == size }
     }
 }
 

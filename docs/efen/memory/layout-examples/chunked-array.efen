@@ -1,16 +1,14 @@
 const CHUNK_SIZE: Int = 256
 
 private layout<T: Movable> {
-    area Items: T
-    area Chunks: Chunk
-
     struct Chunk {
-        private var root: own Items.Area? = null { value == null || value.count == CHUNK_SIZE }
+        private var root: own Area<T>? = null { value == null || value.count == CHUNK_SIZE }
         private var length: Int = 0 { value >= 0 && value <= CHUNK_SIZE }
+        invariants { root == null || root!.initialized == length }
     }
 
     public struct ChunkedArray {
-        private var directory: own Chunks.Area? = null {
+        private var directory: own Area<Chunk>? = null {
             (value == null) == (directoryCapacity == 0) && (value == null || value.count == directoryCapacity)
         }
         private var directoryCapacity: Int = 0 { value >= 0 }
@@ -18,6 +16,7 @@ private layout<T: Movable> {
         public  var count: Int = 0 { value >= 0 }
 
         invariants {
+            directory == null || directory!.initialized == directoryLength
             count <= directoryLength * CHUNK_SIZE
             forall i in 0 ..< directoryLength:
                 directory![i].root != null && directory![i].length == min(CHUNK_SIZE, max(0, count - i * CHUNK_SIZE))
@@ -31,7 +30,7 @@ private fn growDirectory<T: Movable>(a: mut ChunkedArray<T>, minimum: Int) {
     }
 
     let next = max(minimum, max(4, a.directoryCapacity * 2))
-    let fresh = Chunks<T>(count: next)
+    let fresh = Area<Chunk<T>>(count: next)
 
     if let old = take a.directory {
         var i = 0
@@ -49,7 +48,7 @@ private fn ensureChunks<T: Movable>(a: mut ChunkedArray<T>, required: Int) {
     while a.directoryLength < required {
         growDirectory(a, minimum: a.directoryLength + 1)
 
-        let block = Items<T>(count: CHUNK_SIZE)
+        let block = Area<T>(count: CHUNK_SIZE)
         a.directory![a.directoryLength] = Chunk<T>(root: take block, length: 0)
         a.directoryLength += 1
     }

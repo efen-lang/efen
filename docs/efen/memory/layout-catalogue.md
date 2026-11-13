@@ -27,7 +27,7 @@
 
 | Вопрос | Что записывается |
 |---|---|
-| множества | объявления `set` и `area` и их вложенность |
+| множества | объявления `set`, поля `Area` и их вложенность |
 | владение | `own`, `anchor`, указатели |
 | что уходит внешнему коду | значение структуры; элемент по строке `public own Nodes`; слот по строке `public lend Block.data` ([схема владения](layout/owners.md#схема-владения)) |
 | инварианты | строки `invariants` |
@@ -49,19 +49,18 @@
 
 ```efen
 layout {
-    area Items: Item
-
     struct Vector {
-        var items: own Items.Area? { value == null || value.count == capacity }
+        var items: own Area<Item>? { value == null || value.count == capacity }
         var capacity: Int { value >= 0 }
         var count: Int { value >= 0 && value <= capacity }
+        invariants { items == null || items!.initialized == count }
     }
 }
 ```
 
-- **Множества.** Одна область `Items`, её держит `Vector.items`.
+- **Множества.** Одна область `Area<Item>`, её держит `Vector.items`.
 - **Владение.** `own` области; слоты — значения.
-- **Инварианты.** `count <= capacity`; слоты `count ..< capacity` не инициализированы.
+- **Инварианты.** `count <= capacity`; `items.initialized == count`: слоты `count ..< capacity` не инициализированы.
 - **События.** Рост — перевыделение области: все указатели внутрь неё недействительны. Запись слота — запись в неинициализированный элемент, удаление —
   `take` элемента области ([неинициализированный элемент области](layout/declaration.md#множества-и-области)).
 - **FLOW.** Индекс в `0 ..< count`; указатель слота не переживает рост; очистка по `count`
@@ -91,7 +90,7 @@ layout {
         var used: Int
         var frontier: Int { value >= 0 }
         var firstFree: Int = NONE
-        area cells: Cell { value.count == 16 }
+        inline cells: Area<Cell> { value.count == 16 }
 
         invariants {
             used == cells.taken.count
@@ -198,12 +197,10 @@ struct Entry {
 
 ```efen
 layout {
-    area Slots: Slot
-
     public struct Ring {
         var head: Int { value >= 0 && value < CAPACITY }
         var count: Int { value >= 0 && value <= CAPACITY }
-        var slots: own Slots.Area? = null { value == null || value.count == CAPACITY }
+        var slots: own Area<Slot>? = null { value == null || value.count == CAPACITY }
     }
 }
 ```
@@ -230,8 +227,6 @@ layout {
 ## Хеш-таблица с открытой адресацией
 
 ```efen
-area Slots: Slot
-
 struct Slot {
     var state: Int                               // EMPTY, FULL, DELETED
     var key: Int
@@ -239,7 +234,7 @@ struct Slot {
 
 struct Table {
     var count: Int = 0
-    var slots: own Slots.Area? = null { value == null || value.count == CAPACITY }   // значение Table владеет областью
+    var slots: own Area<Slot>? = null { value == null || value.count == CAPACITY }   // значение Table владеет областью
 }
 ```
 
@@ -311,7 +306,7 @@ layout {
 ## Менеджер памяти mm
 
 ОС → регион → блок → слот. Каждый следующий уровень занимает память предыдущего: область получена приведением
-его памяти или вложена полем `area` в его элемент ([переход между
+его памяти или вложена полем `inline` типа `Area` в его элемент ([переход между
 множествами](layout/operations.md#выделение-и-освобождение--переход-между-множествами)). У множества своей памяти
 нет.
 

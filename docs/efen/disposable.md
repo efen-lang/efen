@@ -79,13 +79,13 @@ class File {
 
 ```efen
 private layout<T: Movable> {
-    area Items: T
     public struct Vector {
-        private var items: own Items.Area? = null {
+        private var items: own Area<T>? = null {
             (value == null) == (capacity == 0) && (value == null || value.count == capacity)
         }
         public  var capacity: Int = 0 { value >= 0 }
         public  var count: Int = 0 { value >= 0 && value <= capacity }
+        invariants { items == null || items!.initialized == count }
     }
 }
 

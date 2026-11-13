@@ -96,7 +96,7 @@ layout {
         var next: anchor Blocks.Item? = null     // поля участка остаются у layout
         var prev: Blocks.Item? = null
         var used: Int = 0                        // число выданных слотов
-        area data: Byte                          // память для внешнего кода
+        inline data: Area<Byte>                  // память для внешнего кода
     }
 
     public struct Pool {

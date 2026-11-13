@@ -390,7 +390,7 @@ while let block = take pool.firstFreeBlock
 только строки `requires` и `ensures`.**
 
 ```efen
-var classes: own Classes.Area? = null { value == null || value.count == CLASSES }
+var classes: own Area<Class>? = null { value == null || value.count == CLASSES }
 var head: AtomicInt = AtomicInt(0) { value >= previous(value) }
 generic Lanes: Int { value > 0 }
 ```
@@ -403,7 +403,7 @@ generic Lanes: Int { value > 0 }
   `type Nat: Int { value >= 0 }` ([уточняющие типы](types/refinement-types.md)).
 - Собственная память значения — сами биты переменной или поля, у значения-структуры — её поля. То, что лежит за
   ссылкой (`own`, `read`, `!`, поле другого узла, элемент призрачной последовательности), — чужое состояние: его
-  пишут без записи в эту переменную. `{ value.count == CLASSES }` у `own Classes.Area?` законно: длина области —
+  пишут без записи в эту переменную. `{ value.count == CLASSES }` у `own Area<Class>?` законно: длина области —
   часть её значения; `{ value.next == null }` у `own Node?` — нет.
 - `{ }` у строки, который читает что-то кроме собственной памяти `value` и констант, — ошибка с подсказкой
   перенести строку в `invariants`.
@@ -603,7 +603,7 @@ fn release(pool: mut Pool, connection: own Connection)
 ```efen
 struct SlotBlock {
     Header                                  // used, frontier, firstFreeSlot, kind
-    @align(LINE) area slots: Slot
+    inline slots: Area<Slot, align: LINE>
 
     invariants {
         kind == SLOTS
@@ -743,7 +743,7 @@ fn growPool(pool: mut Pool) -> Bool {
         return false
     }
 
-    let region: Blocks.Area = memory as Blocks.Area { value.count == REGION_BLOCKS }
+    let region: Area<Block> = memory as Area<Block> { value.count == REGION_BLOCKS }
     for element in take region {
         pool.firstFreeBlock = newFreeBlock(memory: take element, next: take pool.firstFreeBlock)
         assume pool.blocks < MAX_BLOCKS && pool.pooled < MAX_BLOCKS

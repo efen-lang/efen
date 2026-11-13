@@ -71,7 +71,7 @@ const BLOCK = 65536
 @align(BLOCK)
 struct Block {
     var next: Int = NONE
-    area rest: Byte
+    inline rest: Area<Byte>
 }
 ```
 
@@ -84,7 +84,7 @@ struct Block {
 | `variant`, `enum` и каждый их вариант | встроенный тип (`Header` строкой в `struct`) |
 | `alias`, `type`, `strategy`, `projection`, `context`, `aspect` | `one`, `catch`, `provide`, `test` |
 | `const`, `let` и `var` файла и типа (поля) | `#if`, `#else` |
-| `area`, `set`, `layout`, `state` | локальные `let`, `var` и инструкции в теле |
+| `set`, `layout`, `state` | локальные `let`, `var` и инструкции в теле |
 | `param` в теле функции | условия `requires`/`ensures` |
 
 Над `#if` документацию не пишут: каждая ветка документирует своё объявление.
