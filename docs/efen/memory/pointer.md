@@ -449,7 +449,7 @@ fn releaseSlot(pool: mut Pool, entry: read<pool> Class.Pointer, block: read<pool
         return
     }
     let cut = detachBlock(pool, entry: entry, block: block)   // anchor SlotBlock: блок вырезан из своей цепочки класса
-    let spare = cut as own SlotBlock       // used == 0, указателей на блок в цепочке нет
+    let spare = cut as own Blocks.Item     // used == 0, указателей на блок в цепочке нет
     if entry.reserve == null { entry.reserve = take spare; return }
     releaseBlock(pool, block: toPoolBlock(take spare))        // смена вида: releaseBlock принимает own PoolBlock
 }
@@ -459,7 +459,7 @@ fn releaseSlot(pool: mut Pool, entry: read<pool> Class.Pointer, block: read<pool
 пул параметром `mut`, а класс и блок называет параметрами с источником `read<pool>`: право писать в них она берёт
 из права на `pool` ([право на элемент](layout/functions.md#82-право-на-элемент), правило 5). `detachBlock` получает
 `pool` по той же причине: блок уходит из структуры пула. Перед возвратом пулу блок меняет вид: `toPoolBlock`
-приводит `own SlotBlock` к `PoolBlock`, виду без указателей
+приводит `own Blocks.Item` вида `SlotBlock` к `PoolBlock`, виду без указателей
 ([смена вида](#смена-вида--отдельная-функция)).
 
 ### Блок после возврата последнего слота
