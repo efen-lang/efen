@@ -275,7 +275,8 @@ table.append("y")                                   // ошибка: table — i
 - **Путь.** Путь через `immutable` тоже `immutable`: у `table: immutable Vector<String>` элемент `table[0]` —
   `immutable String`. Ссылка, которую возвращает `read fn` с источником в замороженном значении, тоже `immutable`.
 - **Копия.** Копия `ImplicitlyCopyable` без кучи теряет `immutable`: `var limit = config.timeout` — `Int`. `copy`
-  замороженного значения даёт `own T`. Других путей от `immutable T` к `T` нет.
+  замороженного значения даёт `own T`. `clone` замороженного значения даёт `immutable T`: клон делит данные с
+  источником. Других путей от `immutable T` к `T` нет.
 - **Запрещено.** Присваивание поля, метод с `edit`, `mut` или `own self`, заимствование `edit` и `mut`, аргумент `out`,
   `take` части. `take` всего значения в другой слот `immutable T` разрешён.
 - **Слот `var`.** Слот `var` типа `immutable T` перезаписывают только целиком другим замороженным значением; старое
@@ -321,7 +322,7 @@ let transferred = take resource // resource больше не владеет з�
 [«Связывание существующего значения»](#связывание-существующего-значения).
 
 `Movable`, `Copyable` и `Cloneable` не следуют друг из друга.
-`ImplicitlyCopyable` требует `Copyable`, но не даёт `Movable`.
+`ImplicitlyCopyable` требует `Copyable` и `Cloneable`, но не даёт `Movable`.
 Клонирование создаёт ещё одного владельца общих данных, но само по себе
 не разрешает доступ к ним из другого потока. Это отдельно проверяется
 по правилам параллельного выполнения.

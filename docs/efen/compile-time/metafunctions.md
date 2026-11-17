@@ -1105,18 +1105,18 @@ swap(x, y)
 
 ### Захват переменных
 
-Inline closure может захватывать переменные из окружения **только явно**:
+Inline closure получает переменные места вызова **только параметрами метафункции**:
 
 ```efen
-meta fn incrementBy(value: Int) -> InlineClosure {
+meta fn incrementBy(counter: mut Int, value: Int) -> InlineClosure {
     return inline {
-        // value захвачен из параметра метафункции
+        // counter и value — параметры метафункции; имён места вызова кусок не видит
         counter += value
     }
 }
 
-let counter = 10
-incrementBy(5)  // counter = 15
+var counter = 10
+incrementBy(counter, 5)  // counter = 15
 ```
 
 ### Возвращаемое значение
@@ -1271,8 +1271,8 @@ meta fn goodexample -> InlineClosure {
 // Правильный вызов - с параметром
 let length = goodexample()("hello")  // ✅ OK - 5
 
-// Или сохранить функцию
-let stringLength = goodexample()  // Тип: (String) -> Int
+// Или раскрыть кусок в литерал замыкания: значение времени выполнения — замыкание, а не кусок
+let stringLength = goodexample()  // литерал замыкания (x: String) -> Int в этом месте
 let len = stringLength("world")   // ✅ OK - 5
 ```
 

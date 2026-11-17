@@ -9,7 +9,7 @@
 
 `Movable`, `Copyable` и `ImplicitlyCopyable` являются независимыми
 контрактами времени компиляции возможностей значения, кроме одной явной связи:
-`ImplicitlyCopyable` наследует `Copyable`.
+`ImplicitlyCopyable` уточняет `Copyable` и `Cloneable`.
 
 ```efen
 contract Movable {
@@ -23,12 +23,13 @@ contract Copyable {
 Уточнение одного контракта другим пишется через `:`:
 
 ```efen
-contract ImplicitlyCopyable : Copyable {
+contract ImplicitlyCopyable : Copyable, Cloneable {
 }
 ```
 
-`ImplicitlyCopyable` уточняет `Copyable`: тип, соответствующий первому,
-обязан соответствовать и второму. Строку `conforms ImplicitlyCopyable` пишут только модули языка: в
+`ImplicitlyCopyable` уточняет `Copyable` и `Cloneable`: тип, соответствующий первому,
+обязан соответствовать и двум другим. Копия такого типа память не выделяет, поэтому его `clone` — та же копия
+байтов, и `fn dup<T: Cloneable>` принимает `Int`. Строку `conforms ImplicitlyCopyable` пишут только модули языка: в
 пользовательском типе она вызывает ошибку, и его значение копирует только явный `copy`. Исключение — `enum`: его
 значение несёт только имя, и соответствие `ImplicitlyCopyable` ему даёт компилятор
 ([перечисления](../types/enum.md#копирование-значения)). `variant` его не получает.
@@ -80,9 +81,11 @@ let wrong = clone tree     // ошибка: у `tree` нет счётчика с
 Тип разрешает `clone` контрактом `lang::Cloneable` с функцией `fn clone -> Self`, как `copy` разрешает
 `lang::Copyable`. Класс со строкой `conforms ArcClass` получает его от аспекта подсчёта ссылок
 ([поддержка объектов](object-support.md)); тип, чей layout доказывает общее владение,
-реализует его сам; структура, у которой каждое поле `Cloneable`, `ImplicitlyCopyable` или заимствование с источником вне
-объекта, соблюдает `Cloneable` без записи и клонируется по полям ([структуры](../structs.md#копия-и-клон-по-полям));
-обобщённый код пишет `T: Cloneable`. Прямой вызов `x.clone()` получает ту же диагностику, что `x.copy()`: пишется
+реализует его сам; тип с `ImplicitlyCopyable` соблюдает его по уточнению; структура пишет `conforms Cloneable` и
+клонируется по полям, когда каждое поле — `Cloneable` или заимствование с источником вне объекта
+([структуры](../structs.md#копия-и-клон-по-полям)); обобщённый код пишет `T: Cloneable`. `clone` значения
+`immutable T` даёт `immutable T`: клон делит данные с замороженным источником
+([неизменяемость](../immutability.md#точки-заморозки)). Прямой вызов `x.clone()` получает ту же диагностику, что `x.copy()`: пишется
 `clone x`.
 
 Префиксные операторы связывают сильнее `as`, поэтому `copy a as B` — это

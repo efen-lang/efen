@@ -778,8 +778,8 @@ v[i ..< i + 1] }` проходит проверку границ.
 
 ```efen
 for item in edit items { item.hp += 1; print(items.count) }   // можно: тело читает items рядом с заимствованием edit
-updateAll(items) => { item.hp += 1 }                          // можно: колбэк пишет только свой параметр
-updateAll(items) => { print(items.count) }                    // ошибка: у типа колбэка нет пометки edit<values>
+updateAll(items, (item) => item.hp += 1)                      // можно: колбэк пишет только свой параметр
+updateAll(items, (item) => print(items.count))                // ошибка: у типа колбэка нет пометки edit<values>
 ```
 
 Скрытое замыкание — единица только для сводки доступа: что тело делает с захваченными путями, пока
