@@ -697,6 +697,41 @@ Efen три отдельных встроенных contract: различие �
   даёт глубокую копию того, чем замыкание владеет; `clone f` разрешён, когда каждый захват `Cloneable`. Заимствование
   копируется как тот же адрес. Решает компилятор по типам захватов. Литерал, который использует ссылку своей функции
   (`cur`), не копируется.
+- Стратегию копии и клона замыканий выбирают как любую реализацию извне
+  ([реализация извне](contracts.md#реализация-извне)). Копию по полям даёт рантайм по умолчанию; программа может
+  выбрать свою для всех замыканий сборки:
+
+  ```efen
+  contract ClosureCopying {                       // lang::
+      allow implementations from runtime, program default runtime::FieldWise
+      fn copy<C: Callable>(closure: read C) -> C
+  }
+  contract ClosureCloning {                       // lang::
+      allow implementations from runtime, program default runtime::FieldWise
+      fn clone<C: Callable>(closure: read C) -> C
+  }
+
+  provide { ClosureCopying: myrt::PooledCopy }    // конфигурация сборки программы
+  ```
+
+  Своя стратегия для одного замыкания — структура, которая сама соблюдает `Callable<F>` и пишет свой `copy` или
+  `clone`: она подходит везде, где подходит литерал.
+
+  ```efen
+  struct Retry {
+      conforms Callable<() -> Void>, Copyable
+      var attempts: Int
+      var job: Job
+
+      fn call() { … }
+      fn copy -> Self { return Retry(attempts: 0, job: clone job) }   // копия начинает попытки заново
+  }
+
+  scheduler.add(task: Retry(attempts: 0, job: job))
+  ```
+
+  Какая бы стратегия ни была выбрана, разрешены ли `copy` и `clone`, решают типы захватов при компиляции; компилятор
+  только вызывает выбранную реализацию.
 - Значение-функция только перемещается, с захватами или без: по типу `(Int) -> Int` не видно, что лежит в окружении.
   `copy` значения, которое держит значение-функцию, в том числе структуры с полем-функцией, — ошибка. Тип функции
   `@abi(c)` — один адрес кода и копируется. Запись замыкания в слот — присваивание значения, которое владеет памятью:
