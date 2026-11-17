@@ -82,7 +82,8 @@ block.Header = Header(kind: .free) // поля пишет программа
 | `spare as LargeBlock` из `FreeBlock` | оба встраивают `Block` первым полем; владеющие поля старого вида пусты |
 | `spare as SlotBlock(slots: Slot(size: s))` | эквивалентность разметки, леммы ниже |
 | `slot as Pointer` | стирание: элемент принадлежит тому, кто приводит |
-| `(address(m) & ~(BLOCK - 1)) as read<pool> Blocks.Item` | маску компилятор сверяет с `@align(BLOCK)` и вложенностью области, а недоказанная сверка требует `assume`; что адрес указывает в элемент множества и что элемент принадлежит структуре `pool`, принимается без доказательства: точка доверия ([указатель вне layout](layout/pointers.md#указатели-вне-layout)) |
+| `(address(m) & ~(BLOCK - 1)) as read<pool> Blocks.Item` | маску компилятор сверяет с `@align(BLOCK)` и вложенностью области, а недоказанная сверка требует `assume`; что адрес указывает в элемент множества и что элемент принадлежит структуре `pool`, принимается без доказательства, как и то, что `pool` принадлежит этому потоку: точка доверия ([указатель вне layout](layout/pointers.md#указатели-вне-layout)) |
+| `(address(m) & ~(BLOCK - 1)) as read Header` | проба: только чтение, без источника; её поля, элементы неудерживаемого множества, передаются только в параметр `claim T`; что адрес начинает живой элемент с первой структурой `Header`, принимается без доказательства: точка доверия ([указатель вне layout](layout/pointers.md#указатели-вне-layout)) |
 
 Сужения приведением нет. После проверки поля, которое называет вид (`block.kind == .large`), инварианты вида верны по
 условию множества, и значение передаётся как `LargeBlock` без приведения
@@ -434,7 +435,7 @@ fn acquireSlot(entry: mut Class.Pointer, block: mut SlotBlock) -> own Pointer
 `block.slots[k] = take slot` слот `k` выходит из `slots.taken`, и его поля снова доступны.
 
 ```efen
-fn releaseSlot(pool: mut Pool, entry: read<pool> Class.Pointer, block: read<pool> SlotBlock,
+fn releaseSlot(pool: mut Pool, entry: read<pool> Class.Pointer, block: claim<pool> SlotBlock,
                slot: own block.slots.Item)
     requires block.used > 0
     requires block.slots.taken.contains(block.slots.index(slot))
@@ -456,8 +457,9 @@ fn releaseSlot(pool: mut Pool, entry: read<pool> Class.Pointer, block: read<pool
 ```
 
 Вырезать блок из цепочки класса и вернуть его пулу значит вывести элемент из структуры. Поэтому функция получает
-пул параметром `mut`, а класс и блок называет параметрами с источником `read<pool>`: право писать в них она берёт
-из права на `pool` ([право на элемент](layout/functions.md#82-право-на-элемент), правило 5). `detachBlock` получает
+пул параметром `mut`, класс называет параметром с источником `read<pool>`, а блок, который она может привести к
+`own`, параметром `claim<pool>`: право писать в них она берёт из права на `pool`
+([право на элемент](layout/functions.md#82-право-на-элемент), правила 5 и 6). `detachBlock` получает
 `pool` по той же причине: блок уходит из структуры пула. Перед возвратом пулу блок меняет вид: `toPoolBlock`
 приводит `own Blocks.Item` вида `SlotBlock` к `PoolBlock`, виду без указателей
 ([смена вида](#смена-вида--отдельная-функция)).
@@ -823,14 +825,16 @@ fn smallFree(memory: own Pointer?) {
     }
 
     let slot = (take found) as block.slots.Item                             // точка доверия: слот выдан из block
-    releaseSlot(pool, entry: pool.classes![block.sizeClass], block: block, slot: take slot)
+    releaseSlot(pool, entry: pool.classes![block.sizeClass], block: claim block, slot: take slot)
     Heap.pool = take pool
 }
 ```
 
 После проверки `block.kind == .slots` инварианты вида `SlotBlock` верны по условию множества `Blocks`, и приведения вида
-функции не нужно. Приведение адреса и восстановление слота пишет только код `layout`, поэтому функция стоит в
-пакете `layout` менеджера памяти.
+функции не нужно. После вызова с `claim block` указатели функции на блок и на слоты в нём недействительны.
+Приведение адреса и восстановление слота пишет только код `layout`, поэтому функция стоит в пакете `layout`
+менеджера памяти. Она передаёт `claim` блока, который не получила параметром, — она инициатор: значением функции
+она не передаётся ([сводка функции](layout/functions.md#как-flow-вычисляет-время-жизни), правило 8).
 
 Функция записана для одного потока. Компилятор принимает, что C вызывает её в потоке этого контекста и
 не одновременно с остальным его кодом ([структура и поток](layout/threads.md#структура-и-поток), правило 4). Тогда
@@ -883,7 +887,8 @@ fn smallFree(memory: own Pointer?) {
 
 - как отображение ОС, взятое не регионом, входит в множество блоков и выходит из него;
 - условная компиляция отладочных проверок (`#if debug()` в спецификации нет);
-- `own<block>` — origin-форма, у ссылок она есть, для `own` не записана;
+- `own<block>` — origin-форма, у ссылок она есть, для `own` не записана (параметр, который функция может сделать
+  владельцем, пишется `claim<p>`, [право на элемент](layout/functions.md#82-право-на-элемент), правило 6);
 - `x.index(element)` как имя, известное компилятору;
 - цикл, который берёт несколько элементов: нужен инвариант по `taken`;
 - происхождение `Pointer` через границу контракта (`tryAllocate -> own Pointer?`);
