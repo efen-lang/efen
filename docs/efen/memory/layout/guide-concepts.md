@@ -194,7 +194,7 @@ print(node.value)
 когда инвариант ещё не восстановлен.
 
 ```efen
-private fn unlinkFirst<T>(list: mut List<T>) -> anchor Nodes<T>.Item? {
+private fn unlinkFirst<T: Movable>(list: mut List<T>) -> anchor Nodes<T>.Item? {
     let first = tie list.head ?? return null
     list.head = tie first.next
     return first                      // count ещё не уменьшен: инвариант не восстановлен
@@ -293,7 +293,7 @@ strategy<T> for DoublyList<T> {
 ### Удаление узла
 
 ```efen
-private fn unlinkAt<T>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.Item? {
+private fn unlinkAt<T: Movable>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.Item? {
     if index == 0 {
         let first = tie list.head ?? return null
         list.head = tie first.next

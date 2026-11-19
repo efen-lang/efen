@@ -24,11 +24,11 @@ private layout<T: Movable> {
     }
 }
 
-private fn newNode<T>(value: own T) -> own Nodes<T>.Item {
+private fn newNode<T: Movable>(value: own T) -> own Nodes<T>.Item {
     return Node<T>(value: take value)
 }
 
-private fn nodeAt<T>(list: edit DoublyList<T>, index: Int) -> edit Nodes<T>.Item
+private fn nodeAt<T: Movable>(list: edit DoublyList<T>, index: Int) -> edit Nodes<T>.Item
     requires index >= 0 && index < list.count
 {
     if index <= list.count / 2 {
@@ -50,7 +50,7 @@ private fn nodeAt<T>(list: edit DoublyList<T>, index: Int) -> edit Nodes<T>.Item
     return current
 }
 
-private fn nodeAtMut<T>(list: mut DoublyList<T>, index: Int) -> mut Nodes<T>.Item
+private fn nodeAtMut<T: Movable>(list: mut DoublyList<T>, index: Int) -> mut Nodes<T>.Item
     requires index >= 0 && index < list.count
 {
     if index <= list.count / 2 {
@@ -72,7 +72,7 @@ private fn nodeAtMut<T>(list: mut DoublyList<T>, index: Int) -> mut Nodes<T>.Ite
     return current
 }
 
-private fn unlinkAt<T>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.Item? {
+private fn unlinkAt<T: Movable>(list: mut DoublyList<T>, index: Int) -> anchor Nodes<T>.Item? {
     if index == 0 {
         let first = tie list.head ?? return null
         list.head = tie first.next
