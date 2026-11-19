@@ -140,7 +140,7 @@ strategy<T> for List<T> {
     }
 }
 
-fn firstOf<T>(list: List<T>) -> read<list> T? {
+fn firstOf<T: Movable>(list: List<T>) -> read<list> T? {
     let node = list.head ?? return null
     return &read node.value
 }

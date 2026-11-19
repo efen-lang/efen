@@ -84,7 +84,7 @@ private layout<T: Movable> {
 ### Вставка в начало
 
 ```efen
-private fn newNode<T>(value: own T) -> own Nodes<T>.Item {
+private fn newNode<T: Movable>(value: own T) -> own Nodes<T>.Item {
     return Node<T>(value: take value)
 }
 
