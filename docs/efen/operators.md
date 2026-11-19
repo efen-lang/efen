@@ -300,6 +300,9 @@ let next = take cell.next ?? throw ListError.broken
   инициализаторе поля выход — ошибка;
 - левая часть не опциональна — ошибка.
 
+Тип `??` над элементами множества `layout` (`tie list.head ?? Node(value: 0)`) задаёт правило 5 раздела 3.1
+[владения в `layout`](memory/layout/owners.md#якорь-anchor): из `anchor` и `own` получается `anchor`.
+
 ### Диапазоны
 
 ```efen
