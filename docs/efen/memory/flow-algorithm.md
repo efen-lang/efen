@@ -228,13 +228,13 @@ struct View<Src: Origin> {
 
 fn inspect() {
     let parcel = Parcel(weight: 1, size: 2)
-    let view = View(size: &read parcel.size)   // ссылка в часть значения хранится в поле
+    let view = View(size: parcel.size)         // поле с правом берёт место: хранит ссылку в часть parcel
     print(view.size)                           // допустимо: значение parcel в области контроля
 }
 
 fn dangle() {
     let parcel = Parcel(weight: 1, size: 2)
-    let view = View(size: &read parcel.size)
+    let view = View(size: parcel.size)
     consume(parcel: take parcel)               // память parcel покидает область контроля
     print(view.size)                           // ошибка: поле view.size указывает в ушедшую память
 }
