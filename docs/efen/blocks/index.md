@@ -136,17 +136,17 @@ match point {
 ```efen
 // Guard для раннего выхода
 fn process(value: Int?) {
-    guard let value = value else {
+    guard let present = value else {
         print("Значение отсутствует")
         return
     }
 
-    guard value > 0 else {
+    guard present > 0 else {
         print("Должно быть положительным")
         return
     }
 
-    print("Обработка: ${value}")
+    print("Обработка: ${present}")
 }
 
 // Defer для очистки

@@ -13,17 +13,20 @@
 
 ```efen
 fn greet(name: String?) {
-    guard let name = name else {
+    guard let given = name else {
         print("Имя не указано")
         return
     }
 
-    print("Привет, ${name}!")
+    print("Привет, ${given}!")
 }
 
 greet(name: "Иван")  // "Привет, Иван!"
 greet(name: null)     // "Имя не указано"
 ```
+
+Привязка `guard let` не может взять имя параметра: `guard let name = name` — ошибка. Поэтому в примерах
+привязка называется иначе, чем параметр.
 
 ### Guard требует выход
 
@@ -36,17 +39,17 @@ greet(name: null)     // "Имя не указано"
 
 ```efen
 fn processAge(age: Int?) {
-    guard let age = age else {
+    guard let years = age else {
         print("Возраст не указан")
         return  // ✅ Обязательно
     }
 
-    guard age >= 18 else {
+    guard years >= 18 else {
         print("Слишком молод")
         return  // ✅ Обязательно
     }
 
-    print("Возраст: ${age}")
+    print("Возраст: ${years}")
 }
 ```
 
@@ -57,10 +60,10 @@ fn processAge(age: Int?) {
 ```efen
 // ❌ Глубокая вложенность с if
 fn process(value: Int?) {
-    if let value = value {
-        if value > 0 {
-            if value < 100 {
-                print("Значение: ${value}")
+    if let present = value {
+        if present > 0 {
+            if present < 100 {
+                print("Значение: ${present}")
             } else {
                 print("Слишком большое")
             }
@@ -76,22 +79,22 @@ fn process(value: Int?) {
 ```efen
 // ✅ Линейный код с guard
 fn process(value: Int?) {
-    guard let value = value else {
+    guard let present = value else {
         print("Значение отсутствует")
         return
     }
 
-    guard value > 0 else {
+    guard present > 0 else {
         print("Должно быть положительным")
         return
     }
 
-    guard value < 100 else {
+    guard present < 100 else {
         print("Слишком большое")
         return
     }
 
-    print("Значение: ${value}")
+    print("Значение: ${present}")
 }
 ```
 
@@ -101,9 +104,9 @@ fn process(value: Int?) {
 
 ```efen
 fn register(name: String?, email: String?, age: Int?) {
-    guard let name = name,
-          let email = email,
-          let age = age else {
+    guard let givenName = name,
+          let givenEmail = email,
+          let givenAge = age else {
         print("Недостаточно данных для регистрации")
         return
     }
@@ -116,15 +119,15 @@ fn register(name: String?, email: String?, age: Int?) {
 
 ```efen
 fn validateUser(name: String?, age: Int?) {
-    guard let name = name,
-          let age = age,
-          age >= 18,
-          name.count >= 3 else {
+    guard let givenName = name,
+          let givenAge = age,
+          givenAge >= 18,
+          givenName.count >= 3 else {
         print("Неверные данные пользователя")
         return
     }
 
-    print("Пользователь валиден: ${name}, ${age}")
+    print("Пользователь валиден: ${givenName}, ${givenAge}")
 }
 ```
 
@@ -149,22 +152,22 @@ for number in numbers {
 
 ```efen
 fn login(username: String?, password: String?) -> Bool {
-    guard let username = username else {
+    guard let givenUser = username else {
         print("Имя пользователя не указано")
         return false
     }
 
-    guard let password = password else {
+    guard let givenPassword = password else {
         print("Пароль не указан")
         return false
     }
 
-    guard username.count >= 3 else {
+    guard givenUser.count >= 3 else {
         print("Имя пользователя слишком короткое")
         return false
     }
 
-    guard password.count >= 8 else {
+    guard givenPassword.count >= 8 else {
         print("Пароль слишком короткий")
         return false
     }
@@ -248,12 +251,12 @@ fn process(value: Int?) {
         print("Очистка ресурсов")
     }
 
-    guard let value = value else {
+    guard let present = value else {
         print("Значение отсутствует")
         return  // defer всё равно выполнится
     }
 
-    print("Обработка: ${value}")
+    print("Обработка: ${present}")
 }
 
 process(value: null)
@@ -418,18 +421,18 @@ fn processData(data: Data?, cache: Cache) {
         cache.cleanup()
     }
 
-    guard let data = data else {
+    guard let given = data else {
         print("Данные отсутствуют")
         return  // cleanup всё равно выполнится
     }
 
-    guard data.isValid else {
+    guard given.isValid else {
         print("Данные невалидны")
         return  // cleanup всё равно выполнится
     }
 
     // Обработка данных
-    cache.store(data)
+    cache.store(given)
 }
 ```
 
@@ -442,23 +445,23 @@ fn transaction(connection: Connection?, query: String?) {
         connection?.close()
     }
 
-    guard let connection = connection else {
+    guard let conn = connection else {
         print("Соединение отсутствует")
         return
     }
 
     defer {
         print("Завершение транзакции")
-        connection.commit()
+        conn.commit()
     }
 
-    guard let query = query else {
+    guard let text = query else {
         print("Запрос отсутствует")
         return
     }
 
-    print("Выполнение запроса: ${query}")
-    connection.execute(query)
+    print("Выполнение запроса: ${text}")
+    conn.execute(text)
 }
 ```
 

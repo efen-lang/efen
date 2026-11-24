@@ -36,7 +36,7 @@ contract Named {
 class Document {
     conforms Named
     var title: String
-    fn name -> String { return title }
+    fn name -> String { return copy title }
 }
 ```
 
@@ -235,13 +235,13 @@ fn saveAll(objects: [Storable]) {
 `own fn` забирает `self`: владение переходит к методу, как аргумент параметра
 `own`, и после вызова переменной-получателя больше нет. Получателя отдают явно,
 формой `(take x).m()`, как у замыкания `(take task)()`; `take x.m()` забирает
-результат вызова, а не `x`. `mut fn` может менять
-`self` целиком, включая структуру: добавить элемент, убрать его, записать `self`
-заново. `edit fn` не перемещает и не уничтожает существующие слоты `self`: он
+результат вызова, а не `x`. `mut fn` меняет
+объект `self`, включая структуру: добавляет элемент, убирает его. Записать `self`
+целиком нельзя: `self` связан как `let`. `edit fn` не перемещает и не уничтожает существующие слоты `self`: он
 меняет значения в них и может создать новые слоты, как `append` связного списка.
 `read fn` только читает `self`. Метод без
 пометки тоже только читает: пометка `read` записывает умолчание явно, как у
-параметров.
+параметров. Исключение — `deinit` и `dispose`: они получают `self` с правом `mut` без пометки.
 
 ```efen
 contract Stack<T> {
@@ -559,7 +559,7 @@ contract Records {
 implementation Records {
     class Record {
         var text: String
-        fn label -> String { return text }
+        fn label -> String { return copy text }
     }
 }
 

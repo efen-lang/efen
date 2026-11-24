@@ -609,7 +609,8 @@ fn releaseRun(block: claim RunBlock, payload: own Pointer) requires block.used >
     block.bytes[k ..< block.bytes.count] = take payload
     block.used = block.used - 1
     let whole = block as own Runs.Item           // точка доверия: указателей Runs на прогон нет ни в одном потоке
-    System.unmap(memory: whole as Pointer, bytes: whole.size)
+    let size = whole.size
+    System.unmap(memory: whole as Pointer, bytes: size)
 }
 ```
 

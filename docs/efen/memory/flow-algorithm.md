@@ -188,5 +188,133 @@ help: give it a new value before the function exits
 help: or state that it may stay empty on this exit: `ensures throws IOError ==> taken(h.inner)`
 ```
 
+## Циклы
+
+Цикл ничего не меняет в принципах: FLOW обходит тело, пока знание о слотах не перестанет расти. От каждой точки
+создания в цикле жив не больше чем один слот прошлых кругов; прежний уничтожается, когда на него больше никто не
+указывает.
+
+```efen
+fn latest(fallback: read Box) {
+    var r = &read fallback.value
+    var i = 0
+    while i < 3 {
+        let local = makeBox()
+        r = &read local.value    // r указывает в слот значения этого круга; слот прошлого круга уничтожается
+        i += 1
+    }
+    print(r)                     // допустимо: слот последнего круга живёт до выхода из функции
+}
+```
+
+Обход `for … in mut v` разрешает менять структуру `v`; `take` привязки удаляет элемент:
+
+```efen
+fn clean(points: mut [Pt]) {
+    for p in mut points {
+        if p.x < 0 {
+            consume(p: take p)   // элемент удалён из points, память ушла в consume
+        }
+    }
+}
+```
+
+Обычный обход тоже допускает изменение структуры, если курсор после него не используется:
+
+```efen
+fn grow(points: mut [Pt]) {
+    for p in points {
+        if p.x == 0 {
+            points.append(Pt(x: 1, y: 1))   // элементы могут переехать
+            break                           // допустимо: обход дальше не идёт
+        }
+    }
+}
+
+fn growAll(points: mut [Pt]) {
+    for p in points {
+        points.append(Pt(x: p.x, y: p.y))   // ошибка: следующий шаг обхода читает переехавшие элементы
+    }
+}
+```
+
+## Генераторы
+
+Генератор хранит заимствование своего источника в кадре. Пока он жив, память источника не может выйти из области
+контроля: перед таким событием FLOW уничтожает приостановленный генератор, и его очистка выполняется там же.
+
+```efen
+generator walk(items: [Int]) yield Int {
+    defer {
+        print("walk done")
+    }
+    for item in items {
+        yield item
+    }
+}
+
+fn drain(items: own [Int]) {
+    print(items.count)
+}
+
+fn main {
+    var items = [5, 6]
+    let walker = walk(items: items)
+    for item in walker {
+        break
+    }
+    drain(items: take items)     // сначала "walk done": генератор уничтожен до того, как items ушла
+}
+```
+
+Использовать генератор после этого — ошибка:
+
+```efen
+fn reuse() {
+    var items = [5, 6]
+    let walker = walk(items: items)
+    drain(items: take items)     // память items покидает область контроля, walker уничтожен
+    for item in walker {         // ошибка: генератор уничтожен строкой выше
+        print(item)
+    }
+}
+```
+
+## Вызов функции со ссылкой
+
+Ссылку передают аргументом: функция получает слот, на который ссылка указывает, с правом своего параметра. Право
+`edit` разрешает писать значения, но не меняет структуру, поэтому ссылка остаётся верной:
+
+```efen
+fn shift(p: edit Pt) {
+    p.x = p.x + 1
+}
+
+fn calls() {
+    var points = [Pt(x: 1, y: 2), Pt(x: 3, y: 4)]
+    let first = &points[0]
+    shift(p: first)              // функция пишет поля элемента через ссылку
+    print(first.x)               // 2: ссылка верна, структура points не менялась
+    points.append(Pt(x: 5, y: 6))   // изменение структуры: элементы могут переехать
+    print(first.x)               // ошибка: ссылка first недействительна после append
+}
+```
+
+Функция может вернуть ссылку в память параметра. Источник пишется в типе результата, и вызывающий знает, чью память
+держит ссылка:
+
+```efen
+fn firstOf(list: edit [Pt]) -> edit<list> Pt {
+    return &list[0]
+}
+
+fn rename() {
+    var points = [Pt(x: 1, y: 2)]
+    let head = firstOf(list: points)
+    head.x = 10                  // пишет в points[0]
+    print(points[0].x)           // 10
+}
+```
+
 Правила для отдельных форм (`replace`, параметры, `out`, генераторы, классы, `layout`) выводятся из этих принципов и
 собраны в [таблице правил доступа к памяти](memory-rules.md) и в статье о [владении](../types/ownership.md).

@@ -7,9 +7,9 @@
 
 ```efen
 interface Allocator {
-    fn allocate(size: Size) -> Pointer
-    fn reallocate(ptr: Pointer, size: Int) -> Pointer
-    fn deallocate(ptr: Pointer)        
+    mut fn allocate(size: Size) -> Pointer
+    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer
+    mut fn deallocate(ptr: Pointer)        
 }
 
 interface ArenaAllocator {
@@ -48,15 +48,15 @@ class HeapAllocator {
         // Инициализация не требуется для heap
     }
 
-    fn allocate(size: Size) -> Pointer {
+    mut fn allocate(size: Size) -> Pointer {
         return malloc(size)
     }
 
-    fn reallocate(ptr: Pointer, size: Int) -> Pointer {
+    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer {
         return realloc(ptr, size)
     }
 
-    fn deallocate(ptr: Pointer) {
+    mut fn deallocate(ptr: Pointer) {
         free(ptr)
     }
 }
@@ -96,7 +96,7 @@ class Arena {
         self.capacity = size
     }
 
-    fn allocate(size: Size) -> Pointer {
+    mut fn allocate(size: Size) -> Pointer {
         if self.offset + size > self.capacity {
             error("Arena out of memory")
         }
@@ -106,23 +106,23 @@ class Arena {
         return ptr
     }
 
-    fn reallocate(ptr: Pointer, size: Int) -> Pointer {
+    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer {
         // Arena не поддерживает realloc эффективно
         let newPtr = allocate(size)
         memcpy(newPtr, ptr, min(size, /* old size */))
         return newPtr
     }
 
-    fn deallocate(ptr: Pointer) {
+    mut fn deallocate(ptr: Pointer) {
         // Arena не освобождает отдельные объекты
     }
 
-    fn reset {
+    mut fn reset {
         // Сброс арены для повторного использования
         self.offset = 0
     }
 
-    fn clear {
+    mut fn clear {
         // Полная очистка
         free(self.buffer)
         self.buffer = null
@@ -166,17 +166,11 @@ let head = Node(value: 1)
 ```efen
 use runtime::memory
 
-// Аллокатор использует alloca (выделение на стеке)
-fn stackAllocate -> UnsafeMutablePointer<T> {
-    generic T: Type
-    param count: Int = 1
-    let size = sizeOf(T.self) * count
-    return alloca(size) as UnsafeMutablePointer<T>
-}
-
+// alloca выделяет память в кадре вызывающей функции: из обёртки её вернуть нельзя,
+// указатель пережил бы кадр. Поэтому alloca вызывает сама функция, которая использует память
 fn processData(size: Int) {
-    // Выделение на стеке, автоматически освобождается при выходе из функции
-    let buffer = stackAllocate<UInt8>(count: size)
+    // Выделение на стеке processData, автоматически освобождается при выходе из функции
+    let buffer = alloca(size) as UnsafeMutablePointer<UInt8>
 
     // Использование buffer
     for i in 0..<size {
@@ -251,7 +245,7 @@ class FallbackAllocator {
         self.fallback = fallback
     }
 
-    fn allocate(size: Size) -> Pointer {
+    mut fn allocate(size: Size) -> Pointer {
         let ptr = primary.allocate(size)
         if ptr == null {
             return fallback.allocate(size)
@@ -279,14 +273,14 @@ class TrackingAllocator {
     private var inner: Allocator
     private var allocations: [Pointer: Size] = [:]
 
-    fn allocate(size: Size) -> Pointer {
+    mut fn allocate(size: Size) -> Pointer {
         let ptr = inner.allocate(size)
         allocations[ptr] = size
         print("Allocated ${size} bytes at ${ptr}")
         return ptr
     }
 
-    fn deallocate(ptr: Pointer) {
+    mut fn deallocate(ptr: Pointer) {
         if let size = allocations[ptr] {
             print("Deallocated ${size} bytes at ${ptr}")
             allocations.removeValue(forKey: ptr)

@@ -178,15 +178,18 @@ if let age = optionalAge, age >= 18 {
 
 ```efen
 fn greet(name: String?) {
-    guard let name = name else {
+    guard let given = name else {
         print("Имя не указано")
         return
     }
 
-    // name доступен во всей оставшейся функции
-    print("Привет, ${name}!")
+    // given доступен во всей оставшейся функции
+    print("Привет, ${given}!")
 }
 ```
+
+Привязка не берёт имя параметра: `guard let name = name` и `if let name = name` у параметра `name` — ошибки
+([параметры](ownership.md#параметры)).
 
 <a id="3-nil-coalescing-operator-"></a>
 
@@ -427,8 +430,8 @@ fn greet {
     param name: String?
     param title: String? = null
     let actualName = name ?? "Гость"
-    if let title = title {
-        print("Здравствуйте, ${title} ${actualName}")
+    if let shown = title {
+        print("Здравствуйте, ${shown} ${actualName}")
     } else {
         print("Здравствуйте, ${actualName}")
     }
@@ -444,7 +447,7 @@ greet(name: null)                      // "Здравствуйте, Гость"
 ### Результат, который может отсутствовать
 
 ```efen
-fn findFirst<T>(array: [T], predicate: (T) -> Bool) -> T? {
+fn findFirst<T: ImplicitlyCopyable>(array: [T], predicate: (T) -> Bool) -> T? {
     for item in array {
         if predicate(item) {
             return item
@@ -581,7 +584,7 @@ fn process(data: Data?) {
 ✅ **Хорошо:**
 ```efen
 fn process(data: Data?) {
-    guard let data = data else {
+    guard let given = data else {
         return
     }
 
@@ -666,8 +669,8 @@ fn calculateArea(width: Int, height: Int) -> Int {
 
 // Optional только если действительно может отсутствовать
 fn findArea(shape: Shape?) -> Int? {
-    guard let shape = shape else { return null }
-    return shape.width * shape.height
+    guard let given = shape else { return null }
+    return given.width * given.height
 }
 ```
 
@@ -704,7 +707,7 @@ let empty: Int? = null
 `@c` задаёт указательный тип C. Оно уже определено языком; объявлять для
 такого класса объявление `type Option<T>` с блоком хранения нельзя.
 
-Если параметр `mut T?` позволяет функции C записать указатель в переменную
+Если параметр `out T?` позволяет функции C записать указатель в переменную
 вызывающего, в C передаётся адрес этой переменной. Для указательного типа
 `T*` соответствующий параметр C имеет тип `T**`.
 
@@ -803,7 +806,7 @@ print(optional == 42)  // true (автоматическое преобразо�
 Опциональный результат может зависеть от параметра типа:
 
 ```efen
-fn findFirst<T>(array: [T], predicate: (T) -> Bool) -> T? {
+fn findFirst<T: ImplicitlyCopyable>(array: [T], predicate: (T) -> Bool) -> T? {
     for item in array {
         if predicate(item) {
             return item
@@ -812,7 +815,7 @@ fn findFirst<T>(array: [T], predicate: (T) -> Bool) -> T? {
     return null
 }
 
-fn findLast<T>(array: [T], predicate: (T) -> Bool) -> T? {
+fn findLast<T: ImplicitlyCopyable>(array: [T], predicate: (T) -> Bool) -> T? {
     for item in array.reversed() {
         if predicate(item) {
             return item
@@ -821,6 +824,10 @@ fn findLast<T>(array: [T], predicate: (T) -> Bool) -> T? {
     return null
 }
 ```
+
+`return item` возвращает элемент копией, потому что `T` — `ImplicitlyCopyable`. Для другого `T` привязка цикла —
+псевдоним элемента, и вернуть её владеющим результатом нельзя: при `T: Copyable` пишут `return copy item`
+([связывание существующего значения](ownership.md#связывание-существующего-значения), правило 6).
 
 <a id="ошибки-и-optional"></a>
 

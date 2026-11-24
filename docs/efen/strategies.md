@@ -40,12 +40,12 @@ strategy Serialization for Drawable {
 
 ```efen
 contract Coerce<Source> {
-    static fn coerce(value: Source) -> Self
+    static fn coerce(value: own Source) -> Self
 }
 
 strategy for UserId {
     conforms Coerce<Int>
-    static fn coerce(value: Int) -> UserId {
+    static fn coerce(value: own Int) -> UserId {
         return value.refine()
     }
 }
@@ -399,8 +399,8 @@ strategy for Resolve<Allocator<let T>> {
 ```efen
 strategy OptionalOrThrow<T> for T {
     conforms Coerce<T?>
-    static fn coerce(value: T?) -> T throws NullUnwrapError {
-        if let result = value {
+    static fn coerce(value: own T?) -> T throws NullUnwrapError {
+        if let result = take value {
             return result
         }
 

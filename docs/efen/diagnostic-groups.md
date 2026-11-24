@@ -161,7 +161,7 @@ efen build -Werror Proof    # и ошибками
 | `condition.chain-order` | `c[i]`, `c[a ..< b]` или `c.indexOf(x)` у цепочки: порядка она не хранит | закон через `forall k in c`, `count`, `first`, `last`, `contains`; порядок — `ghost var` с `Sequence` |
 | `condition.chain-assignment` | присваивание имени цепочки, в том числе строкой `ghost` | убрать строку: узлы цепочки компилятор знает сам |
 | `generic.own-parameter-requires` | `requires T conforms C` про параметр `T`, которого объявила эта же функция | `<T: C>` или `generic T: C` ([ограничения параметров](generics.md#ограничения-параметров)) |
-| `access.write-without-mark` | тело пишет параметр, `self` или окружение `in Env`, у которых нет пометки права, то есть `read` | нужное слово: `edit`, `mut`, `own`, `take` |
+| `access.write-without-mark` | тело пишет параметр, `self` или окружение `in Env`, у которых нет пометки права, то есть `read` | нужное слово: `edit`, `mut`, `own`, `take`; для записи параметра целиком — только `own` или новая локальная переменная (`var cur = node`) |
 
 ```text
 error[condition.reads-other-state]: the condition of `head` reads `value.next`, which is written without writing `head`

@@ -240,14 +240,14 @@ interface Pollable {
 
 var epoll = Epoll<Connection>()             // обычное значение: может быть полем сервера или корутины
 
-let key = epoll.add(take conn, events: EPOLLIN)      // Key?; при отказе ядра conn остаётся у вызывающего
+let key = epoll.add(conn, events: EPOLLIN)           // Key?; без take: при отказе ядра conn остаётся у вызывающего
 
 for event in epoll.wait(timeout: 100) {
     serve(event.item)                       // mut-доступ к Connection, которым владеет epoll
 
     if closed {
         let back = event.remove()           // own Connection: настоящая передача владения
-        drop(back)
+        drop(take back)
     }
 }
 
@@ -263,7 +263,7 @@ let other = epoll.remove(key)               // own Connection?: null, если �
   новее записи — ошибка программы: проверочная сборка останавливается, обычная пропускает событие.
 - Поколение не переполняется: запись, поколение которой дошло до максимума, больше не выдаётся.
 - `Key` хранит номер, поколение и номер экземпляра `Epoll`. Ключ другого `Epoll` не подходит, и `remove` вернёт `null`.
-- `add` объявлен как `fn add(item: own T? { result != null ==> take }, events: UInt32) -> Key?`. Если ядро
+- `add` объявлен как `fn add(item: own T?, events: UInt32) -> Key?` со строкой `ensures taken(item) == (result != null)`. Если ядро
   отказало (`EPERM`, `EEXIST`, `ENOSPC`), владение не переходит; код ошибки ядра доступен отдельно.
 - `remove` всегда возвращает владение. Если ядро не сняло запись (кроме `ENOENT`, когда записи там и так нет), запись
   остаётся в ядре без владельца; поколение уже сменилось, поэтому её события пропускаются. Проверочная сборка
@@ -352,7 +352,8 @@ const SQLITE_STATIC: sqlite3_destructor_type = null // макрос ((sqlite3_de
     nocontext {
         @constructor fn sqlite3_open(filename: read CString, self?) -> Int32
         @destructor own fn sqlite3_close_v2 -> Int32                                     // неявный деструктор
-        @destructor own fn sqlite3_close(self { result == SQLITE_OK ==> take }) -> Int32  // никогда не неявный
+        @destructor own fn sqlite3_close -> Int32           // никогда не неявный
+            ensures taken(self) == (result == SQLITE_OK)
         private read fn sqlite3_errmsg -> read<self.errmsg> CString
     }
     public fn errorMessage -> own String { return String(copy sqlite3_errmsg()) }
@@ -397,8 +398,9 @@ const SQLITE_STATIC: sqlite3_destructor_type = null // макрос ((sqlite3_de
 - `self?` — выходной слот `out Self?`: C кладёт новый хендлер в слот вызывающего на каждом возврате, при отказе —
   `NULL`; вызывающий проверяет слот. Так же устроен `posix_memalign(memptr: out Pointer?, …)` в
   [владении](types/ownership.md#владение-которое-функция-забирает-не-всегда). C прежнее значение не освобождает;
-  живой хендлер в слоте `out` компилятор уничтожает до вызова, как у любого аргумента `out`, и хендлер не теряется. Если
-  при отказе C оставляет в слоте мусор (`pthread_create`), пишут `self { result == 0 ==> out }`
+  живой хендлер в слоте `out`, на который внутри никто не указывает, компилятор уничтожает до вызова, как у любого
+  аргумента `out`, и хендлер не теряется; если указывает, он живёт до конца последнего указателя. Если
+  при отказе C оставляет в слоте мусор (`pthread_create`), пишут `ensures written(self) == (result == 0)`
   ([конструкторы внешнего объекта](classes.md#конструкторы-внешнего-объекта)).
 - Строка из `sqlite3_column_text` — ссылка в память C с источником `self`
   ([ссылка в результате](types/ownership.md#место-в-результате-функции)). `sqlite3_step` — `mut fn`, поэтому по
@@ -425,13 +427,13 @@ echo text                       // ошибка: text погашен вызов�
 
 | Вид указателя в C | Запись в Efen |
 |---|---|
-| `T*` непрозрачного `T` | `self` метода `@abi(c) class T`; у другого параметра — `own T`, `own T? { result == 0 ==> take }`, `read T`, `mut T` |
+| `T*` непрозрачного `T` | `self` метода `@abi(c) class T`; у другого параметра — `own T`, `own T?` со строкой `ensures taken(x) == (result == 0)`, `read T`, `mut T` |
 | `T*` на одну структуру или число | `read T`, `edit T`, `mut T`; в результате — `read<x> T`, `edit<x> T` |
 | `T*` на массив | `read [T]`, `edit [T]` и `requires x.count == n` ([условия функций](conditions.md)) |
 | `T**` на массив структур | `read Array<T, indirection: indirect>` и `requires x.count == n` |
 | `const char*`, строка с нулём в конце | `read CString`; в результате — `read<x> CString?`. `String` Efen хранит нуль после последнего байта, поэтому `name.cString` отдаёт C тот же буфер без копии; срез строки нуля не имеет и копируется |
-| `T**` для результата | `self?` или `p: out T?`, записанный на каждом возврате; `self { посылка ==> out }` или `p: out T { посылка ==> out }`, записанный ровно на путях посылки. То же для выходного слота любого сырого типа (`pid: out Pid { result == 0 ==> out }`) |
-| `T**` на массив, куда C пишет объекты (`int fds[2]` у `pipe2`) | `fds: mut [T?]` с неинициализированными элементами или `fds: out [T] { посылка ==> out }`, и `requires fds.count == n`; функция — `@constructor` |
+| `T**` для результата | `self?` или `p: out T?`, записанный на каждом возврате; `self` или `p: out T` со строкой `ensures written(…) == (посылка)`, записанный ровно на путях посылки. То же для выходного слота любого сырого типа (`pid: out Pid` и `ensures written(pid) == (result == 0)`) |
+| `T**` на массив, куда C пишет объекты (`int fds[2]` у `pipe2`) | `fds: mut [T?]` с неинициализированными элементами или `fds: out [T]` со строкой `ensures written(fds) == (посылка)`, и `requires fds.count == n`; функция — `@constructor` |
 | `const char**`, куда C пишет указатель внутрь другого параметра (`pzTail`) | `tail: out read<sql> CString? = null`: вызывающий получает ссылку на слот аргумента `sql`, а не значение ([ниже](#что-c-держит-после-вызова)) |
 | `T**` или `void*`, которые модуль не передаёт (`retval` у `pthread_join`) | `p: out Pointer? = null` для `T**`, `p: mut Pointer? = null` для `void*`: `out` даёт C указатель на слот, `mut` — сам указатель; аргумент не передаётся, C получает `NULL` ([сырая память](memory/pointer.md#память-пришедшая-из-c)) |
 
@@ -485,9 +487,9 @@ public fn prepareFirst(db: mut sqlite3, script: read String, next: out Int) -> o
     conforms Constructible, Destructible
     shared layout { var start: own (() own -> Pointer?)? }
     nocontext {
-        @constructor fn pthread_create(self { result == 0 ==> out },
-                                       attr: read pthread_attr_t?,
-                                       start: own (() own -> Pointer?)? { result == 0 ==> take }) -> Int32
+        @constructor fn pthread_create(self, attr: read pthread_attr_t?, start: own (() own -> Pointer?)?) -> Int32
+            ensures written(self) == (result == 0)
+            ensures taken(start) == (result == 0)
         model { if result == 0 { self.start = take start } }
         @destructor(explicit) own fn pthread_join(value: out Pointer? = null) -> Int32
         own fn pthread_detach -> Int32
@@ -750,10 +752,10 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 только для чтения), — остановка с именами обоих объявлений: так ловятся `localtime` и `gmtime`, разведённые по двум
 полям там, где у библиотеки буфер один.
 
-Хендлеры записываются тоже. Любой хендлер, пришедший из C (результатом, через `self?`, `self { result == 0 ==> out }` или
+Хендлеры записываются тоже. Любой хендлер, пришедший из C (результатом, через `self?`, `self` со строкой `ensures written(self) == (result == 0)` или
 массив) или принятый `Self(raw:)`, — «выдан» с типом и строкой объявления. Выдать значение, которое уже выдано, —
 остановка: так ловится второй `File.adopt(raw: 1)`. «Вернулся» — только на пути, где деструктор или параметр его
-забрал: у `own fn sqlite3_close(self { result == SQLITE_OK ==> take })` — при `SQLITE_OK`. Передача вернувшегося хендлера в любой параметр останавливает программу (двойной `sqlite3_close`, `sqlite3_step` после
+забрал: у `own fn sqlite3_close` со строкой `ensures taken(self) == (result == SQLITE_OK)` — при `SQLITE_OK`. Передача вернувшегося хендлера в любой параметр останавливает программу (двойной `sqlite3_close`, `sqlite3_step` после
 `finalize`). Хендлеры, живые в конце программы, попадают в отчёт.
 
 Эффекты функции C — по умолчанию из [общей памяти](shared.md): `Blocking`, пока модуль не написал `without Waiting`
@@ -815,9 +817,9 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 - `out T?` для `T**`, записанная на каждом возврате;
 - `@abi(c) class` и `@c("имя")` у класса, `representation Raw<I>`, `representation Packed<I>`, объявление
   `type Option<T> { representation Raw<I>; null: c }`;
-- `self` в списке параметров и с регистром (`@in(rdi) self`), `self?`, `self { посылка ==> out }`,
-  `p: out T { посылка ==> out }`, `own fn m(self { посылка ==> take })`, метка `self:` у вызова конструктора;
-- массивы `mut [T?]` и `out [T] { посылка ==> out }` у конструктора, `tail: out read<sql> CString? = null`,
+- `self` в списке параметров и с регистром (`@in(rdi) self`), `self?`, строки `ensures written(self) == (посылка)`,
+  `ensures written(p) == (посылка)`, `ensures taken(self) == (посылка)`, метка `self:` у вызова конструктора;
+- массивы `mut [T?]` и `out [T]` со строкой `ensures written(…)` у конструктора, `tail: out read<sql> CString? = null`,
   `= null` у параметра `mut Pointer?` и `out Pointer?` функции без тела;
 - блок объявлений в теле класса, блок `layout` в теле класса, интерфейса и контракта, блок `model`, `forall x in
   collection:`, `shared layout`;

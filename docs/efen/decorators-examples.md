@@ -106,7 +106,7 @@ fn createUser(
     @notNull @length(min: 3, max: 50) name: String,
     @withinRange(min: 18, max: 120) age: Int
 ) -> User {
-    return User(email, name, age)
+    return User(copy email, copy name, age)
 }
 
 @validateInput
@@ -155,7 +155,7 @@ class UserController {
 ```efen
 @transaction
 @retry(maxAttempts: 3, backoff: "exponential")
-fn transferMoney(from: Account, to: Account, amount: Float) -> Bool {
+fn transferMoney(from: mut Account, to: mut Account, amount: Float) -> Bool {
     from.withdraw(amount)
     to.deposit(amount)
     return true

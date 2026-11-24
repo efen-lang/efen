@@ -176,7 +176,7 @@ let loaded = Range(loadValues())   // владение временным зна
 ### Чтение и обход
 
 Индексация и обычный обход конкретного `values` дают элемент на чтение, без
-копии: в теле обхода `item` — ссылка на элемент `values` с правом `read`, живущая одну
+копии: в теле обхода `item` — псевдоним элемента `values` с правом `read`, живущий одну
 итерацию, а `let x = &read values[i]` — локальная ссылка на него. Конкретный
 `RangeReadCursor<T, values>` сохраняет связь с исходным хранилищем. Эти операции не копируют `T`
 и не требуют `Copyable`:
@@ -547,7 +547,7 @@ fn evens(limit: Int) -> Int {
 | Метод | Требует `T: ImplicitlyDestroyable` |
 |---|---|
 | `removeAll()`, `truncate`, `remove(k)`, который не возвращает элемент, перезапись `a[i] = v` | да: элемент уничтожается, и программа его не получает |
-| `removeLast() -> own T?`, `replace`, `take a[i]` у `[T?]` | нет: элемент возвращается |
+| `removeLast() -> own T?`, `replace`, `take a[i]` (удаляет элемент у `[T]` и `[T?]`, нужен `mut` на `a`) | нет: элемент возвращается |
 
 Требование стоит у метода, а не у вызова, поэтому отброшенный результат в таблицу не входит. Если вызывающий
 отбрасывает возвращённый элемент несоответствующего типа (`a.replace(index: 0, value: take t)` без имени для результата), ошибка стоит в
@@ -679,15 +679,15 @@ strategy IntervalStep for IntervalIterator {
 
 ```efen
 for item in collection {
-    // Для Array<T>: item — ссылка read на слот collection.
+    // Для Array<T>: item — псевдоним элемента collection с правом read.
 }
 
 for item in edit collection {
-    // Для Array<T>: item — ссылка edit на слот collection.
+    // Для Array<T>: item — псевдоним элемента collection с правом edit.
 }
 
 for item in mut collection {
-    // Для Array<T>: item — ссылка mut на слот collection; тело может менять структуру
+    // Для Array<T>: item — псевдоним элемента collection с правом mut; тело может менять структуру
     // collection, и тогда item умирает до следующего шага.
 }
 
