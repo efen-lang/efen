@@ -9,26 +9,26 @@
 Примеры ниже используют такие объявления:
 
 ```efen
-struct Pt {
-    var x: Int
-    var y: Int
+struct Parcel {
+    var weight: Int
+    var size: Int
 }
 
-struct Box {
+struct Counter {
     var value: Int
 }
 
 struct Holder {
-    var inner: Box
-    var spare: Pt?
+    var inner: Counter
+    var spare: Parcel?
 }
 
-fn makeBox() -> own Box {
-    return Box(value: 7)
+fn makeCounter() -> own Counter {
+    return Counter(value: 7)
 }
 
-fn consume(p: own Pt) {
-    // функция принимает обязанность уничтожить p
+fn consume(parcel: own Parcel) {
+    // функция принимает обязанность уничтожить parcel
 }
 ```
 
@@ -38,12 +38,18 @@ fn consume(p: own Pt) {
 
 ```efen
 fn show() {
-    let a = makeBox()       // память Box создана, её держит a
-    print(a.value)
-}                           // a кончилась: на память никто не указывает, она уничтожается
+    let counter = makeCounter()   // память Counter создана, её держит counter
+    print(counter.value)
+}                                 // counter кончилась: на память никто не указывает, она уничтожается
 ```
 
 FLOW знает точку уничтожения из текста функции: счётчика во время выполнения нет.
+
+```mermaid
+flowchart LR
+    counter["counter"] --> S["слот: Counter(value: 7)"]
+    S -. "counter кончилась, указателей нет" .-> D(["уничтожение"])
+```
 
 ## Область контроля
 
@@ -54,12 +60,21 @@ FLOW знает точку уничтожения из текста функци
 
 ```efen
 fn store() {
-    var h = Holder(inner: makeBox(), spare: null)
-    let p = Pt(x: 1, y: 2)
-    let r = &read p.y        // ссылка в часть значения p
-    h.spare = take p         // память перешла в поле h, но h — переменная функции
-    print(r)                 // допустимо: память в области контроля, r идёт за значением в h.spare
+    var holder = Holder(inner: makeCounter(), spare: null)
+    let parcel = Parcel(weight: 1, size: 2)
+    let view = &read parcel.size   // ссылка в часть значения parcel
+    holder.spare = take parcel     // память перешла в поле holder, но holder — переменная функции
+    print(view)                    // допустимо: память в области контроля, view идёт за значением в holder.spare
 }
+```
+
+```mermaid
+flowchart LR
+    subgraph AC["область контроля: функция store"]
+        holder["holder.spare"] --> S["слот: Parcel(weight: 1, size: 2)"]
+        view["view = &read parcel.size"] --> S
+        parcel["parcel (пуста после take)"]
+    end
 ```
 
 ## Принцип выхода из области контроля
@@ -69,11 +84,22 @@ fn store() {
 
 ```efen
 fn give() {
-    let p = Pt(x: 1, y: 2)
-    let r = &read p.y
-    consume(p: take p)       // память покидает область контроля: ею распоряжается consume
-    print(r)                 // ошибка: r указывает в память, которая ушла из функции
+    let parcel = Parcel(weight: 1, size: 2)
+    let view = &read parcel.size
+    consume(parcel: take parcel)   // память покидает область контроля: ею распоряжается consume
+    print(view)                    // ошибка: view указывает в память, которая ушла из функции
 }
+```
+
+```mermaid
+flowchart LR
+    subgraph AC["область контроля: функция give"]
+        view["view = &read parcel.size"]
+        parcel["parcel (пуста после take)"]
+    end
+    C["consume(parcel:)"] --> S["слот: Parcel(weight: 1, size: 2)"]
+    view -. "висячая ссылка: ошибка" .-> S
+    parcel -- "take parcel" --> C
 ```
 
 Память покидает область контроля, когда её контейнер становится доступен коду, о котором функция этого не знает:
@@ -86,14 +112,27 @@ fn give() {
 
 ```efen
 fn rebind() {
-    var p = Pt(x: 1, y: 2)
-    let q = p                // q указывает на ту же память
-    p = Pt(x: 3, y: 4)       // p получает новую память; прежнюю держит q
-    print(q.x)               // 1
-}                            // q кончилась: прежняя память уничтожается здесь
+    var current = Parcel(weight: 1, size: 2)
+    let alias = current                   // alias указывает на ту же память
+    current = Parcel(weight: 3, size: 4)  // current получает новую память; прежнюю держит alias
+    print(alias.weight)                   // 1
+}                                         // alias кончилась: прежняя память уничтожается здесь
 ```
 
-Если бы `q` не было, прежнее значение `p` уничтожилось бы в строке записи.
+Если бы `alias` не было, прежнее значение `current` уничтожилось бы в строке записи.
+
+```mermaid
+flowchart LR
+    subgraph before["let alias = current"]
+        current1["current"] --> S1["слот 1: Parcel(1, 2)"]
+        alias1["alias"] --> S1
+    end
+    subgraph after["current = Parcel(weight: 3, size: 4)"]
+        current2["current"] --> S2["слот 2: Parcel(3, 4)"]
+        alias2["alias"] --> S3["слот 1: Parcel(1, 2)"]
+    end
+    before --> after
+```
 
 ## Модель слотов
 
@@ -105,22 +144,34 @@ FLOW использует модель слотов. Слот — логичес
 указывает ссылка:
 
 ```efen
-fn pick(fallback: read Box, ready: Bool) {
-    var r = &read fallback.value
+fn pick(fallback: read Counter, ready: Bool) {
+    var view = &read fallback.value
     if ready {
-        let local = makeBox()
-        r = &read local.value    // ссылка в слот значения local
-    }                            // local кончилась; слот держит скрытая переменная, связанная с r
-    print(r)                     // допустимо
+        let local = makeCounter()
+        view = &read local.value    // ссылка в слот значения local
+    }                               // local кончилась; слот держит скрытая переменная, связанная с view
+    print(view)                     // допустимо
 }
+```
+
+```mermaid
+flowchart LR
+    subgraph F["функция pick: слоты живут до выхода"]
+        subgraph B["блок if"]
+            local["local (кончается в конце блока)"]
+        end
+        view["view = &read local.value"] --> S["слот: Counter(value: 7)"]
+        hidden["скрытая переменная"] --> S
+        local -. "до конца блока" .-> S
+    end
 ```
 
 Слот теряет память при `take` его части. До выхода из функции слот получает новое значение:
 
 ```efen
-fn rotate(h: mut Holder) {
-    let old = take h.inner       // слот h.inner потерял память
-    h.inner = Box(value: old.value + 1)   // записан снова: висячих указателей нет
+fn rotate(holder: mut Holder) {
+    let previous = take holder.inner                     // слот holder.inner потерял память
+    holder.inner = Counter(value: previous.value + 1)    // записан снова: висячих указателей нет
 }
 ```
 
@@ -130,31 +181,41 @@ FLOW позволяет использовать ссылки на переме�
 же, как и в C, при условии, что FLOW может доказать безопасность памяти для неё. То есть FLOW чётко знает время
 жизни и гарантирует, что память не может выйти из области контроля.
 
-Ссылка `&x` называет переменную. Ссылка на элемент или поле (`&items[0]`, `&x.y`) указывает в память значения и
+Ссылка на переменную (`&items`) называет переменную. Ссылка на элемент или поле (`&items[0]`, `&parcel.size`) указывает в память значения и
 идёт за ним:
 
 ```efen
 fn follow() {
-    var items = [Pt(x: 1, y: 2)]
-    let all = &items             // ссылка на переменную items
+    var items = [Parcel(weight: 1, size: 2)]
+    let whole = &items           // ссылка на переменную items
     let head = &items[0]         // ссылка на элемент
     let moved = take items       // значение перешло в moved
-    print(head.x)                // допустимо: head идёт за значением
-    print(all)                   // ошибка flow.moved: переменная items пуста
+    print(head.weight)           // допустимо: head идёт за значением
+    print(whole)                 // ошибка flow.moved: переменная items пуста
 }
 ```
 
 Ссылка на переменную живёт не дольше переменной:
 
 ```efen
-fn outlive(fallback: read Box) {
-    var r = &read fallback
+fn outlive(fallback: read Counter) {
+    var view = &read fallback
     {
-        let local = makeBox()
-        r = &read local          // ссылка на переменную local
+        let local = makeCounter()
+        view = &read local       // ссылка на переменную local
     }                            // local кончилась
-    print(r.value)               // ошибка: переменной, которую называет r, больше нет
+    print(view.value)            // ошибка: переменной, которую называет view, больше нет
 }
+```
+
+```mermaid
+flowchart LR
+    whole["&items"] --> V["переменная items"]
+    V --> S["слот значения: [Parcel]"]
+    head["&items[0]"] --> E["слот элемента 0"]
+    S --- E
+    moved["moved = take items"] --> S
+    V -. "после take: пуста, чтение через &items — flow.moved" .-> X(["пусто"])
 ```
 
 ## Выход из области контроля: обязательства
@@ -165,9 +226,9 @@ fn outlive(fallback: read Box) {
 Опциональное поле `take` обнуляет само:
 
 ```efen
-fn release(h: mut Holder) {
-    if let p = take h.spare {    // h.spare получает null
-        consume(p: take p)
+fn release(holder: mut Holder) {
+    if let taken = take holder.spare {    // holder.spare получает null
+        consume(parcel: take taken)
     }
 }
 ```
@@ -175,17 +236,17 @@ fn release(h: mut Holder) {
 Обязательное поле заменяют до выхода. Выход с пустым полем — ошибка, и сообщение предлагает оба исправления:
 
 ```efen
-fn refill(h: mut Holder) throws IOError {
-    let old = take h.inner
-    save(old)                    // ошибка: IOError выходит, h.inner пусто
-    h.inner = makeBox()
+fn refill(holder: mut Holder) throws IOError {
+    let previous = take holder.inner
+    save(previous)               // ошибка: IOError выходит, holder.inner пусто
+    holder.inner = makeCounter()
 }
 ```
 
 ```text
-error[flow.moved]: `h.inner` is left moved when `refill` exits by `IOError`
+error[flow.moved]: `holder.inner` is left moved when `refill` exits by `IOError`
 help: give it a new value before the function exits
-help: or state that it may stay empty on this exit: `ensures throws IOError ==> taken(h.inner)`
+help: or state that it may stay empty on this exit: `ensures throws IOError ==> taken(holder.inner)`
 ```
 
 ## Циклы
@@ -195,25 +256,32 @@ help: or state that it may stay empty on this exit: `ensures throws IOError ==> 
 указывает.
 
 ```efen
-fn latest(fallback: read Box) {
-    var r = &read fallback.value
-    var i = 0
-    while i < 3 {
-        let local = makeBox()
-        r = &read local.value    // r указывает в слот значения этого круга; слот прошлого круга уничтожается
-        i += 1
+fn latest(fallback: read Counter) {
+    var view = &read fallback.value
+    var round = 0
+    while round < 3 {
+        let local = makeCounter()
+        view = &read local.value    // view указывает в слот значения этого круга; слот прошлого круга уничтожается
+        round += 1
     }
-    print(r)                     // допустимо: слот последнего круга живёт до выхода из функции
+    print(view)                     // допустимо: слот последнего круга живёт до выхода из функции
 }
 ```
 
-Обход `for … in mut v` разрешает менять структуру `v`; `take` привязки удаляет элемент:
+```mermaid
+flowchart LR
+    c1["круг 1: слот local"] -. "view переходит на круг 2: уничтожен" .-> D1(["уничтожение"])
+    c2["круг 2: слот local"] -. "view переходит на круг 3: уничтожен" .-> D2(["уничтожение"])
+    view["view"] --> c3["круг 3: слот local"]
+```
+
+Обход `for … in mut points` разрешает менять структуру `points`; `take` привязки удаляет элемент:
 
 ```efen
-fn clean(points: mut [Pt]) {
-    for p in mut points {
-        if p.x < 0 {
-            consume(p: take p)   // элемент удалён из points, память ушла в consume
+fn clean(points: mut [Parcel]) {
+    for parcel in mut points {
+        if parcel.weight < 0 {
+            consume(parcel: take parcel)   // элемент удалён из points, память ушла в consume
         }
     }
 }
@@ -222,18 +290,18 @@ fn clean(points: mut [Pt]) {
 Обычный обход тоже допускает изменение структуры, если курсор после него не используется:
 
 ```efen
-fn grow(points: mut [Pt]) {
-    for p in points {
-        if p.x == 0 {
-            points.append(Pt(x: 1, y: 1))   // элементы могут переехать
-            break                           // допустимо: обход дальше не идёт
+fn grow(points: mut [Parcel]) {
+    for parcel in points {
+        if parcel.weight == 0 {
+            points.append(Parcel(weight: 1, size: 1))   // элементы могут переехать
+            break                                       // допустимо: обход дальше не идёт
         }
     }
 }
 
-fn growAll(points: mut [Pt]) {
-    for p in points {
-        points.append(Pt(x: p.x, y: p.y))   // ошибка: следующий шаг обхода читает переехавшие элементы
+fn growAll(points: mut [Parcel]) {
+    for parcel in points {
+        points.append(Parcel(weight: parcel.weight, size: parcel.size))   // ошибка: следующий шаг обхода читает переехавшие элементы
     }
 }
 ```
@@ -267,6 +335,18 @@ fn main {
 }
 ```
 
+```mermaid
+sequenceDiagram
+    participant main
+    participant walker as генератор walk
+    participant drain
+    main->>walker: walk(items: items), заимствует слот items
+    main->>walker: шаг цикла, break: генератор приостановлен
+    Note over main: take items: память уходит из области контроля
+    main->>walker: уничтожение: defer печатает "walk done"
+    main->>drain: drain(items: take items)
+```
+
 Использовать генератор после этого — ошибка:
 
 ```efen
@@ -286,33 +366,44 @@ fn reuse() {
 `edit` разрешает писать значения, но не меняет структуру, поэтому ссылка остаётся верной:
 
 ```efen
-fn shift(p: edit Pt) {
-    p.x = p.x + 1
+fn shift(parcel: edit Parcel) {
+    parcel.weight = parcel.weight + 1
 }
 
 fn calls() {
-    var points = [Pt(x: 1, y: 2), Pt(x: 3, y: 4)]
+    var points = [Parcel(weight: 1, size: 2), Parcel(weight: 3, size: 4)]
     let first = &points[0]
-    shift(p: first)              // функция пишет поля элемента через ссылку
-    print(first.x)               // 2: ссылка верна, структура points не менялась
-    points.append(Pt(x: 5, y: 6))   // изменение структуры: элементы могут переехать
-    print(first.x)               // ошибка: ссылка first недействительна после append
+    shift(parcel: first)                          // функция пишет поля элемента через ссылку
+    print(first.weight)                           // 2: ссылка верна, структура points не менялась
+    points.append(Parcel(weight: 5, size: 6))     // изменение структуры: элементы могут переехать
+    print(first.weight)                           // ошибка: ссылка first недействительна после append
 }
+```
+
+```mermaid
+sequenceDiagram
+    participant calls
+    participant shift
+    Note over calls: first = &points[0]
+    calls->>shift: shift(parcel: first), право edit
+    shift-->>calls: поля изменены, структура цела: first верна
+    Note over calls: points.append(...): элементы могут переехать
+    Note over calls: first недействительна: чтение — ошибка
 ```
 
 Функция может вернуть ссылку в память параметра. Источник пишется в типе результата, и вызывающий знает, чью память
 держит ссылка:
 
 ```efen
-fn firstOf(list: edit [Pt]) -> edit<list> Pt {
+fn firstOf(list: edit [Parcel]) -> edit<list> Parcel {
     return &list[0]
 }
 
 fn rename() {
-    var points = [Pt(x: 1, y: 2)]
+    var points = [Parcel(weight: 1, size: 2)]
     let head = firstOf(list: points)
-    head.x = 10                  // пишет в points[0]
-    print(points[0].x)           // 10
+    head.weight = 10             // пишет в points[0]
+    print(points[0].weight)      // 10
 }
 ```
 
