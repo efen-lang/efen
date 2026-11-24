@@ -232,7 +232,7 @@ fn inspect() {
     print(view.size)                           // допустимо: значение parcel в области контроля
 }
 
-fn leak() {
+fn dangle() {
     let parcel = Parcel(weight: 1, size: 2)
     let view = View(size: &read parcel.size)
     consume(parcel: take parcel)               // память parcel покидает область контроля
@@ -242,7 +242,7 @@ fn leak() {
 
 ```mermaid
 flowchart LR
-    subgraph AC["область контроля: функция leak"]
+    subgraph AC["область контроля: функция dangle"]
         view["view.size"]
         parcel["parcel (пуста после take)"]
     end
