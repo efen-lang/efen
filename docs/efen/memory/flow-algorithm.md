@@ -218,6 +218,38 @@ flowchart LR
     V -. "после take: пуста, чтение через &items — flow.moved" .-> X(["пусто"])
 ```
 
+Ссылку можно сохранить в поле структуры. Источник пишется в типе поля, и FLOW проверяет ссылку в каждой точке,
+где её читают:
+
+```efen
+struct View<Src: Origin> {
+    let size: read<Src> Int
+}
+
+fn inspect() {
+    let parcel = Parcel(weight: 1, size: 2)
+    let view = View(size: &read parcel.size)   // ссылка в часть значения хранится в поле
+    print(view.size)                           // допустимо: значение parcel в области контроля
+}
+
+fn leak() {
+    let parcel = Parcel(weight: 1, size: 2)
+    let view = View(size: &read parcel.size)
+    consume(parcel: take parcel)               // память parcel покидает область контроля
+    print(view.size)                           // ошибка: поле view.size указывает в ушедшую память
+}
+```
+
+```mermaid
+flowchart LR
+    subgraph AC["область контроля: функция leak"]
+        view["view.size"]
+        parcel["parcel (пуста после take)"]
+    end
+    C["consume(parcel:)"] --> S["слот: Parcel(weight: 1, size: 2)"]
+    view -. "висячая ссылка в поле: ошибка" .-> S
+```
+
 ## Выход из области контроля: обязательства
 
 Если память выходит из области контроля, ссылка должна быть уничтожена, а свойство структуры обязано быть или
