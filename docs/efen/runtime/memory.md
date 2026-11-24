@@ -5,27 +5,31 @@
 
 ## Интерфейсы аллокаторов
 
+Блок, который функция освобождает или может перенести, она получает `own` и возвращает `own`: память блока
+уходит от вызывающего, и другого указателя в неё быть не должно. Стратегию, которую спрашивает компилятор,
+описывает [аллокатор](../memory/allocator.md).
+
 ```efen
 interface Allocator {
-    mut fn allocate(size: Size) -> Pointer
-    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer
-    mut fn deallocate(ptr: Pointer)        
+    mut fn allocate(size: Size) -> own Pointer
+    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer
+    mut fn deallocate(ptr: own Pointer)        
 }
 
 interface ArenaAllocator {
-    mut fn allocate(size: Size) -> Pointer
-    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer
-    mut fn deallocate(ptr: Pointer)
+    mut fn allocate(size: Size) -> own Pointer
+    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer
+    mut fn deallocate(ptr: own Pointer)
     mut fn reset
     mut fn clear
 }
 
 interface PoolAllocator {
-    mut fn allocate(size: Size) -> Pointer
-    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer
-    mut fn deallocate(ptr: Pointer)
-    mut fn acquire -> Pointer
-    mut fn release(ptr: Pointer)
+    mut fn allocate(size: Size) -> own Pointer
+    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer
+    mut fn deallocate(ptr: own Pointer)
+    mut fn acquire -> own Pointer
+    mut fn release(ptr: own Pointer)
 }
 ```
 
@@ -48,16 +52,16 @@ class HeapAllocator {
         // Инициализация не требуется для heap
     }
 
-    mut fn allocate(size: Size) -> Pointer {
+    mut fn allocate(size: Size) -> own Pointer {
         return malloc(size)
     }
 
-    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer {
-        return realloc(ptr, size)
+    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer {
+        return realloc(take ptr, size)
     }
 
-    mut fn deallocate(ptr: Pointer) {
-        free(ptr)
+    mut fn deallocate(ptr: own Pointer) {
+        free(take ptr)
     }
 }
 ```
@@ -96,7 +100,7 @@ class Arena {
         self.capacity = size
     }
 
-    mut fn allocate(size: Size) -> Pointer {
+    mut fn allocate(size: Size) -> own Pointer {
         if self.offset + size > self.capacity {
             error("Arena out of memory")
         }
@@ -106,14 +110,14 @@ class Arena {
         return ptr
     }
 
-    mut fn reallocate(ptr: Pointer, size: Int) -> Pointer {
+    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer {
         // Arena не поддерживает realloc эффективно
         let newPtr = allocate(size)
         memcpy(newPtr, ptr, min(size, /* old size */))
         return newPtr
     }
 
-    mut fn deallocate(ptr: Pointer) {
+    mut fn deallocate(ptr: own Pointer) {
         // Arena не освобождает отдельные объекты
     }
 
@@ -245,7 +249,7 @@ class FallbackAllocator {
         self.fallback = fallback
     }
 
-    mut fn allocate(size: Size) -> Pointer {
+    mut fn allocate(size: Size) -> own Pointer {
         let ptr = primary.allocate(size)
         if ptr == null {
             return fallback.allocate(size)
@@ -273,21 +277,21 @@ class TrackingAllocator {
     private var inner: Allocator
     private var allocations: [Pointer: Size] = [:]
 
-    mut fn allocate(size: Size) -> Pointer {
+    mut fn allocate(size: Size) -> own Pointer {
         let ptr = inner.allocate(size)
         allocations[ptr] = size
         print("Allocated ${size} bytes at ${ptr}")
         return ptr
     }
 
-    mut fn deallocate(ptr: Pointer) {
+    mut fn deallocate(ptr: own Pointer) {
         if let size = allocations[ptr] {
             print("Deallocated ${size} bytes at ${ptr}")
             allocations.removeValue(forKey: ptr)
         } else {
             error("Double free or invalid pointer: ${ptr}")
         }
-        inner.deallocate(ptr)
+        inner.deallocate(take ptr)
     }
 
     fn reportLeaks {
