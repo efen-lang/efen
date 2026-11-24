@@ -394,10 +394,10 @@ const SQLITE_STATIC: sqlite3_destructor_type = null // макрос ((sqlite3_de
   том числе при исключении. `sqlite3_close` забирает хендлер только при `SQLITE_OK`: при `SQLITE_BUSY` соединение
   живо. Это условное владение получателем; неявным такой деструктор не бывает, его вызывают на слоте:
   `db.sqlite3_close()`.
-- `self?` — C кладёт новый хендлер в слот вызывающего на каждом возврате, при отказе — `NULL`; вызывающий проверяет
-  слот. Так же устроен `posix_memalign` в
-  [владении](types/ownership.md#владение-которое-функция-забирает-не-всегда). C прежнее значение не освобождает,
-  поэтому слот перед вызовом пуст: передать живой хендлер — ошибка компиляции, иначе хендлер потерялся бы. Если
+- `self?` — выходной слот `out Self?`: C кладёт новый хендлер в слот вызывающего на каждом возврате, при отказе —
+  `NULL`; вызывающий проверяет слот. Так же устроен `posix_memalign(memptr: out Pointer?, …)` в
+  [владении](types/ownership.md#владение-которое-функция-забирает-не-всегда). C прежнее значение не освобождает;
+  живой хендлер в слоте `out` компилятор уничтожает до вызова, как у любого аргумента `out`, и хендлер не теряется. Если
   при отказе C оставляет в слоте мусор (`pthread_create`), пишут `self { result == 0 ==> out }`
   ([конструкторы внешнего объекта](classes.md#конструкторы-внешнего-объекта)).
 - Строка из `sqlite3_column_text` — ссылка в память C с источником `self`
@@ -430,10 +430,10 @@ echo text                       // ошибка: text погашен вызов�
 | `T*` на массив | `read [T]`, `edit [T]` и `requires x.count == n` ([условия функций](conditions.md)) |
 | `T**` на массив структур | `read Array<T, indirection: indirect>` и `requires x.count == n` |
 | `const char*`, строка с нулём в конце | `read CString`; в результате — `read<x> CString?`. `String` Efen хранит нуль после последнего байта, поэтому `name.cString` отдаёт C тот же буфер без копии; срез строки нуля не имеет и копируется |
-| `T**` для результата | `self?` или `p: mut T?`, пустой перед вызовом и записанный на каждом возврате; `self { посылка ==> out }` или `p: out T { посылка ==> out }`, записанный ровно на путях посылки. То же для выходного слота любого сырого типа (`pid: out Pid { result == 0 ==> out }`) |
+| `T**` для результата | `self?` или `p: out T?`, записанный на каждом возврате; `self { посылка ==> out }` или `p: out T { посылка ==> out }`, записанный ровно на путях посылки. То же для выходного слота любого сырого типа (`pid: out Pid { result == 0 ==> out }`) |
 | `T**` на массив, куда C пишет объекты (`int fds[2]` у `pipe2`) | `fds: mut [T?]` с неинициализированными элементами или `fds: out [T] { посылка ==> out }`, и `requires fds.count == n`; функция — `@constructor` |
 | `const char**`, куда C пишет указатель внутрь другого параметра (`pzTail`) | `tail: out read<sql> CString? = null`: вызывающий получает ссылку на слот аргумента `sql`, а не значение ([ниже](#что-c-держит-после-вызова)) |
-| `T**` или `void*`, которые модуль не передаёт (`retval` у `pthread_join`) | `p: mut Pointer? = null` или `p: out Pointer? = null`; аргумент не передаётся, C получает `NULL` ([сырая память](memory/pointer.md#память-пришедшая-из-c)) |
+| `T**` или `void*`, которые модуль не передаёт (`retval` у `pthread_join`) | `p: out Pointer? = null` для `T**`, `p: mut Pointer? = null` для `void*`: `out` даёт C указатель на слот, `mut` — сам указатель; аргумент не передаётся, C получает `NULL` ([сырая память](memory/pointer.md#память-пришедшая-из-c)) |
 
 Поле-указатель структуры остаётся с `@fill`: ссылку на поле держать нельзя
 ([где ссылки в результате нет](types/ownership.md#где-места-в-результате-нет)), а у `struct tm` поле `tm_zone` —
@@ -489,7 +489,7 @@ public fn prepareFirst(db: mut sqlite3, script: read String, next: out Int) -> o
                                        attr: read pthread_attr_t?,
                                        start: own (() own -> Pointer?)? { result == 0 ==> take }) -> Int32
         model { if result == 0 { self.start = take start } }
-        @destructor(explicit) own fn pthread_join(value: mut Pointer? = null) -> Int32
+        @destructor(explicit) own fn pthread_join(value: out Pointer? = null) -> Int32
         own fn pthread_detach -> Int32
     }
 }
@@ -812,7 +812,7 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 - опции модуля `foreign: c` и `header: "x.h"` ([опции модуля](packages.md#опции-модуля)) и `.efen`-модуль, созданный по заголовку;
 - `@platform` на объявлении, а не только на `implementation`;
 - `@c("прототип")`, `@symbol("имя")`, опция модуля `targets` и отпечаток цели;
-- `mut T?` для `T**`, пустая перед вызовом;
+- `out T?` для `T**`, записанная на каждом возврате;
 - `@abi(c) class` и `@c("имя")` у класса, `representation Raw<I>`, `representation Packed<I>`, объявление
   `type Option<T> { representation Raw<I>; null: c }`;
 - `self` в списке параметров и с регистром (`@in(rdi) self`), `self?`, `self { посылка ==> out }`,
