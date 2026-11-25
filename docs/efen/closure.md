@@ -957,7 +957,7 @@ register(callback: () -> Void {
 
 ```efen
 var t: Thread
-let rc = Thread.pthread_create(self: t, attr: null, start: () -> Pointer? { job.run(); return null })
+let rc = Thread.pthread_create(self: &out t, attr: null, start: () -> Pointer? { job.run(); return null })
 // тип start — own (() own -> Pointer?)?, заимствований он не называет;
 // при rc == 0 t держит edit job, пока поток не присоединён
 ```

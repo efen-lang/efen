@@ -251,7 +251,7 @@ strategy<T> for List<T> {
 fn runTwo(job: edit Job) {
     var ts: Vector<Thread> = []                // вектор владеет областью: неявно он не уничтожается
     var t: Thread
-    guard Thread.pthread_create(self: t, attr: null, start: () -> Pointer? { job.run(); return null }) == 0 else { return }
+    guard Thread.pthread_create(self: &out t, attr: null, start: () -> Pointer? { job.run(); return null }) == 0 else { return }
     ts.append(take t)
     ts.removeAll()                               // ошибка: removeAll требует T: ImplicitlyDestroyable
     if let w = ts.removeLast() { (take w).pthread_join() }      // можно: элемент возвращён, программа его расходует
@@ -295,7 +295,7 @@ class Registry {
 ```efen
 fn runJob(job: edit Job) throws ThreadError {
     var t: Thread
-    let rc = Thread.pthread_create(self: t, attr: null, start: () -> Pointer? { job.run(); return null })
+    let rc = Thread.pthread_create(self: &out t, attr: null, start: () -> Pointer? { job.run(); return null })
     if rc != 0 { throw ThreadError() }
     risky()                                      // при исключении компилятор вызывает pthread_join (Blocking):
                                                  // под SingleThreadScheduler ошибка с подсказкой offload

@@ -332,7 +332,7 @@ fn reset(r: out Reason) {
 }
 
 var s: StorageReason = .quota
-reset(s)            // ошибка: в s оказалось бы значение, которого нет в StorageReason
+reset(&out s)       // ошибка: в s оказалось бы значение, которого нет в StorageReason
 
 fn inspect(r: edit Reason) {
     r = .user       // ошибка: параметр связан как let

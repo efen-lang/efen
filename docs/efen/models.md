@@ -127,7 +127,7 @@ class Connection {
     mut fn reopen(path: read CString) {
         cache.removeAll()                                  // сильное обновление: cache пуст
         var opened: sqlite3? = null
-        let rc = sqlite3.sqlite3_open(filename: path, self: opened)
+        let rc = sqlite3.sqlite3_open(filename: path, self: &out opened)
         guard let d = opened, rc == SQLITE_OK else { return }
         db = take d                                        // можно: cache доказанно пуст
     }

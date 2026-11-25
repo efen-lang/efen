@@ -129,7 +129,7 @@ shared struct Registry {
 fn race(db: mut sqlite3, q: read String) {
     var name = "Alice"
     var s: sqlite3_stmt? = null
-    let rc = sqlite3_stmt.sqlite3_prepare_v2(db: db, sql: q.cString, length: -1, self: s)
+    let rc = sqlite3_stmt.sqlite3_prepare_v2(db: db, sql: q.cString, length: -1, self: &out s)
     s!.sqlite3_bind_text(index: 1, text: name.cString, length: -1, destructor: SQLITE_STATIC)
     with makeTaskGroup() {                                   // MultiThreadConcurrency
         let h = spawn { capture st = take s; st!.sqlite3_step() }   // области h: read name, mut db
