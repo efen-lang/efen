@@ -781,8 +781,8 @@ strategy<T> for Vector<T> {
 ```efen
 fn peek(at: Position<self>) -> &read<self[_]> T?   // методы коллекции: ссылка на элемент self
 fn advance(at: mut Position<self>)                 // шаг без ссылки, коллекция только читается
-fn next(at: mut Position<self>) -> &edit<self[_]> T?
-fn remove(at: mut Position<self>) -> own T?        // забирает элемент под курсором
+edit fn next(at: mut Position<self>) -> &edit<self[_]> T?
+mut fn remove(at: mut Position<self>) -> own T?    // забирает элемент под курсором
 ```
 
 `Position<self>` — номер элемента, связанный с коллекцией, как `Bus<items>` связывает значение со слотом: номер другой

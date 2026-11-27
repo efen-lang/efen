@@ -311,13 +311,17 @@ flowchart LR
     view["view"] --> c3["круг 3: слот local"]
 ```
 
-Обход `for … in mut points` разрешает менять структуру `points`; `take` привязки удаляет элемент:
+Право `mut` на `points` разрешает менять его структуру; `take points[i]` удаляет элемент. Привязку `for` так не
+забирают: с `edit` или `mut` она ссылка, а через ссылку не забирают:
 
 ```efen
 fn clean(points: mut [Parcel]) {
-    for parcel in mut points {
-        if parcel.weight < 0 {
-            consume(parcel: take parcel)   // элемент удалён из points, память ушла в consume
+    var i = 0
+    while i < points.count {
+        if points[i].weight < 0 {
+            consume(parcel: take points[i])   // элемент удалён из points, следующие сдвинуты
+        } else {
+            i += 1
         }
     }
 }
