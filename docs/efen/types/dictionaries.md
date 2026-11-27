@@ -193,7 +193,7 @@ let translations = [
     "thanks": "Спасибо"
 ]
 
-let greeting: String = translations["hello"]  // "Привет" либо исключение при отсутствии ключа
+let greeting: String = copy translations["hello"]  // "Привет" либо исключение; без `copy` — ошибка: псевдоним в `own`
 ```
 
 ### Счётчик встречаемости
