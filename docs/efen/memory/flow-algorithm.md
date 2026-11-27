@@ -312,10 +312,10 @@ flowchart LR
 ```
 
 Право `mut` на `points` разрешает менять его структуру; элемент удаляет явный вызов `points.remove(at: i)`.
-`take points[i]` и `take` привязки `for` — ошибки: `take` элемент не удаляет:
+`take points[i]` и `take` привязки `for`, которая ссылается на элемент (`edit`, `mut`, `removing()`), — ошибки: `take` элемент не удаляет:
 
 ```efen
-fn clean(points: mut [Parcel]) {
+fn clean(points: mut Vector<Parcel>) {
     var i = 0
     while i < points.count {
         if points[i].weight < 0 {
@@ -330,7 +330,7 @@ fn clean(points: mut [Parcel]) {
 Обычный обход тоже допускает изменение структуры, если курсор после него не используется:
 
 ```efen
-fn grow(points: mut [Parcel]) {
+fn grow(points: mut Vector<Parcel>) {
     for parcel in points {
         if parcel.weight == 0 {
             points.append(Parcel(weight: 1, size: 1))   // элементы могут переехать
@@ -339,7 +339,7 @@ fn grow(points: mut [Parcel]) {
     }
 }
 
-fn growAll(points: mut [Parcel]) {
+fn growAll(points: mut Vector<Parcel>) {
     for parcel in points {
         points.append(Parcel(weight: parcel.weight, size: parcel.size))   // ошибка: следующий шаг обхода читает переехавшие элементы
     }

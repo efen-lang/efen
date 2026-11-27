@@ -848,8 +848,7 @@ fn replace(cache: mut Cache, key: String, fresh: own Connection)
 
     with cache.mutex {
         let editor = cache as CacheEditor
-        old = take editor.connections[key]
-        editor.connections[key] = take fresh
+        old = replace(editor.connections[key], with: take fresh)
     }
 }                                              // old уничтожается здесь, мьютекс свободен
 ```
