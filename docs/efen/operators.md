@@ -330,9 +330,9 @@ if value is 1..5 {   // pattern
 Знак пишется вплотную к границе, с той стороны, где она есть:
 
 ```efen
-let tail = items[2..]      // от элемента 2 до конца
-let head = items[..<3]     // элементы 0, 1, 2
-let rest = items[from<..]  // после элемента from до конца
+let tail = &items[2..]      // от элемента 2 до конца
+let head = &items[..<3]     // элементы 0, 1, 2
+let rest = &items[from<..]  // после элемента from до конца
 
 match n {
     ..<0: echo "negative"

@@ -539,7 +539,7 @@ for i in 1..1000 {
 
 ```efen
 // Хорошо - срез не копирует данные
-let slice = text[0..<5]
+let slice = &text[0..<5]
 
 // Может быть менее эффективно
 let sub = text.substring(0, 5)
