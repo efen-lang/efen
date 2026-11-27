@@ -285,7 +285,7 @@ let first = array[0]  // 10
 
 // Словарь - произвольные ключи
 let dict = ["a": 10, "b": 20, "c": 30]
-let value = dict["a"]  // 10
+let value = dict["a"]  // Int? = 10
 ```
 
 <a id="spread-operator"></a>
