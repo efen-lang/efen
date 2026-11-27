@@ -41,6 +41,7 @@ open layout Lists<T: Movable> {
         protected var head: anchor Nodes.Item? = null
         protected var tail: Nodes.Item? = null
         var length: Int = 0 { value >= 0 }
+        set Elements: Nodes.value                        // элементы списка: значения его узлов (раздел 2.1, правило 14)
 
         invariants {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)

@@ -57,6 +57,7 @@ private layout<T: Movable> {
     public struct List {
         var head: anchor Nodes.Item? = null
         var count: Int = 0 { value >= 0 }
+        set Elements: Nodes.value
 
         invariants {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)
@@ -76,6 +77,9 @@ private layout<T: Movable> {
 - `public struct List` объявляет тип, которым пользуется программа. Поле `head` владеет первым узлом, поэтому
   список владеет всей цепочкой.
 - `{ value >= 0 }` после поля задаёт условие на значение этого поля.
+- `set Elements: Nodes.value` говорит, где лежат элементы списка: в поле `value` узлов. Строка `set` в теле
+  структуры берёт пути и относится к одному списку: `Nodes` в пути называет узлы, которыми владеет этот список, а не
+  все узлы программы ([множества и области](declaration.md#множества-и-области), правила 14 и 15).
 - Строки `invariants` содержат инварианты: правила, которые программист задаёт, а компилятор проверяет
   ([подробнее](guide-concepts.md#инвариант)). Выражение `Nodes.chain(from: head, by: Node.next, until: null)` даёт узлы, достижимые от
   `head` по полю `next` до `null`. Инвариант `count == nodes.count` связывает счётчик с длиной цепочки. Компилятор

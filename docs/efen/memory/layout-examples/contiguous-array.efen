@@ -3,6 +3,7 @@ private layout<T: Movable> {
         var items: own Area<T>? = null { (value == null) == (count == 0) && (value == null || value.count == count) }
         var count: Int = 0 { value >= 0 }
         invariants { items == null || items!.initialized == count }
+        set Elements: items[_]
     }
 }
 
@@ -71,12 +72,12 @@ strategy FixedArrayAccess for FixedArray<T> {
     generic Access: Access { value == read || value == edit }
     conforms Sliceable<Item: Access T>
 
-    Access fn at(index: Int) -> Access<&self.items![index]> T nothrows {
+    Access fn at(index: Int) -> &Access<self.items![index]> T nothrows {
         guard index >= 0 && index < count else { throw BoundsError() }
         return &items![index]
     }
 
-    Access fn slice(start: Int, end: Int) -> Access<&self.items![start ..< end]> Slice<T> nothrows {
+    Access fn slice(start: Int, end: Int) -> &Access<self.items![start ..< end]> Slice<T> nothrows {
         guard 0 <= start && start <= end && end <= count else { throw BoundsError() }
         return &items![start ..< end]
     }

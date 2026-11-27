@@ -40,13 +40,17 @@ private layout<T: Movable> {
         var capacity: Int = 0 { value >= 0 }
         var count: Int = 0 { value >= 0 && value <= capacity }
         invariants { items == null || items!.initialized == count }
+        set Elements: items[_]
     }
 }
 ```
 
 Множество одно на программу: `set Nodes: Node` включает все узлы этой формы, сколько бы списков ими ни
 пользовалось. Своей памяти у множества нет. Оно задаёт тип указателя (`Nodes.Item`), а принадлежность узла списку
-видна из владения. Число слотов области задаёт её владелец (`value.count == capacity`). Какие слоты заняты, говорит
+видна из владения: в пути `list.Nodes` называет узлы, которыми владеет `list`. Строка `set` в теле структуры — другая
+строка: она берёт пути, относится к одному значению и говорит, где лежат элементы коллекции. У вектора это слоты
+области (`set Elements: items[_]`), и `v[_]` значит `v.Elements`
+([множества и области](declaration.md#множества-и-области), правила 14 и 15). Число слотов области задаёт её владелец (`value.count == capacity`). Какие слоты заняты, говорит
 инвариант владельца через призрачное свойство `items.initialized`: заняты слоты `0 ..< items.initialized`. Есть ещё два объявления: `set area X: T` объявляет множество независимых областей (участки
 менеджера памяти), `one X` объявляет один экземпляр на поток
 ([множества и области](declaration.md#множества-и-области)).
@@ -248,6 +252,7 @@ private layout<T: Movable> {
         var head: anchor Nodes.Item? = null
         var tail: Nodes.Item? = null
         var count: Int = 0 { value >= 0 }
+        set Elements: Nodes.value
 
         invariants {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)

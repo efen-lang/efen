@@ -10,6 +10,7 @@ private layout<T: Movable> {
         var head: anchor Nodes.Item? = null
         var tail: Nodes.Item? = null
         var count: Int = 0 { value >= 0 }
+        set Elements: Nodes.value
 
         invariants {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)

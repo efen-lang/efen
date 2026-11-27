@@ -11,6 +11,7 @@ layout {
 
     struct Tree {
         var root: own Nodes.Item? = null
+        set Elements: Nodes.key
     }
 }
 

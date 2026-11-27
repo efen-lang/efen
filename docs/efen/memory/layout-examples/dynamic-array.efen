@@ -4,6 +4,7 @@ private layout<T: Movable> {
         var capacity: Int = 0 { value >= 0 }
         var count: Int = 0 { value >= 0 && value <= capacity }
         invariants { items == null || items!.initialized == count }
+        set Elements: items[_]
     }
 }
 
@@ -170,12 +171,12 @@ strategy VectorAccess for Vector<T> {
     generic Access: Access { value == read || value == edit }
     conforms Sliceable<Item: Access T>
 
-    Access fn at(index: Int) -> Access<&self.items![index]> T nothrows {
+    Access fn at(index: Int) -> &Access<self.items![index]> T nothrows {
         guard index >= 0 && index < count else { throw BoundsError() }
         return &items![index]
     }
 
-    Access fn slice(start: Int, end: Int) -> Access<&self.items![start ..< end]> Slice<T> nothrows {
+    Access fn slice(start: Int, end: Int) -> &Access<self.items![start ..< end]> Slice<T> nothrows {
         guard 0 <= start && start <= end && end <= count else { throw BoundsError() }
         return &items![start ..< end]
     }

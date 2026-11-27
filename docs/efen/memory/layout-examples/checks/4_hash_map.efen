@@ -19,6 +19,7 @@ layout {
     struct Map {
         var count: Int = 0
         own var buckets: Buckets.Area? { value == null || value.count == BUCKETS }
+        set Elements: Entries.value
 
         invariants {
             forall e in Entries: Entries.chain(from: buckets![e.home].head, by: Entry.next, until: null).contains(e)

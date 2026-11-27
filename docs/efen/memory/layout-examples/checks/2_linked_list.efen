@@ -10,6 +10,7 @@ layout {
     struct List {
         var head: own Nodes.Item? = null
         var length: Int = 0
+        set Elements: Nodes.value
 
         invariants {
             let nodes = Nodes.chain(from: head, by: Node.next, until: null)

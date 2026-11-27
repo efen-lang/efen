@@ -10,6 +10,7 @@ layout {
         var head: Int = 0 { value >= 0 && value < CAPACITY }
         var count: Int = 0 { value >= 0 && value <= CAPACITY }
         area slots: Slot { value.count == CAPACITY }
+        set Elements: slots[_].value
     }
 }
 
