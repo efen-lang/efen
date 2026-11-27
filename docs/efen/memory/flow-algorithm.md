@@ -221,23 +221,24 @@ flowchart LR
     V -. "после take: пуста, чтение через &items — flow.moved" .-> X(["пусто"])
 ```
 
-Ссылку можно сохранить в поле структуры. Источник пишется в типе поля, и FLOW проверяет ссылку в каждой точке,
-где её читают:
+Ссылку можно сохранить в поле структуры, тип которой называет источник (`Src: Origin`). FLOW проверяет ссылку в
+каждой точке, где её читают. Поле-заимствование числа (`read<Src> Int`) хранило бы копию, и FLOW её не отслеживает,
+поэтому поле пишется ссылкой:
 
 ```efen
 struct View<Src: Origin> {
-    let size: read<Src> Int
+    let size: &read<Src> Int
 }
 
 fn inspect() {
     let parcel = Parcel(weight: 1, size: 2)
-    let view = View(size: parcel.size)         // поле с правом берёт место: хранит ссылку в часть parcel
+    let view = View(size: &parcel.size)        // поле-ссылка: хранит адрес parcel.size
     print(view.size)                           // допустимо: значение parcel в области контроля
 }
 
 fn dangle() {
     let parcel = Parcel(weight: 1, size: 2)
-    let view = View(size: parcel.size)
+    let view = View(size: &parcel.size)
     consume(parcel: take parcel)               // память parcel покидает область контроля
     print(view.size)                           // ошибка: поле view.size указывает в ушедшую память
 }
@@ -343,7 +344,7 @@ fn growAll(points: mut [Parcel]) {
 
 ## Генераторы
 
-Генератор хранит заимствование своего источника в кадре. Пока он жив, память источника не может выйти из области
+Генератор держит свой источник в кадре (`holds read<items> generator yield Int`). Пока он жив, память источника не может выйти из области
 контроля: перед таким событием FLOW уничтожает приостановленный генератор, и его очистка выполняется там же.
 
 ```efen
@@ -375,7 +376,7 @@ sequenceDiagram
     participant main
     participant walker as генератор walk
     participant drain
-    main->>walker: walk(items: items), заимствует слот items
+    main->>walker: walk(items: items), держит слот items
     main->>walker: шаг цикла, break: генератор приостановлен
     Note over main: take items: память уходит из области контроля
     main->>walker: уничтожение: defer печатает "walk done"
@@ -427,16 +428,16 @@ sequenceDiagram
 ```
 
 Функция может вернуть ссылку в память параметра. Источник пишется в типе результата, и вызывающий знает, чью память
-держит ссылка:
+держит ссылка. `&` стоит в сигнатуре, в теле и у вызова, результат которого сохраняют:
 
 ```efen
-fn firstOf(list: edit [Parcel]) -> edit<list> Parcel {
+fn firstOf(list: edit [Parcel]) -> &edit<list[_]> Parcel {
     return &list[0]
 }
 
 fn rename() {
     var points = [Parcel(weight: 1, size: 2)]
-    let head = firstOf(list: points)
+    let head = &firstOf(list: points)
     head.weight = 10             // пишет в points[0]
     print(points[0].weight)      // 10
 }

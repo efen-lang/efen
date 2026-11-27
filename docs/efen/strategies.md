@@ -441,7 +441,7 @@ strategy ArrayTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == read || value == edit }
     conforms Iterable<Item: Access T, Cursor: _>
-    Access fn iterator -> ArrayIterator<Access T, Src: self[_]> {
+    Access fn iterator -> ArrayIterator<Access T, Src: self> {
         // тело не важно для примера
     }
 }
@@ -450,7 +450,7 @@ strategy ArrayMutTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == mut }
     conforms Iterable<Item: Access T, Cursor: _>   // элемент — ссылка mut
-    Access fn iterator -> IndexIter<Access T, Src: self[_]> {
+    Access fn iterator -> IndexIter<Access T, Src: self> {
         // тело не важно для примера
     }
 }

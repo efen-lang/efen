@@ -541,10 +541,10 @@ fn releaseSlot(pool: mut Pool, entry: read<pool> Class.Pointer, block: claim<poo
 ### Арена
 
 Арена в этом примере состоит из одного блока: структуры `Arena` из раздела [«Условия вида»](#условия-вида). Кусок
-арены отдаётся заимствованием с источником `arena`, а не выдачей `lend`:
+арены отдаётся ссылкой на отрезок `arena.bytes`, а не выдачей `lend`:
 
 ```efen
-fn carve(arena: edit Arena, size: Int) -> edit<arena> Slice<Byte>?
+fn carve(arena: edit Arena, size: Int) -> &edit<arena.bytes[_ ..< _]> Slice<Byte>?
     requires size > 0
 {
     guard size <= arena.bytes.count - arena.top else {
@@ -553,7 +553,7 @@ fn carve(arena: edit Arena, size: Int) -> edit<arena> Slice<Byte>?
 
     let piece = &arena.bytes[arena.top ..< arena.top + size]
     arena.top = arena.top + size
-    return piece
+    return &piece
 }
 ```
 
@@ -561,7 +561,7 @@ fn carve(arena: edit Arena, size: Int) -> edit<arena> Slice<Byte>?
 новым. Для компилятора это запись значения. Когда тело `resetArena` видно, её вызов ни один прежний кусок
 недействительным не делает: что вызов меняет, решает сводка тела, а не слово в сигнатуре
 ([что делает ссылку недействительной](memory-rules.md#что-делает-ссылку-недействительной)). Прежний и новый кусок
-тогда составляют два заимствования одного источника `arena` над одними байтами. Язык это допускает
+тогда составляют две ссылки в один источник `arena.bytes` над одними байтами. Язык это допускает
 ([два доступа сразу](memory-rules.md#два-доступа-сразу)).
 
 Арена, которая обещает, что после сброса прежние куски не используются, объявляет сброс в контракте без тела:
@@ -569,13 +569,13 @@ fn carve(arena: edit Arena, size: Int) -> edit<arena> Slice<Byte>?
 вызывает ошибку ([функция без тела](layout/functions.md#85-функция-без-тела), правило 3).
 
 ```efen
-let first = carve(arena, size: 8) ?? return
+guard let first = &carve(arena, size: 8) else { return }
 resetArena(arena)                         // тело видно: запись значения, first действителен
-let second = carve(arena, size: 8) ?? return
-first[0] = 1                              // допустимо: first и second заимствуют arena, байты у них общие
+guard let second = &carve(arena, size: 8) else { return }
+first[0] = 1                              // допустимо: first и second — ссылки в arena.bytes, байты у них общие
 ```
 
-Из блока арены ничего не выдано `lend`: кусок служит заимствованием, а не выданным слотом.
+Из блока арены ничего не выдано `lend`: кусок служит ссылкой, а не выданным слотом.
 
 ## Обнулённая память: состояние `Pointer.Zeroed`
 
@@ -853,9 +853,9 @@ fn smallFree(memory: own Pointer?) {
 
 - `@abi(c)` с телом пишет любой пакет. Её `Pointer` — голый `Pointer?`: без размера, выравнивания
   и состояния. Вызов из Efen и значение такой функции — ошибка.
-- Внешняя функция без тела объявляет параметр `p: out Pointer? = null` (у C `void**`) или `p: mut Pointer? = null`
+- Внешняя функция без тела объявляет параметр `p: &out Pointer? = null` (у C `void**`) или `p: mut Pointer? = null`
   (у C `void*`) только с этим умолчанием. Аргумент передать нельзя: C получает `NULL`, и ничего не записывается. Так объявлен лишний параметр
-  деструктора `pthread_join(value: out Pointer? = null)`
+  деструктора `pthread_join(value: &out Pointer? = null)`
   ([внешние деструкторы](../disposable.md#внешние-деструкторы)). Результат `-> own Pointer?` такая функция
   объявляет свободно: это объявление без тела, которому компилятор верит по записи.
 - Приведение `(address(m) & ~(BLOCK - 1)) as read<pool> Blocks.Item` пишет код `layout` множества `Blocks`. `BLOCK`
