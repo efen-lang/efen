@@ -421,7 +421,7 @@ contract Shelf<Cursor> {
     fn each -> holds read<self.items> Cursor         // курсор держит часть items
     mut<self.cache> fn clearCache
 
-    invariants { Cursor conforms Iterator<read Item, Src: self.items> }
+    invariants { Cursor conforms Iterator<read Item, Src: self.items[_]> }
 }
 
 fn sweep<S: Shelf>(s: mut S) {
@@ -443,15 +443,15 @@ class Rack {
 }
 ```
 
-- Источник элемента называет инвариант: `Src: self.items`, тот же путь, что в записи `holds`. `item` выше лежит в
-  `s.items`. Часть аргументом `Src` пишется только в тексте контракта.
+- Место элемента называет инвариант: `Src: self.items[_]` — элементы того, что привязано к части из записи `holds`.
+  `item` выше — ссылка на элемент `s.items`. Часть аргументом `Src` пишется только в тексте контракта.
 - Обход с записью значений — второй метод со вторым параметром курсора: `Cursor` один на соблюдение, и курсор для
   чтения им уже занят.
 - Реализация `holds` не пишет: тип курсора с `Src` сам говорит, что он держит; в `Src` она называет настоящее поле. По привязке `data` лежит в `Shelf.items`, поэтому
   требование контракта выполнено ([контракты обхода](collections.md#контракты-обхода)).
 - `for item in s.each()` обходит готовый курсор ([цикл `for` с итератором](collections.md#цикл-for-с-итератором)).
 - `-> read<self.items> Cursor` без `holds` — заимствование значения типа `Cursor` внутри части, а не курсор, который её держит.
-- Обход по части пишется и генератором-методом: `read<self.items> generator each yield read<self.items> Item`
+- Обход по части пишется и генератором-методом: `read<self.items> generator each yield &read<self.items[_]> Item`
   ([генератор-метод](../generators.md#генератор-метод)).
 
 ## Граница пакета

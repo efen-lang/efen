@@ -554,7 +554,8 @@ strategy for Log {
 }
 
 fn append(page: edit Page, length: Int) -> Int
-    requires page.top + sizeOf(Record(length: length)) <= page.records.size {   // новый слот помещается в область
+    requires page.top + sizeOf(Record(length: length)) <= page.records.size   // новый слот помещается в область
+{
     let k = page.top
     page.records[k] = Record(length: length)         // новый слот в конце: k == records.extent
     page.top += sizeOf(page.records[k])

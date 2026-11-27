@@ -1151,7 +1151,7 @@ let reader = ring as Consumer            // можно: разделы не пе
 with makeTaskGroup() {
     background {
         var jobs = loadJobs()
-        for job in mut jobs {
+        for job in take jobs {
             var rest = push(writer, take job)
 
             while let back = take rest {
