@@ -161,6 +161,22 @@ public class Document {
 Отсутствие строки означает запрет внешнего применения; отдельный `forbid` не
 нужен, пока нет более широкого разрешения уровня модуля или пакета.
 
+Строку `set Elements` коллекция пишет в теле своего типа, а если её там нет — стратегия, которая делает тип
+коллекцией и видит его поля. Так внешний пакет подключает обход к типу, автор которого его не предусмотрел:
+
+```efen
+public class Document {
+    public var pages: Vector<Page>
+    allow strategies
+}
+
+strategy PageTraversal for Document {        // другой пакет
+    set Elements: pages[_]
+    conforms Iterable<Item: read Page, Cursor: _>
+    // iterator не важен для примера
+}
+```
+
 Разрешение не делает стратегию видимой, активной или экспортируемой и не выдаёт
 права изменять HIR чужого типа. Для обобщённой цели владельцем считается пакет её
 номинальной головы: например, владельцем `Array<User>` остаётся пакет `Array`, а
@@ -425,7 +441,7 @@ strategy ArrayTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == read || value == edit }
     conforms Iterable<Item: Access T, Cursor: _>
-    Access fn iterator -> ArrayIterator<Access T, Src: self> {
+    Access fn iterator -> ArrayIterator<Access T, Src: self[_]> {
         // тело не важно для примера
     }
 }
@@ -434,7 +450,7 @@ strategy ArrayMutTraversal for Array<T> {
     generic T: Type
     generic Access: Access { value == mut }
     conforms Iterable<Item: Access T, Cursor: _>   // элемент — ссылка mut
-    Access fn iterator -> IndexIter<Access T, Src: self> {
+    Access fn iterator -> IndexIter<Access T, Src: self[_]> {
         // тело не важно для примера
     }
 }

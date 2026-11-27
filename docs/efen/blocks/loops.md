@@ -19,6 +19,17 @@ for number in numbers {
 }
 ```
 
+Слово права в заголовке — пометка переменной обхода для любого источника. Без слова переменная — `let`: копия числа,
+псевдоним элемента другого типа. Со словом `edit` или `mut` она — ссылка на элемент, и запись в неё пишет элемент:
+
+```efen
+var numbers: Vector<Int> = [1, 2, 3]
+
+for number in edit numbers {
+    number += 1                  // пишет элемент numbers
+}
+```
+
 ### Итерация по диапазону
 
 ```efen
@@ -50,6 +61,17 @@ let dict = ["name": "Иван", "age": "25", "city": "Москва"]
 
 for (key, value) in dict {
     print("${key}: ${value}")
+}
+```
+
+Пишущий обход словаря отдаёт пары по значению: ключ читается, значение — ссылка на значение в словаре
+([словари](../types/dictionaries.md)):
+
+```efen
+var ages = ["Alice": 25, "Bob": 30]
+
+for (name, age) in edit ages {
+    age += name.count            // пишет значение; ключ записать нельзя
 }
 ```
 
@@ -142,7 +164,7 @@ for job in let queue = jobs.draining() {
 
 ```efen
 let cursor = items.removing()
-while let item = cursor.next() {
+while let item = &cursor.next() {   // next возвращает ссылку; результат сохраняется, поэтому &
     if item.dead { cursor.remove() }
 }
 ```
