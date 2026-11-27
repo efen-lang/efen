@@ -139,8 +139,8 @@ let next: immutable Config = take draft
   замороженной коллекции там же, где у незамороженной, в том числе когда коллекция хранится в поле замороженного
   объекта ([освобождение структуры](disposable.md#освобождение-структуры-disposable)).
 
-Запрещено: присваивание поля, метод с `edit`, `mut` или `own self` (кроме деструктора), заимствование `edit` и
-`mut`, аргумент `out`.
+Запрещено: присваивание поля, метод с `edit`, `mut` или `own self` (кроме деструктора), заимствование и ссылка
+`edit` и `mut`, аргумент `&out`.
 
 ### Слот и значение
 
@@ -243,8 +243,8 @@ readonly class Journal {
     var count: Int                           // ошибка: поле внешней части var
     edit fn reset { count = 0 }              // ошибка: изменяющий метод внешней части
     private var entries: Vector<Entry>
-    fn first -> read Entry? {                // ошибка: ссылка на скрытое поле entries
-        return &entries[0]
+    fn first -> read Entry? {                // ошибка: заимствование скрытого поля entries
+        return entries[0]
     }
 }
 ```

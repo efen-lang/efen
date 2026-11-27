@@ -199,6 +199,17 @@ open class Middle: Animal {
 без `open`, — тоже ошибка: переопределение пишется явно, чтобы совпадение имён
 не переопределило метод случайно. Отдельного модификатора `abstract` в Efen нет.
 
+Объект наследника годится там, где ждут базу: параметру `read Animal`, `edit Animal`, `mut Animal` и ссылке
+`&read Animal`. Ссылка `&edit Animal`, `&mut Animal` и `&out Animal` берёт место ровно типа `Animal`: через неё
+функция может записать значение целиком, и `Animal`, записанный в переменную `Dog`, сломал бы `dog.fetch()`:
+
+```efen
+fn renew(a: &mut Animal) { a = Animal(name: "x") }
+
+var buddy = Dog(name: "Buddy", breed: "Golden Retriever")
+renew(a: &buddy)     // ошибка: место типа Dog, а ссылка ждёт место ровно типа Animal
+```
+
 ### Доступ метода к self
 
 Метод класса пишет `mut fn`, `edit fn`, `read fn` или `own fn`, как метод
@@ -211,9 +222,10 @@ open class Middle: Animal {
 меняет одно поле, не трогает ссылок в другое ([поля не делят память](types/ownership.md#поля-не-делят-память)).
 
 Класс, который соблюдает контракт или реализует интерфейс с частями, пишет в своём теле строки привязки,
-`part Storage.cache = memo, stats`, а в пометке метода может назвать поле: `mut<self.memo> fn clearCache`. У
+`part Storage.cache = memo, stats`, а в пометке метода может назвать поле или множество (`set`):
+`mut<self.memo> fn clearCache`. У
 `open`-метода путь не пишется ([части объекта](types/parts.md)). Генератор в теле класса — генератор-метод с той же
-пометкой перед словом `generator` ([генератор-метод](generators.md#генератор-метод)). У класса над внешним значением
+пометкой перед словом `generator`, без `holds` ([генератор-метод](generators.md#генератор-метод)). У класса над внешним значением
 путь называет поле `layout`: `mut<self.errmsg> fn` ([проверка реализации](types/parts.md#проверка-реализации)).
 
 Пометка у `open fn` — обещание для наследников. Переопределение метода `read fn` не
@@ -647,7 +659,7 @@ public class File {
 `self` пишется в списке параметров на позиции C, если дескриптор в C стоит не первым:
 `mut fn fputs(text: read CString, self)`; без записи `self` первый. У `@asm` `self` получает регистр, как параметр:
 `@in(rdi) self`. На первой позиции `self` обычно опускается; явно записываются выходная позиция,
-`self?` и привязка к регистру. Условия записи и передачи владения задаются через `ensures`. Право
+`self: &out Self?` или `self: &out Self` и привязка к регистру. Условия записи и передачи владения задаются через `ensures`. Право
 `self` даёт пометка метода: `read fn`, `mut fn`, `own fn`.
 
 Внешнему методу без тела нужен `nocontext` или `in`. Вокруг таких методов в теле класса может стоять
@@ -656,16 +668,17 @@ public class File {
 
 `mut fn` класса над внешним значением меняет внешний объект, а не сырое значение. Поэтому его вызывают и через
 `mut`, и через ссылку `edit`; только у такого класса `mut fn` принимает получатель `edit`, и вызов убивает ссылки
-во внешний объект. Заменить сырое значение в переменной вызывающего можно через `out` или результат функции; у
+во внешний объект. Заменить сырое значение в переменной вызывающего можно через `&out`, `&mut` или результат функции; у
 локальной переменной и поля — присваиванием и `take`. Запись параметра `mut` целиком — ошибка:
-параметр связан как `let` ([параметры](types/ownership.md#параметры)). Запись владеющего значения через ссылку `edit`
-меняет структуру и запрещена:
+параметр связан как `let` ([параметры](types/ownership.md#параметры)). Через ссылку `edit` на элемент значение пишется
+целиком, если прежнее значение не держит объявленного члена множества (`set`) того значения, на котором стоит право;
+прежний объект уничтожается, слот элемента остаётся на месте:
 
 ```efen
-mut fn statement(sql: read String) -> edit<self.cache> sqlite3_stmt?
+mut fn statement(sql: read String) -> &edit<self.cache[_]> sqlite3_stmt?
 
 conn.statement(sql)!.sqlite3_step()              // можно: mut fn внешнего объекта через edit
-conn.statement(sql)! = take other                // ошибка: запись владеющего значения через edit
+conn.statement(sql)! = take other                // можно: пишется значение элемента cache, не структура cache
 ```
 
 ### Конструкторы внешнего объекта
@@ -678,9 +691,9 @@ conn.statement(sql)! = take other                // ошибка: запись �
    функции допустим, только если при отказе она возвращает ровно объявленное пустое значение. Функция, у которой
    отказ — диапазон в том же слове (`-errno`), возвращает вариант `Packed`.
 2. `self` на выходной позиции, результат — код внешней стороны. Вызов идёт через имя типа, метка `self:` называет
-   переменную вызывающего, и аргумент пишется `&out`, как у любого параметра `out`: `sqlite3_stmt.sqlite3_prepare_v2(db: db, sql: q.cString, length: -1, self: &out s)`.
+   переменную вызывающего, и аргумент пишется `&out`, как у любого параметра `&out`: `sqlite3_stmt.sqlite3_prepare_v2(db: db, sql: q.cString, length: -1, self: &out s)`.
 3. Объекты, записанные в массив вызывающего: `fds: mut [File?]` (элементы пусты перед вызовом и проверяются после)
-   или `fds: out [File]` со строкой `ensures written(fds) == (условие)`
+   или `fds: &out [File]` со строкой `ensures written(fds) == (условие)`
    (элементы записаны ровно при истинном условии), с `requires fds.count == n`.
    Каждый элемент проверочная сборка записывает в таблицу выданных дескрипторов как выданный.
    Живое значение в переменной аргумента `&out` уничтожается перед вызовом, если внутрь него не указывает псевдоним
@@ -692,28 +705,28 @@ conn.statement(sql)! = take other                // ошибка: запись �
 Выходной слот, который пишет внешняя функция, объявляется одной из двух форм; голый `self` на выходной позиции —
 ошибка, которая называет обе:
 
-- `self?` (у другого параметра — `p: out T?`): слот типа `out T?`, функция пишет его на
+- `self: &out Self?` (у другого параметра — `p: &out T?`): слот типа `T?`, функция пишет его на
   каждом возврате — объект или объявленное пустое значение. Вызывающий проверяет слот, а не код возврата. Нужно
   пустое значение сырого типа.
-- `self` со строкой `ensures written(self) == (условие)`; у другого параметра —
-  `p: out T` со строкой `ensures written(p) == (условие)`. Слот типа `T` записан
+- `self: &out Self` со строкой `ensures written(self) == (условие)`; у другого параметра —
+  `p: &out T` со строкой `ensures written(p) == (условие)`. Слот типа `T` записан
   ровно на путях, где условие истинно. На остальных путях читать его нельзя.
   Специальное пустое значение не требуется: вызывающий проверяет условие.
 
 ```efen
-@constructor fn sqlite3_open(filename: read CString, self?) -> Int32
+@constructor fn sqlite3_open(filename: read CString, self: &out Self?) -> Int32
 
-@constructor fn pthread_create(self, attr: read pthread_attr_t?, start: own (() own -> Pointer?)?) -> Int32
+@constructor fn pthread_create(self: &out Self, attr: read pthread_attr_t?, start: own (() own -> Pointer?)?) -> Int32
     ensures written(self) == (result == 0)
 
-@constructor fn posix_spawn(pid: out Pid, path: read CString /* остальные параметры не важны для примера */) -> Int32
+@constructor fn posix_spawn(pid: &out Pid, path: read CString /* остальные параметры не важны для примера */) -> Int32
     ensures written(pid) == (result == 0)
 
 @constructor fn open_thing(self) -> Int32
-// ошибка: нужна форма self? или условие written(self)
+// ошибка: нужна форма self: &out Self? или self: &out Self с условием written(self)
 ```
 
-В модели конструктора `self` после вызова имеет тип `Self?` при `self?`, и модель пишет в него под
+В модели конструктора `self` после вызова имеет тип `Self?` при `self: &out Self?`, и модель пишет в него под
 `if let s = self`; при условной записи `self` существует ровно при выполнении условия (`if result == 0`). `!` у
 возможно пустого `self` в модели — ошибка.
 
@@ -753,8 +766,8 @@ let twice = File.adopt(raw: 3)                   // проверочная сб�
         var bound: [Int32: read CString]         // строки, которые sqlite хранит после SQLITE_STATIC
     }
     nocontext {
-        @constructor fn sqlite3_prepare_v2(db: mut sqlite3, sql: read CString, length: Int32, self?,
-                                           tail: out read<sql> CString? = null) -> Int32
+        @constructor fn sqlite3_prepare_v2(db: mut sqlite3, sql: read CString, length: Int32, self: &out Self?,
+                                           tail: &out read<sql> CString? = null) -> Int32
         model { if let s = self { s.db = db } }
 
         mut fn sqlite3_bind_text(index: Int32, text: read CString, length: Int32,

@@ -115,7 +115,7 @@ struct Header {
 ```
 
 Поле такой структуры читается и пишется значением: компилятор делает невыровненную загрузку. Ссылки на поле нет: его
-нельзя передать параметром с правом `edit` или `mut` и нельзя вернуть ссылкой, потому что адрес невыровненного
+нельзя передать параметру-ссылке (`&edit`, `&mut`, `&out`) и нельзя вернуть ссылкой, потому что адрес невыровненного
 `UInt32` нельзя отдать коду, который ждёт выровненный. Поле-владелец (`[Byte]`, класс) в `packed`-структуре —
 ошибка: его нельзя ни скопировать значением, ни взять ссылкой. Поле типа структуры без `inline` в структуре
 `@abi(c)` или `@packed` — тоже ошибка: раскладку C держит только встроенное поле
@@ -123,7 +123,7 @@ struct Header {
 
 Упакованность бывает только на части целей: `struct epoll_event` в glibc упакован на x86-64 и не упакован на AArch64.
 Поэтому код, который пользуется модулем, проверяется против каждой цели, общей для программы и модуля (с учётом
-`@platform` у самого вызывающего кода), а не только против цели сборки: иначе `edit`-параметр на поле собрался бы на AArch64 и стал бы ошибкой на x86-64.
+`@platform` у самого вызывающего кода), а не только против цели сборки: иначе аргумент `&edit` на поле собрался бы на AArch64 и стал бы ошибкой на x86-64.
 
 ### Битовые поля
 
@@ -218,7 +218,7 @@ variant epoll_data_t {
    ```
 
    `epoll_wait` пишет только первые `result` элементов, остальные не трогает. Буфер, который функция заполняет
-   частично, — `edit [T]`, а не `out`: `out` пишет переменную целиком.
+   частично, — `edit [T]`, а не `&out`: `&out` пишет переменную целиком.
 
 Если ни один путь не применим, читаются только случаи, где допустимы любые байты: целые и дробные числа, без `Bool`.
 Случай с указателем можно только передать в C; прочитать его без доказательства — ошибка.
@@ -351,7 +351,7 @@ const SQLITE_STATIC: sqlite3_destructor_type = null // макрос ((sqlite3_de
     conforms Constructible, Destructible
     layout { var errmsg: CString }                  // строка, которую sqlite держит у себя
     nocontext {
-        @constructor fn sqlite3_open(filename: read CString, self?) -> Int32
+        @constructor fn sqlite3_open(filename: read CString, self: &out Self?) -> Int32
         @destructor own fn sqlite3_close_v2 -> Int32                                     // неявный деструктор
         @destructor own fn sqlite3_close -> Int32           // никогда не неявный
             ensures taken(self) == (result == SQLITE_OK)
@@ -367,8 +367,8 @@ const SQLITE_STATIC: sqlite3_destructor_type = null // макрос ((sqlite3_de
         var bound: [Int32: read CString]            // строки после SQLITE_STATIC
     }
     nocontext {
-        @constructor fn sqlite3_prepare_v2(db: mut sqlite3, sql: read CString, length: Int32, self?,
-                                           tail: out read<sql> CString? = null) -> Int32
+        @constructor fn sqlite3_prepare_v2(db: mut sqlite3, sql: read CString, length: Int32, self: &out Self?,
+                                           tail: &out read<sql> CString? = null) -> Int32
         model { if let s = self { s.db = db } }
 
         mut fn sqlite3_bind_text(index: Int32, text: read CString, length: Int32,
@@ -396,14 +396,14 @@ const SQLITE_STATIC: sqlite3_destructor_type = null // макрос ((sqlite3_de
   том числе при исключении. `sqlite3_close` забирает хендлер только при `SQLITE_OK`: при `SQLITE_BUSY` соединение
   живо. Это условное владение получателем; неявным такой деструктор не бывает, его вызывают на слоте:
   `db.sqlite3_close()`.
-- `self?` — выходной параметр `out Self?`: C кладёт новый хендлер в переменную вызывающего на каждом возврате, при
-  отказе — `NULL`; вызывающий проверяет переменную. Аргумент пишется `self: &out s`. Так же устроен `posix_memalign(memptr: out Pointer?, …)` в
+- `self: &out Self?` — выходной параметр: C кладёт новый хендлер в переменную вызывающего на каждом возврате, при
+  отказе — `NULL`; вызывающий проверяет переменную. Аргумент пишется `self: &out s`. Так же устроен `posix_memalign(memptr: &out Pointer?, …)` в
   [владении](types/ownership.md#владение-которое-функция-забирает-не-всегда). C прежнее значение не освобождает;
   живой хендлер в переменной аргумента `&out`, на который внутри никто не указывает, компилятор уничтожает до вызова, как у любого
   аргумента `&out`, и хендлер не теряется; если указывает псевдоним или ссылка вызывающей функции, он живёт, пока они могут быть использованы. Если
   при отказе C оставляет в слоте мусор (`pthread_create`), пишут `ensures written(self) == (result == 0)`
   ([конструкторы внешнего объекта](classes.md#конструкторы-внешнего-объекта)).
-- Строка из `sqlite3_column_text` — ссылка в память C с источником `self`
+- Строка из `sqlite3_column_text` — заимствование памяти C с источником `self`
   ([ссылка в результате](types/ownership.md#место-в-результате-функции)). `sqlite3_step` — `mut fn`, поэтому по
   общему правилу его вызов гасит ссылки от того же хендлера, и чтение строки после `step` — ошибка компиляции:
 
@@ -429,14 +429,15 @@ echo text                       // ошибка: text погашен вызов�
 | Вид указателя в C | Запись в Efen |
 |---|---|
 | `T*` непрозрачного `T` | `self` метода `@abi(c) class T`; у другого параметра — `own T`, `own T?` со строкой `ensures taken(x) == (result == 0)`, `read T`, `mut T` |
-| `T*` на одну структуру или число | `read T`, `edit T`, `mut T`; в результате — `read<x> T`, `edit<x> T` |
+| `T*` на одну структуру | `read T`, `edit T`, `mut T`; в результате — `read<x> T`, `edit<x> T` |
+| `T*` на одно число | вход — `read T` (копия); выход — `&out T`; вход и выход — `&edit T`; может быть `NULL` — `&edit T?`; в результате — `&read<x> T`, `&edit<x> T`: заимствование числа (`edit<x> T`) — копия, и FLOW его не отслеживает |
 | `T*` на массив | `read [T]`, `edit [T]` и `requires x.count == n` ([условия функций](conditions.md)) |
 | `T**` на массив структур | `read Array<T, indirection: indirect>` и `requires x.count == n` |
 | `const char*`, строка с нулём в конце | `read CString`; в результате — `read<x> CString?`. `String` Efen хранит нуль после последнего байта, поэтому `name.cString` отдаёт C тот же буфер без копии; срез строки нуля не имеет и копируется |
-| `T**` для результата | `self?` или `p: out T?`, записанный на каждом возврате; `self` или `p: out T` со строкой `ensures written(…) == (посылка)`, записанный ровно на путях посылки. То же для выходного слота любого сырого типа (`pid: out Pid` и `ensures written(pid) == (result == 0)`) |
-| `T**` на массив, куда C пишет объекты (`int fds[2]` у `pipe2`) | `fds: mut [T?]` с неинициализированными элементами или `fds: out [T]` со строкой `ensures written(fds) == (посылка)`, и `requires fds.count == n`; функция — `@constructor`. `out` здесь годится, потому что C пишет массив целиком или не пишет вовсе; буфер, заполняемый частично, — `edit [T]` |
-| `const char**`, куда C пишет указатель внутрь другого параметра (`pzTail`) | `tail: out read<sql> CString? = null`: вызывающий получает ссылку на слот аргумента `sql`, а не значение; аргумент — `tail: &out rest` ([ниже](#что-c-держит-после-вызова)) |
-| `T**` или `void*`, которые модуль не передаёт (`retval` у `pthread_join`) | `p: out Pointer? = null` для `T**`, `p: mut Pointer? = null` для `void*`: `out` даёт C указатель на переменную, `mut` — сам указатель; аргумент не передаётся, C получает `NULL` ([сырая память](memory/pointer.md#память-пришедшая-из-c)) |
+| `T**` для результата | `self: &out Self?` или `p: &out T?`, записанный на каждом возврате; `self: &out Self` или `p: &out T` со строкой `ensures written(…) == (посылка)`, записанный ровно на путях посылки. То же для выходного слота любого сырого типа (`pid: &out Pid` и `ensures written(pid) == (result == 0)`) |
+| `T**` на массив, куда C пишет объекты (`int fds[2]` у `pipe2`) | `fds: mut [T?]` с неинициализированными элементами или `fds: &out [T]` со строкой `ensures written(fds) == (посылка)`, и `requires fds.count == n`; функция — `@constructor`. `&out` здесь годится, потому что C пишет массив целиком или не пишет вовсе; буфер, заполняемый частично, — `edit [T]` |
+| `const char**`, куда C пишет указатель внутрь другого параметра (`pzTail`) | `tail: &out read<sql> CString? = null`: переменная вызывающего становится псевдонимом памяти аргумента `sql`, а не значением; аргумент — `tail: &out rest` ([ниже](#что-c-держит-после-вызова)) |
+| `T**` или `void*`, которые модуль не передаёт (`retval` у `pthread_join`) | `p: &out Pointer? = null` для `T**`, `p: mut Pointer? = null` для `void*`: `&out` даёт C указатель на переменную, `mut` — сам указатель; аргумент не передаётся, C получает `NULL` ([сырая память](memory/pointer.md#память-пришедшая-из-c)) |
 
 Поле-указатель структуры остаётся с `@fill`: ссылку на поле держать нельзя
 ([где ссылки в результате нет](types/ownership.md#где-места-в-результате-нет)), а у `struct tm` поле `tm_zone` —
@@ -462,16 +463,18 @@ fn bindName(st: mut sqlite3_stmt) {
                                                 // (sqlite3_clear_bindings или SQLITE_TRANSIENT это исправляют)
 ```
 
-Выходной параметр-ссылка `tail: out read<sql> CString? = null` пишет в переменную вызывающего ссылку на слот аргумента
-`sql`. Аргумент — `&out rest` с незаписанной переменной `var rest: CString?`; после вызова это ссылка, как `var`, которую
-инициализировал вызов, возвращающий ссылку, и она живёт по правилам
-[«Пока результат жив»](types/ownership.md#пока-результат-жив) против аргумента `sql`. Право ссылки не шире права
+Выходной параметр-заимствование `tail: &out read<sql> CString? = null` делает переменную вызывающего псевдонимом
+памяти аргумента `sql`. Аргумент — `&out rest` с незаписанной переменной `var rest: CString?`; после вызова это
+псевдоним, как переменная, связанная с вызовом функции-заимствования, и он живёт по правилам
+[«Пока результат жив»](types/ownership.md#пока-результат-жив) против аргумента `sql`. Право псевдонима не шире права
 `sql`. Сам выходной параметр источником не бывает. `= null` позволяет не передавать аргумент: C получает `NULL`.
+Источник `sql` — параметр `read`, а не пишущий параметр, поэтому путь `read<sql>` не обязан называть точное место
+того же типа: `pzTail` указывает внутрь байтов `sql`, и тип `CString?` не равен типу `sql`.
 
 ```efen
-public fn prepareFirst(db: mut sqlite3, script: read String, next: out Int) -> own sqlite3_stmt? throws SqliteError {
+public fn prepareFirst(db: mut sqlite3, script: read String, next: &out Int) -> own sqlite3_stmt? throws SqliteError {
     var s: sqlite3_stmt? = null
-    var rest: CString?                          // незаписанная: вызов делает её ссылкой на script
+    var rest: CString?                          // незаписанная: вызов делает её псевдонимом памяти script
     let rc = sqlite3_stmt.sqlite3_prepare_v2(db: db, sql: script.cString, length: -1, self: &out s,
                                               tail: &out rest)
     guard rc == SQLITE_OK else { throw SqliteError() }
@@ -489,11 +492,11 @@ public fn prepareFirst(db: mut sqlite3, script: read String, next: out Int) -> o
     conforms Constructible, Destructible
     shared layout { var start: own (() own -> Pointer?)? }
     nocontext {
-        @constructor fn pthread_create(self, attr: read pthread_attr_t?, start: own (() own -> Pointer?)?) -> Int32
+        @constructor fn pthread_create(self: &out Self, attr: read pthread_attr_t?, start: own (() own -> Pointer?)?) -> Int32
             ensures written(self) == (result == 0)
             ensures taken(start) == (result == 0)
         model { if result == 0 { self.start = take start } }
-        @destructor(explicit) own fn pthread_join(value: out Pointer? = null) -> Int32
+        @destructor(explicit) own fn pthread_join(value: &out Pointer? = null) -> Int32
         own fn pthread_detach -> Int32
     }
 }
@@ -574,7 +577,7 @@ print(home)                       // ошибка: setenv поменял LibcPro
 - Ссылка из контекста потока умирает в каждой точке ожидания, в том числе на выводе в терминал
   ([контекст потока](context-and-effects.md#ссылка-из-контекста-потока)): `print(copy strerror(errnum: e))`.
   Стандартная библиотека даёт в первую очередь повторно входимые формы (`strerror_r`, `localtime_r`,
-  `getpwnam_r`): они пишут в буфер `out` и контекстов не трогают. Пути `foreign` — для того, у чего такой формы нет
+  `getpwnam_r`): они пишут в буфер вызывающего и контекстов не трогают. Пути `foreign` — для того, у чего такой формы нет
   (`getenv`, `setlocale`, `dlerror`, чужие библиотеки).
 - Пути `foreign` контекста процесса проверяет таблица многопоточных корутин: `mut` против `mut` или `read` из
   двух потоков — ошибка; тело `offload` считается отдельным потоком. У `shared foreign` два вызова с `mut` из
@@ -754,7 +757,7 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 только для чтения), — остановка с именами обоих объявлений: так ловятся `localtime` и `gmtime`, разведённые по двум
 полям там, где у библиотеки буфер один.
 
-Хендлеры записываются тоже. Любой хендлер, пришедший из C (результатом, через `self?`, `self` со строкой `ensures written(self) == (result == 0)` или
+Хендлеры записываются тоже. Любой хендлер, пришедший из C (результатом, через `self: &out Self?`, `self: &out Self` со строкой `ensures written(self) == (result == 0)` или
 массив) или принятый `Self(raw:)`, — «выдан» с типом и строкой объявления. Выдать значение, которое уже выдано, —
 остановка: так ловится второй `File.adopt(raw: 1)`. «Вернулся» — только на пути, где деструктор или параметр его
 забрал: у `own fn sqlite3_close` со строкой `ensures taken(self) == (result == SQLITE_OK)` — при `SQLITE_OK`. Передача вернувшегося хендлера в любой параметр останавливает программу (двойной `sqlite3_close`, `sqlite3_step` после
@@ -816,13 +819,13 @@ ELF; на macOS и Windows библиотека берёт `malloc` своей �
 - опции модуля `foreign: c` и `header: "x.h"` ([опции модуля](packages.md#опции-модуля)) и `.efen`-модуль, созданный по заголовку;
 - `@platform` на объявлении, а не только на `implementation`;
 - `@c("прототип")`, `@symbol("имя")`, опция модуля `targets` и отпечаток цели;
-- `out T?` для `T**`, записанная на каждом возврате; аргумент `&out x` у параметра `out`;
+- `&out T?` для `T**`, записанная на каждом возврате; аргумент `&out x` у параметра `&out`;
 - `@abi(c) class` и `@c("имя")` у класса, `representation Raw<I>`, `representation Packed<I>`, объявление
   `type Option<T> { representation Raw<I>; null: c }`;
-- `self` в списке параметров и с регистром (`@in(rdi) self`), `self?`, строки `ensures written(self) == (посылка)`,
+- `self` в списке параметров и с регистром (`@in(rdi) self`), `self: &out Self?`, `self: &out Self`, строки `ensures written(self) == (посылка)`,
   `ensures written(p) == (посылка)`, `ensures taken(self) == (посылка)`, метка `self:` у вызова конструктора;
-- массивы `mut [T?]` и `out [T]` со строкой `ensures written(…)` у конструктора, `tail: out read<sql> CString? = null`,
-  `= null` у параметра `mut Pointer?` и `out Pointer?` функции без тела;
+- массивы `mut [T?]` и `&out [T]` со строкой `ensures written(…)` у конструктора, `tail: &out read<sql> CString? = null`,
+  `= null` у параметра `mut Pointer?` и `&out Pointer?` функции без тела;
 - блок объявлений в теле класса, блок `layout` в теле класса, интерфейса и контракта, блок `model`, `forall x in
   collection:`, `shared layout`;
 - `Self(raw:)`, `@destructor(explicit)`, несколько ролей `@destructor` у класса, контракты `ImplicitlyDestroyable` и

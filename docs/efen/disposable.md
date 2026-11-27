@@ -162,7 +162,7 @@ strategy<T> for List<T> {
 телом. Его роль пишут атрибутом у `own fn` класса; класс, как и любой другой, пишет `conforms Destructible`:
 
 - `@destructor` бывает у нескольких методов. Результат допустим и при неявном вызове отбрасывается. Лишние
-  параметры — с умолчаниями (`value: out Pointer? = null`, [сырая память](memory/pointer.md#память-пришедшая-из-c)).
+  параметры — с умолчаниями (`value: &out Pointer? = null`, [сырая память](memory/pointer.md#память-пришедшая-из-c)).
   Каждую роль деструктора можно вызвать как метод.
 - Неявно компилятор вызывает единственный безусловный деструктор без `explicit`. Условный деструктор
   (метод с `ensures taken(self) == (result == SQLITE_OK)`) неявным не бывает. Классу с внешними ролями нужен
@@ -188,7 +188,7 @@ strategy<T> for List<T> {
 выходе с именем объекта. На пути исключения его вызывает компилятор.
 
 ```efen
-@destructor(explicit) own fn pthread_join(value: out Pointer? = null) -> Int32
+@destructor(explicit) own fn pthread_join(value: &out Pointer? = null) -> Int32
 
 (take t).pthread_join()                          // обязателен на каждом обычном пути
 ```
