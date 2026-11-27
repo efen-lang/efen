@@ -1090,7 +1090,7 @@ let maximum = max(x * 2, y + 3)  // Выражения вычисляются в
 Inline closure имеет **собственную область видимости**:
 
 ```efen
-meta fn swap(a: mut Int, b: mut Int) -> InlineClosure {
+meta fn swap(a: &edit Int, b: &edit Int) -> InlineClosure {
     return inline {
         let temp = a  // temp - локальная переменная inline closure
         a = b
@@ -1100,18 +1100,19 @@ meta fn swap(a: mut Int, b: mut Int) -> InlineClosure {
 
 // Использование
 let temp = "user data"  // Не конфликтует!
-swap(x, y)
+swap(&x, &y)
 ```
 
 ### Захват переменных
 
 Inline closure получает переменные места вызова **только параметрами метафункции**. Её код встраивается в место
-вызова, и всё, что он делает, делает тот же код, написанный там вручную: параметр называет переменную места
-вызова, и `swap(x, y)` меняет `x` и `y`. Параметр `read`, `edit` или `mut` обычной функции — её собственный `let`: целиком его записать нельзя, а запись
-вызывающей переменной делают через `out` или результат ([параметры](../types/ownership.md#параметры)).
+вызова, и всё, что он делает, делает тот же код, написанный там вручную: параметр-ссылка называет переменную места
+вызова, и `swap(&x, &y)` меняет `x` и `y`. Параметр копируемого типа без `&` — копия, собственный `let` функции, с
+любым правом: целиком его записать нельзя, а запись вызывающей переменной делают через параметр-ссылку (`&edit`,
+`&out`) или результат ([параметры](../types/ownership.md#параметры)).
 
 ```efen
-meta fn incrementBy(counter: mut Int, value: Int) -> InlineClosure {
+meta fn incrementBy(counter: &edit Int, value: Int) -> InlineClosure {
     return inline {
         // counter и value — параметры метафункции; имён места вызова кусок не видит
         counter += value
@@ -1119,7 +1120,7 @@ meta fn incrementBy(counter: mut Int, value: Int) -> InlineClosure {
 }
 
 var counter = 10
-incrementBy(counter, 5)  // counter = 15
+incrementBy(&counter, 5)  // counter = 15
 ```
 
 ### Возвращаемое значение
@@ -2040,7 +2041,7 @@ meta fn calculate(x: Int, y: Int) -> InlineClosure {
 
 ✅ **Захватывать переменные явно** через параметры
 ```efen
-meta fn increment(value: mut Int) -> InlineClosure {
+meta fn increment(value: &edit Int) -> InlineClosure {
     return inline {
         value += 1  // OK - явный параметр
     }
@@ -2081,7 +2082,7 @@ SomeMetafunction()
 
 **Явные контракты**
 ```efen
-meta fn modify(x: mut Int) -> InlineClosure {  // Явно: модифицирует x
+meta fn modify(x: &edit Int) -> InlineClosure {  // Явно: модифицирует x
     return inline { x += 1 }
 }
 
@@ -2118,7 +2119,7 @@ SWAP(x, y);  // ОШИБКА! Конфликт temp
 ### Подход Efen
 
 ```efen
-meta fn swap(a: mut Int, b: mut Int) -> InlineClosure {
+meta fn swap(a: &edit Int, b: &edit Int) -> InlineClosure {
     return inline {
         let temp = a  // Изолированная область видимости
         a = b
@@ -2128,7 +2129,7 @@ meta fn swap(a: mut Int, b: mut Int) -> InlineClosure {
 
 // Безопасно:
 let temp = getUserData()
-swap(x, y)  // OK! Нет конфликта
+swap(&x, &y)  // OK! Нет конфликта
 ```
 
 ### Сравнение с генерацией кода
