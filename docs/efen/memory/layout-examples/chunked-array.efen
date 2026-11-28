@@ -219,30 +219,30 @@ strategy<T, A> for Chunk<T, A> {
 }
 
 strategy<T, A> for ChunkedArray<T, A> {
-    // переносит элементы source по порядку с начала и оставляет его пустым; если ensureChunks бросит, ничего не перенесено
-    public mut fn append(moving source: mut ChunkedArray<T, A>) nothrows {
-        ensureChunks(self, required: (count + source.count + CHUNK_SIZE - 1) / CHUNK_SIZE)
+    // переносит элементы moving по порядку с начала и оставляет его пустым; если ensureChunks бросит, ничего не перенесено
+    public mut fn append(moving: mut ChunkedArray<T, A>) nothrows {
+        ensureChunks(self, required: (count + moving.count + CHUNK_SIZE - 1) / CHUNK_SIZE)
         var i = 0
-        while i < source.count {
+        while i < moving.count {
             let to = count + i
-            directory![to / CHUNK_SIZE].root![to % CHUNK_SIZE] = take source.directory![i / CHUNK_SIZE].root![i % CHUNK_SIZE]
+            directory![to / CHUNK_SIZE].root![to % CHUNK_SIZE] = take moving.directory![i / CHUNK_SIZE].root![i % CHUNK_SIZE]
             directory![to / CHUNK_SIZE].length += 1
             i += 1
         }
         var c = 0
-        while c < source.directoryLength {
-            source.directory![c].length = 0       // блоки source остаются выделенными и пустыми
+        while c < moving.directoryLength {
+            moving.directory![c].length = 0       // блоки moving остаются выделенными и пустыми
             c += 1
         }
-        count += source.count
-        source.count = 0
+        count += moving.count
+        moving.count = 0
     }
 
-    public mut fn append<I: ValueIterator<T>>(contentsOf source: mut I) nothrows {
+    public mut fn append<I: ValueIterator<T>>(contentsOf: mut I) nothrows {
         #if I conforms CountedIterator<T>
-            ensureChunks(self, required: (count + source.remaining + CHUNK_SIZE - 1) / CHUNK_SIZE)   // блоки для всех значений сразу
+            ensureChunks(self, required: (count + contentsOf.remaining + CHUNK_SIZE - 1) / CHUNK_SIZE)   // блоки для всех значений сразу
         #endif
-        while let value = source.next() {
+        while let value = contentsOf.next() {
             append(value: take value)
         }
     }
@@ -250,11 +250,11 @@ strategy<T, A> for ChunkedArray<T, A> {
 
 strategy<T: Copyable, A> for ChunkedArray<T, A> {
     // блоки для всех копий берутся сразу, затем копируется каждый элемент
-    public mut fn append(contentsOf source: read Slice<T>) nothrows {
-        ensureChunks(self, required: (count + source.count + CHUNK_SIZE - 1) / CHUNK_SIZE)
+    public mut fn append(contentsOf: read Slice<T>) nothrows {
+        ensureChunks(self, required: (count + contentsOf.count + CHUNK_SIZE - 1) / CHUNK_SIZE)
         var i = 0
-        while i < source.count {
-            append(value: copy source[i])
+        while i < contentsOf.count {
+            append(value: copy contentsOf[i])
             i += 1
         }
     }

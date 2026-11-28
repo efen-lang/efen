@@ -56,27 +56,27 @@ strategy<T, A> for Vector<T, A> {
         count += 1
     }
 
-    // переносит элементы source по порядку с начала и оставляет его пустым; если reserve бросит, ничего не перенесено
-    public mut fn append(moving source: mut Vector<T, A>) nothrows {
-        reserve(room: source.count)
-        if let old = take source.items {
+    // переносит элементы moving по порядку с начала и оставляет его пустым; если reserve бросит, ничего не перенесено
+    public mut fn append(moving: mut Vector<T, A>) nothrows {
+        reserve(room: moving.count)
+        if let old = take moving.items {
             var i = 0
-            while i < source.count {
+            while i < moving.count {
                 items![count + i] = take old[i]
                 i += 1
             }
             A.deallocate(ptr: old as Pointer)   // ни один слот не инициализирован: память возвращается аллокатору
         }
-        count += source.count
-        source.count = 0
-        source.capacity = 0
+        count += moving.count
+        moving.count = 0
+        moving.capacity = 0
     }
 
-    public mut fn append<I: ValueIterator<T>>(contentsOf source: mut I) nothrows {
+    public mut fn append<I: ValueIterator<T>>(contentsOf: mut I) nothrows {
         #if I conforms CountedIterator<T>
-            reserve(room: source.remaining)     // число значений известно заранее: один рост
+            reserve(room: contentsOf.remaining)     // число значений известно заранее: один рост
         #endif
-        while let value = source.next() {
+        while let value = contentsOf.next() {
             append(value: take value)
         }
     }
@@ -153,11 +153,11 @@ strategy<T: Copyable, A> for Vector<T, A> {
     }
 
     // один reserve, затем копия каждого элемента; для ImplicitlyCopyable генератор кода пишет одно блочное копирование
-    public mut fn append(contentsOf source: read Slice<T>) nothrows {
-        reserve(room: source.count)
+    public mut fn append(contentsOf: read Slice<T>) nothrows {
+        reserve(room: contentsOf.count)
         var i = 0
-        while i < source.count {
-            items![count] = copy source[i]
+        while i < contentsOf.count {
+            items![count] = copy contentsOf[i]
             count += 1
             i += 1
         }
