@@ -89,15 +89,16 @@ contract AllocatorType<Type: Allocatable>
 {
     for Type
 
-    // Выделяет блок не меньше size байт с выравниванием alignOf(Type); без памяти бросает AllocationError.
+    // Выделяет блок не меньше size байт с выравниванием не меньше alignOf(Type);
+    // без памяти бросает AllocationError.
     static fn allocate(size: Int) -> own Pointer throws only AllocationError
         requires Type is FixedSize ==> size == sizeOf(Type)
-        ensures result.size >= size && result.alignment == alignOf(Type)
+        ensures result.size >= size && result.alignment >= alignOf(Type)
 
     // То же, но без памяти возвращает null.
     static fn tryAllocate(size: Int) -> own Pointer? nofail
         requires Type is FixedSize ==> size == sizeOf(Type)
-        ensures result == null || (result.size >= size && result.alignment == alignOf(Type))
+        ensures result == null || (result.size >= size && result.alignment >= alignOf(Type))
 
     // Возвращает блок; его размер стратегия находит сама.
     static fn deallocate(ptr: own Pointer) nofail
