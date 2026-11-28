@@ -1,6 +1,6 @@
 const CHUNK_SIZE: Int = 256
 
-private layout<T: Movable> {
+private layout<T: Movable, A: Allocator = mm> {
     struct Chunk {
         var root: own Area<T>? = null { value == null || value.count == CHUNK_SIZE }
         var length: Int = 0 { value >= 0 && value <= CHUNK_SIZE }
@@ -25,13 +25,14 @@ private layout<T: Movable> {
     }
 }
 
-private fn growDirectory<T: Movable>(a: edit ChunkedArray<T>, minimum: Int) {
+private fn growDirectory<T: Movable, A: Allocator>(a: edit ChunkedArray<T, A>, minimum: Int) {
     if minimum <= a.directoryCapacity {
         return
     }
 
     let next = max(minimum, max(4, a.directoryCapacity * 2))
-    let fresh = Area<Chunk<T>>(count: next)
+    let memory = A.allocate(size: next * sizeOf(Chunk<T, A>), aligned: alignOf(Chunk<T, A>))
+    let fresh: Area<Chunk<T, A>> = memory as Area<Chunk<T, A>> { value.count == next }
 
     if let old = take a.directory {
         var i = 0
@@ -39,28 +40,30 @@ private fn growDirectory<T: Movable>(a: edit ChunkedArray<T>, minimum: Int) {
             fresh[i] = take old[i]
             i += 1
         }
-    }                                           // old кончается: ни один слот не инициализирован, область возвращается
+        A.deallocate(ptr: old as Pointer)       // ни один слот не инициализирован: память возвращается аллокатору
+    }
 
     a.directory = take fresh
     a.directoryCapacity = next
 }
 
-private fn ensureChunks<T: Movable>(a: edit ChunkedArray<T>, required: Int) {
+private fn ensureChunks<T: Movable, A: Allocator>(a: edit ChunkedArray<T, A>, required: Int) {
     while a.directoryLength < required {
         growDirectory(a, minimum: a.directoryLength + 1)
 
-        let block = Area<T>(count: CHUNK_SIZE)
-        a.directory![a.directoryLength] = Chunk<T>(root: take block, length: 0)
+        let memory = A.allocate(size: CHUNK_SIZE * sizeOf(T), aligned: alignOf(T))
+        let block: Area<T> = memory as Area<T> { value.count == CHUNK_SIZE }
+        a.directory![a.directoryLength] = Chunk<T, A>(root: take block, length: 0)
         a.directoryLength += 1
     }
 }
 
-private fn movePosition<T: Movable>(a: mut ChunkedArray<T>, from: Int, to: Int) {
+private fn movePosition<T: Movable, A: Allocator>(a: mut ChunkedArray<T, A>, from: Int, to: Int) {
     a.directory![to / CHUNK_SIZE].root![to % CHUNK_SIZE] =
         take a.directory![from / CHUNK_SIZE].root![from % CHUNK_SIZE]
 }
 
-strategy<T> for ChunkedArray<T> {
+strategy<T, A> for ChunkedArray<T, A> {
     conforms Appendable<Item: T>
 
     public edit fn append(value: own T) nothrows {
@@ -121,17 +124,19 @@ strategy<T> for ChunkedArray<T> {
                         each(take area[j])
                         j += 1
                     }
-                }                                  // area кончается: ни один слот не инициализирован
+                    A.deallocate(ptr: area as Pointer)  // ни один слот не инициализирован
+                }
                 c += 1
             }                                      // chunk кончается в конце шага: поле root равно null
-        }                                          // dir кончается: ни один слот не инициализирован, область возвращается
+            A.deallocate(ptr: dir as Pointer)   // ни один слот не инициализирован: память возвращается аллокатору
+        }
         directoryLength = 0
         directoryCapacity = 0
         count = 0
     }
 }
 
-strategy<T> for ChunkedArray<T> {
+strategy<T, A> for ChunkedArray<T, A> {
     implements Disposable
 
     fn dispose {
@@ -145,17 +150,19 @@ strategy<T> for ChunkedArray<T> {
                         let dead = take area[j]         // значение T уничтожается в конце шага
                         j += 1
                     }
-                }                                  // area кончается: ни один слот не инициализирован
+                    A.deallocate(ptr: area as Pointer)  // ни один слот не инициализирован
+                }
                 c += 1
             }                                      // chunk кончается в конце шага: поле root равно null
-        }                                          // dir кончается: ни один слот не инициализирован, область возвращается
+            A.deallocate(ptr: dir as Pointer)   // ни один слот не инициализирован: память возвращается аллокатору
+        }
         directoryLength = 0
         directoryCapacity = 0
         count = 0
     }
 }
 
-strategy<T: Copyable> for ChunkedArray<T> {
+strategy<T: Copyable, A> for ChunkedArray<T, A> {
     public fn read(index: Int) -> T
         requires index >= 0 && index < count
     {
@@ -163,8 +170,9 @@ strategy<T: Copyable> for ChunkedArray<T> {
     }
 }
 
-strategy ChunkedAccess for ChunkedArray<T> {
+strategy ChunkedAccess for ChunkedArray<T, A> {
     generic T: Movable
+    generic A: Allocator
     generic Access: Access { value == read || value == edit }
     conforms Indexable<Item: Access T>
 
@@ -174,8 +182,9 @@ strategy ChunkedAccess for ChunkedArray<T> {
     }
 }
 
-strategy ChunkedSwap for ChunkedArray<T> {
+strategy ChunkedSwap for ChunkedArray<T, A> {
     generic T: Movable
+    generic A: Allocator
     conforms Swappable
 
     edit fn swapAt(i: Int, j: Int) nothrows {
@@ -193,7 +202,7 @@ fn example {
     let second = a.read(1)
 }                                               // конец области: компилятор вызывает dispose
 
-strategy<T> for Chunk<T> {
+strategy<T, A> for Chunk<T, A> {
     implements Disposable
 
     fn dispose {
@@ -203,14 +212,15 @@ strategy<T> for Chunk<T> {
                 let dead = take area[j]         // значение T уничтожается в конце шага
                 j += 1
             }
-        }                                       // area кончается: ни один слот не инициализирован
+            A.deallocate(ptr: area as Pointer)  // ни один слот не инициализирован: память возвращается аллокатору
+        }
         length = 0
     }
 }
 
-strategy<T> for ChunkedArray<T> {
+strategy<T, A> for ChunkedArray<T, A> {
     // переносит элементы source по порядку с начала и оставляет его пустым; если ensureChunks бросит, ничего не перенесено
-    public mut fn append(moving source: mut ChunkedArray<T>) nothrows {
+    public mut fn append(moving source: mut ChunkedArray<T, A>) nothrows {
         ensureChunks(self, required: (count + source.count + CHUNK_SIZE - 1) / CHUNK_SIZE)
         var i = 0
         while i < source.count {
@@ -238,7 +248,7 @@ strategy<T> for ChunkedArray<T> {
     }
 }
 
-strategy<T: Copyable> for ChunkedArray<T> {
+strategy<T: Copyable, A> for ChunkedArray<T, A> {
     // блоки для всех копий берутся сразу, затем копируется каждый элемент
     public mut fn append(contentsOf source: read Slice<T>) nothrows {
         ensureChunks(self, required: (count + source.count + CHUNK_SIZE - 1) / CHUNK_SIZE)

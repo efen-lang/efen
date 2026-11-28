@@ -1,4 +1,4 @@
-private layout<T: Movable> {
+private layout<T: Movable, A: Allocator = mm> {
     public struct Vector {
         var items: own Area<T>? = null { (value == null) == (capacity == 0) && (value == null || value.count == capacity) }
         var capacity: Int = 0 { value >= 0 }
@@ -8,8 +8,9 @@ private layout<T: Movable> {
     }
 }
 
-private fn grow<T: Movable>(v: mut Vector<T>, to: Int) {
-    let fresh = Area<T>(count: to)
+private fn grow<T: Movable, A: Allocator>(v: mut Vector<T, A>, to: Int) {
+    let memory = A.allocate(size: to * sizeOf(T), aligned: alignOf(T))
+    let fresh: Area<T> = memory as Area<T> { value.count == to }
 
     if let old = take v.items {
         var i = 0
@@ -17,13 +18,14 @@ private fn grow<T: Movable>(v: mut Vector<T>, to: Int) {
             fresh[i] = take old[i]
             i += 1
         }
-    }                                           // old кончается: ни один слот не инициализирован, область возвращается
+        A.deallocate(ptr: old as Pointer)       // ни один слот не инициализирован: память возвращается аллокатору
+    }
 
     v.items = take fresh
     v.capacity = to
 }
 
-strategy<T> for Vector<T> {
+strategy<T, A> for Vector<T, A> {
     conforms RoomAppendable<Item: T>
 
     // доводит ёмкость до той, которой достигло бы добавление по одному: те же шаги, одно выделение
@@ -55,7 +57,7 @@ strategy<T> for Vector<T> {
     }
 
     // переносит элементы source по порядку с начала и оставляет его пустым; если reserve бросит, ничего не перенесено
-    public mut fn append(moving source: mut Vector<T>) nothrows {
+    public mut fn append(moving source: mut Vector<T, A>) nothrows {
         reserve(room: source.count)
         if let old = take source.items {
             var i = 0
@@ -63,7 +65,8 @@ strategy<T> for Vector<T> {
                 items![count + i] = take old[i]
                 i += 1
             }
-        }                                       // old кончается: ни один слот не инициализирован, область возвращается
+            A.deallocate(ptr: old as Pointer)   // ни один слот не инициализирован: память возвращается аллокатору
+        }
         count += source.count
         source.count = 0
         source.capacity = 0
@@ -118,13 +121,14 @@ strategy<T> for Vector<T> {
                 each(take old[i])
                 i += 1
             }
-        }                                       // old кончается: ни один слот не инициализирован, область возвращается
+            A.deallocate(ptr: old as Pointer)   // ни один слот не инициализирован: память возвращается аллокатору
+        }
         count = 0
         capacity = 0
     }
 }
 
-strategy<T> for Vector<T> {
+strategy<T, A> for Vector<T, A> {
     implements Disposable
 
     fn dispose {
@@ -134,13 +138,14 @@ strategy<T> for Vector<T> {
                 let dead = take old[i]          // значение T уничтожается в конце шага
                 i += 1
             }
-        }                                       // old кончается: ни один слот не инициализирован, область возвращается
+            A.deallocate(ptr: old as Pointer)   // ни один слот не инициализирован: память возвращается аллокатору
+        }
         count = 0
         capacity = 0
     }
 }
 
-strategy<T: Copyable> for Vector<T> {
+strategy<T: Copyable, A> for Vector<T, A> {
     public fn read(index: Int) -> T
         requires index >= 0 && index < count
     {
@@ -160,14 +165,15 @@ strategy<T: Copyable> for Vector<T> {
 }
 
 fn example {
-    var v = Vector<Int>()
+    var v = Vector<Int>()                       // A = mm
     v.append(1)
     v.append(2)
     let first = v.read(0)
 }                                               // конец области: компилятор вызывает dispose
 
-strategy VectorAccess for Vector<T> {
+strategy VectorAccess for Vector<T, A> {
     generic T: Movable
+    generic A: Allocator
     generic Access: Access { value == read || value == edit }
     conforms Sliceable<Item: Access T>
 
@@ -182,8 +188,9 @@ strategy VectorAccess for Vector<T> {
     }
 }
 
-strategy VectorSwap for Vector<T> {
+strategy VectorSwap for Vector<T, A> {
     generic T: Movable
+    generic A: Allocator
     conforms Swappable
 
     edit fn swapAt(i: Int, j: Int) nothrows {
@@ -192,4 +199,14 @@ strategy VectorSwap for Vector<T> {
             swap(items![i], items![j])
         }
     }
+}
+
+fn sum(values: read Slice<Int>) -> Int {        // читает срез: аллокатора вектора не называет
+    var total = 0
+    var i = 0
+    while i < values.count {
+        total += values[i]
+        i += 1
+    }
+    return total
 }

@@ -857,11 +857,11 @@ layout {
 и рост `frontier`. Раздача `for element in take region` даёт то же без счётчика: тело получает каждый слот ровно
 один раз.
 
-**Пример: рост хеш-таблицы.** Записи переходят из старых корзин `A` в новые `B`; освободить `A` можно, только если
-пусты все её слоты.
+**Пример: рост хеш-таблицы.** Записи переходят из старой области корзин `old` в новую `fresh`; вернуть память `old`
+аллокатору `A` можно, только когда все её корзины пусты и забраны из слотов.
 
 ```efen
-layout {
+layout<A: Allocator = mm> {
     set Entries: Entry
 
     struct Entry {
@@ -881,7 +881,7 @@ layout {
     }
 }
 
-strategy for Bucket {
+strategy<A> for Bucket<A> {
     implements Disposable
 
     fn dispose {
@@ -889,39 +889,49 @@ strategy for Bucket {
     }
 }
 
-strategy for Table {
+strategy<A> for Table<A> {
     implements Disposable
 
     fn dispose {
-        // тело не важно для примера: забирает область buckets; каждую корзину освобождает её dispose
+        // тело не важно для примера: забирает область buckets, забирает из неё каждую корзину (её освобождает
+        // dispose корзины) и возвращает память области: A.deallocate(ptr: old as Pointer)
     }
 }
 
-fn grow(table: mut Table) requires table.size == BUCKETS {
-    var fresh = Area<Bucket>(count: 2 * BUCKETS)
+fn grow<A: Allocator>(table: mut Table<A>) requires table.size == BUCKETS {
+    let next = 2 * BUCKETS
+    let memory = A.allocate(size: next * sizeOf(Bucket<A>), aligned: alignOf(Bucket<A>))
+    let fresh: Area<Bucket<A>> = memory as Area<Bucket<A>> { value.count == next }
     var j = 0
-    while j < 2 * BUCKETS {
-        fresh[j] = Bucket()                              // новая корзина пуста: head == null
+    while j < next {
+        fresh[j] = Bucket<A>()                           // новая корзина пуста: head == null
         j = j + 1
     }
     var i = 0
     while i < BUCKETS {
         while let e = tie table.buckets![i].head {      // снять первую запись старой корзины i
             table.buckets![i].head = tie e.next
-            let b = hash(e.key) % (2 * BUCKETS)
+            let b = hash(e.key) % next
             e.home = b
             e.next = tie fresh[b].head                  // вставить в голову новой корзины b
             fresh[b].head = tie e
         }
         i = i + 1                                        // инвариант цикла: корзины 0 ..< i пусты
     }
-    let dead = take table.buckets                        // все корзины A пусты: область кончается локальным значением
-    table.size = 2 * BUCKETS                             // поле из условия области пишется вместе с её заменой
+    if let old = take table.buckets {                    // все корзины old пусты
+        var k = 0
+        while k < BUCKETS {
+            let empty = take old[k]                      // пустая корзина уничтожается в конце шага
+            k = k + 1
+        }
+        A.deallocate(ptr: old as Pointer)                // в old нет значений: память возвращается аллокатору
+    }
+    table.size = next                                    // поле из условия области пишется вместе с её заменой
     table.buckets = take fresh
 }
 ```
 
-Каждая запись в любой момент под одним якорем, в `A` или в `B`; переход — `tie`, указатели на записи действительны: таблица вместе с областью корзин — одна
+Каждая запись в любой момент под одним якорем, в `old` или в `fresh`; переход — `tie`, указатели на записи действительны: таблица вместе с областью корзин — одна
 [структура](layout/pointers.md#структура-источник-чистота). Инвариант «запись
 в цепочке своей корзины» внутри функции нарушен и восстановлен на выходе.
 

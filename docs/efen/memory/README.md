@@ -33,9 +33,9 @@
 | Контракт аллокатора | [allocator](allocator.md) |
 | Сравнение и исторический контекст | [prior art](prior-art.md), [class internals](classes-internal.md), [прежняя тематическая модель](index.md) |
 | Примеры | [layout examples](layout-examples/README.md) |
-
+`allocator.md` нормативен в части сигнатур контрактов аллокатора: на него опираются правила справочника о
 `allocator.md` нормативен в части сигнатур контракта аллокатора: на него опираются правила справочника о
-стратегии `Allocator` и `AllocationError`
+контрактах `memory::Allocator`, `AllocatorType` и `AllocationError`
 ([создание элемента](layout/operations.md#выделение-и-освобождение--переход-между-множествами), правила 1 и 2).
 `classes-internal.md` и `index.md` остаются историческими набросками и не заменяют правила ownership и layout выше.
 

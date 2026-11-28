@@ -77,7 +77,7 @@ class File {
 исключений не бросает. `dispose` получает `self` с правом `mut`; слово права перед `fn dispose` не пишется.
 
 ```efen
-private layout<T: Movable> {
+private layout<T: Movable, A: Allocator = mm> {
     public struct Vector {
         var items: own Area<T>? = null {
             (value == null) == (capacity == 0) && (value == null || value.count == capacity)
@@ -88,7 +88,7 @@ private layout<T: Movable> {
     }
 }
 
-strategy<T> for Vector<T> {
+strategy<T, A> for Vector<T, A> {
     implements Disposable
 
     fn dispose {
@@ -98,7 +98,8 @@ strategy<T> for Vector<T> {
                 let dead = take old[i]          // значение T уничтожается в конце шага
                 i += 1
             }
-        }                                       // old кончается: ни один слот не инициализирован, область возвращается
+            A.deallocate(ptr: old as Pointer)   // ни один слот не инициализирован: память возвращается аллокатору
+        }
         count = 0
         capacity = 0
     }

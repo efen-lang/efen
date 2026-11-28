@@ -211,7 +211,7 @@ fn peek(jobs: mut Jobs) -> Int requires jobs.mutex is Mutex.Free {
 получает свободные ячейки, читатель получает заполненные. Область стоит в поле структуры `Store` из `layout`:
 
 ```efen
-layout<T: Movable> {
+layout<T: Movable, A: Allocator = mm> {
     public struct Store {
         let capacity: Int { value > 0 }
         var cells: own Area<T>? = null { value == null || value.count == capacity }
@@ -219,25 +219,26 @@ layout<T: Movable> {
     }
 }
 
-strategy<T> for Store<T> {
+strategy<T, A> for Store<T, A> {
     implements Disposable
 
     fn dispose {
-        // тело не важно для примера: забирает значение каждой ячейки и возвращает область
+        // тело не важно для примера: забирает значение каждой ячейки и возвращает память области аллокатору A
     }
 }
 
-fn newStore<T: Movable>(capacity: Int) -> Store<T?>
+fn newStore<T: Movable, A: Allocator>(capacity: Int) -> Store<T?, A>
     requires capacity > 0
     ensures result.cells != null
 {
-    let cells = Area<T?>(count: capacity)
+    let memory = A.allocate(size: capacity * sizeOf(T?), aligned: alignOf(T?))
+    let cells: Area<T?> = memory as Area<T?> { value.count == capacity }
     var i = 0
     while i < capacity {
         cells[i] = null                                  // ячейка свободна
         i += 1
     }
-    return Store<T?>(capacity: capacity, cells: take cells)
+    return Store<T?, A>(capacity: capacity, cells: take cells)
 }
 
 shared struct Ring<T: Movable> {

@@ -846,7 +846,7 @@
 
 | № | Что | Правило | Пишется или выводится | Что убивает или запрещает | Где |
 |---|---|---|---|---|---|
-| C-790 | контракт `Allocator<Type>` | Контракт определяет `allocate`, `tryAllocate`, `extend`, `tryExtend`, `reallocate`, `tryReallocate`, `deallocate` над `Pointer<Type>`. | пишется | — | `memory/allocator.md:7` |
+| C-790 | контракт `memory::AllocatorType<Type>` | Контракт определяет `allocate`, `tryAllocate`, `extend`, `tryExtend`, `reallocate`, `tryReallocate`, `deallocate` над `Pointer<Type>`. | пишется | — | `memory/allocator.md:7` |
 | C-791 | `allocate` | Выделяет блок заданного размера; без памяти бросает `AllocationError`. | пишется | нехватка памяти — исключение | `memory/allocator.md:11` |
 | C-792 | `extend` | Расширяет блок на месте, никогда не перемещает; если нельзя — `AllocationError`; `tryExtend` возвращает `false`. | пишется | невозможность расширить на месте | `memory/allocator.md:17` |
 | C-793 | `reallocate` | Расширяет на месте или переносит; без памяти бросает, старый блок цел; `tryReallocate` возвращает `null`, старый цел. | пишется | нехватка памяти | `memory/allocator.md:23` |

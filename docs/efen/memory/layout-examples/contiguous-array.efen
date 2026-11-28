@@ -1,4 +1,4 @@
-private layout<T: Movable> {
+private layout<T: Movable, A: Allocator = mm> {
     public struct FixedArray {
         var items: own Area<T>? = null { (value == null) == (count == 0) && (value == null || value.count == count) }
         var count: Int = 0 { value >= 0 }
@@ -7,12 +7,13 @@ private layout<T: Movable> {
     }
 }
 
-strategy<T> for FixedArray<T> {
-    public mut fn fill(size: Int, make: (Int) -> own T)
-        requires items == null && count == 0 && size >= 0 && (T conforms ImplicitlyDestroyable || size == 0)
+strategy<T, A> for FixedArray<T, A> {
+    public mut fn fill(size: Int, make: (Int) -> own T nofail)
+        requires items == null && count == 0 && size >= 0
     {
         if size > 0 {
-            let fresh = Area<T>(count: size)
+            let memory = A.allocate(size: size * sizeOf(T), aligned: alignOf(T))
+            let fresh: Area<T> = memory as Area<T> { value.count == size }
             var i = 0
             while i < size {
                 let value = make(i)
@@ -39,12 +40,13 @@ strategy<T> for FixedArray<T> {
                 each(take old[i])
                 i += 1
             }
-        }                                       // old кончается: ни один слот не инициализирован, область возвращается
+            A.deallocate(ptr: old as Pointer)   // ни один слот не инициализирован: память возвращается аллокатору
+        }
         count = 0
     }
 }
 
-strategy<T> for FixedArray<T> {
+strategy<T, A> for FixedArray<T, A> {
     implements Disposable
 
     fn dispose {
@@ -54,12 +56,13 @@ strategy<T> for FixedArray<T> {
                 let dead = take old[i]          // значение T уничтожается в конце шага
                 i += 1
             }
-        }                                       // old кончается: ни один слот не инициализирован, область возвращается
+            A.deallocate(ptr: old as Pointer)   // ни один слот не инициализирован: память возвращается аллокатору
+        }
         count = 0
     }
 }
 
-strategy<T: Copyable> for FixedArray<T> {
+strategy<T: Copyable, A> for FixedArray<T, A> {
     public fn read(index: Int) -> T
         requires index >= 0 && index < count
     {
@@ -67,8 +70,9 @@ strategy<T: Copyable> for FixedArray<T> {
     }
 }
 
-strategy FixedArrayAccess for FixedArray<T> {
+strategy FixedArrayAccess for FixedArray<T, A> {
     generic T: Movable
+    generic A: Allocator
     generic Access: Access { value == read || value == edit }
     conforms Sliceable<Item: Access T>
 
@@ -83,8 +87,9 @@ strategy FixedArrayAccess for FixedArray<T> {
     }
 }
 
-strategy FixedArraySwap for FixedArray<T> {
+strategy FixedArraySwap for FixedArray<T, A> {
     generic T: Movable
+    generic A: Allocator
     conforms Swappable
 
     edit fn swapAt(i: Int, j: Int) nothrows {
@@ -95,12 +100,12 @@ strategy FixedArraySwap for FixedArray<T> {
     }
 }
 
-fn square(i: Int) -> own Int {
-    return i * i
+fn number(i: Int) -> own Int nofail {
+    return i
 }
 
 fn example {
     var a = FixedArray<Int>()
-    a.fill(size: 4, make: square)
+    a.fill(size: 4, make: number)
     let third = a.read(2)
 }                                               // конец области: компилятор вызывает dispose

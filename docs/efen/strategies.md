@@ -79,7 +79,7 @@ strategy for Pair<Int, Bool> {           // только для Pair<Int, Bool>:
 
 ```efen
 strategy MyAllocator<T> {
-    conforms Allocator<T>
+    conforms AllocatorType<T>
     // реализация контракта
 }
 
@@ -392,9 +392,9 @@ provide JsonDocument for Documents::Document
 выбираемых стратегий, а строка `invariants` задаёт, для каких целей правило применимо:
 
 ```efen
-strategy for Resolve<Allocator<let T>> {
+strategy for Resolve<AllocatorType<let T>> {
     invariants { target is Box<T> }
-    // какой Allocator взять для Box<T>
+    // какой AllocatorType взять для Box<T>
 }
 ```
 

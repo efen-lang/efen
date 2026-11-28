@@ -585,9 +585,9 @@ generic-инстанциации, и значения между ними сво
 расширения записывается контрактом в имени:
 
 ```efen
-strategy for Resolve<Allocator<let T>>
+strategy for Resolve<AllocatorType<let T>>
 where target is Box<T> {
-    // какой Allocator взять для Box<T>
+    // какой AllocatorType взять для Box<T>
 }
 ```
 

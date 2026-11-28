@@ -1,377 +1,104 @@
-# Менеджер памяти
+# Слой `memory` и менеджер памяти
 
-> Статус: набросок, не приведён к правилам. Классы ниже (`Arena`, `TrackingAllocator`) держат сырую память
-> (`Pointer`) в обычных полях, а сырую память держит только `layout`
-> ([сырая память](../memory/pointer.md)); примеры ждут переписи на `layout`.
+[Runtime языка Efen](README.md) · [Контракты аллокатора](../memory/allocator.md) · [Память](../memory/README.md)
 
-Контракты, структуры и функции, связанные с управлением памятью в `Efen`
-доступны в пакете `memory`.
+Слой `memory` — объявления контрактов памяти между слоем `lang` и аллокатором `mm`. Его пространство имён —
+`memory::`; он поставляется вместе с компилятором, как `lang`, и не заменяется. Кода в слое нет: только контракты,
+которые реализует аллокатор и вызывают компилятор и низкоуровневый код. В Amber файлы слоя лежат в
+`frontend/efen/memory/` и ставятся рядом с компилятором.
 
-## Интерфейсы аллокаторов
+## Слои рантайма
 
-Блок, который функция освобождает или может перенести, она получает `own` и возвращает `own`: память блока
-уходит от вызывающего, и другого указателя в неё быть не должно. Стратегию, которую спрашивает компилятор,
-описывает [аллокатор](../memory/allocator.md).
+Память программы проходит через пять слоёв, и каждый опирается только на те, что ниже:
+
+| Слой | Что в нём | Кто может заменить |
+|---|---|---|
+| `lang` | контракты языка и рантайм без кучи ([что компилятор берёт у рантайма](lang-roles.md#где-что-лежит)) | только версия рантайма целиком |
+| `memory` | контракты памяти: `Allocator`, `ExtendableAllocator`, `AllocatorType<Type>`, `Allocatable`, `ArenaAllocator`, `PoolAllocator` | никто: идёт вместе с компилятором |
+| `mm` | реализация по умолчанию: менеджер памяти, который реализует контракты `memory` | конфигурация сборки, поле `allocator:` |
+| остальной рантайм | строки, массив `[T]` и другие типы, которые берут память у аллокатора | части заменяются через конфигурацию сборки |
+| std | коллекции, словарь, файлы, сеть | программа может отказаться |
+
+Код выше `memory` называет контракты, а не реализацию: коллекция берёт аллокатор параметром типа с ограничением
+`memory::Allocator`, а компилятор берёт память для типа у стратегии `memory::AllocatorType<Type>`. Поэтому `mm`
+заменяется без переписывания кода над ним.
+
+## Контракты слоя
+
+Контракты двух уровней описывает статья [«Контракты аллокатора памяти»](../memory/allocator.md):
+
+- `memory::Allocator` — общий контракт над сырой памятью: `allocate`, `tryAllocate`, `reallocate`, `tryReallocate`,
+  `deallocate(ptr:)` без размера. Его функции статические, и вызывает их низкоуровневый код.
+- `memory::ExtendableAllocator : Allocator` — рост блока на месте: `extend`, `tryExtend`.
+- `memory::AllocatorType<Type: Allocatable>` — стратегия одного типа со строкой `for Type`. Её вызывает компилятор
+  для объекта класса и для элемента множества `layout`.
+- `Allocatable` — встроенный контракт: значения типа получают память от аллокатора
+  ([встроенные контракты](built-in-contracts.md#allocatable)).
+
+Арена и пул — общий контракт и ещё две операции у каждого:
 
 ```efen
-interface Allocator {
-    mut fn allocate(size: Size) -> own Pointer
-    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer
-    mut fn deallocate(ptr: own Pointer)        
+contract ArenaAllocator : Allocator {
+    // Начинает выдачу заново: блоки, выданные до вызова, больше не используются.
+    static fn reset
+
+    // Возвращает всю память арены тому, у кого она взята.
+    static fn clear
 }
 
-interface ArenaAllocator {
-    mut fn allocate(size: Size) -> own Pointer
-    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer
-    mut fn deallocate(ptr: own Pointer)
-    mut fn reset
-    mut fn clear
-}
+contract PoolAllocator : Allocator {
+    // Выдаёт один слот пула; без памяти бросает AllocationError.
+    static fn acquire -> own Pointer throws only AllocationError
 
-interface PoolAllocator {
-    mut fn allocate(size: Size) -> own Pointer
-    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer
-    mut fn deallocate(ptr: own Pointer)
-    mut fn acquire -> own Pointer
-    mut fn release(ptr: own Pointer)
+    // Возвращает слот в пул.
+    static fn release(ptr: own Pointer) nofail
 }
 ```
+
+Арена выдаёт память сдвигом границы внутри одного большого блока и возвращает её только целиком: `reset` начинает
+выдачу заново, `clear` возвращает блок. Пул выдаёт слоты одного размера: `acquire` берёт свободный слот, `release`
+возвращает его. Функции статические, как у общего контракта: арена или пул — тип, который называет аргумент `A`
+коллекции. Как статическая `reset` объявляет, что блоки, выданные до неё, недействительны, документы не описывают:
+у сброса через объект эту роль играет слово `mut` ([арена](../memory/pointer.md#арена)).
 
 ## Реализации
 
-### HeapAllocator
+`mm` реализует `memory::Allocator` и `memory::ExtendableAllocator` и служит аллокатором по умолчанию двумя путями:
+он стоит умолчанием параметра `A` коллекции (`A: Allocator = mm`), и ему передаёт каждую операцию стратегия по
+умолчанию `Heap<Type>` ([менеджер памяти `mm`](../memory/allocator.md#менеджер-памяти-mm)). Устройство такого
+менеджера — блоки и классы размеров на `layout` — описывает [сырая память](../memory/pointer.md).
 
-Стандартный аллокатор, использующий системную heap память:
+Арену и пул, которые реализуют контракты `ArenaAllocator` и `PoolAllocator`, документы пока не записывают кодом.
+Арена отдаёт `own Pointer`, а `reset` забирает все выданные блоки разом, без возврата каждого: у линейного учёта
+сырой памяти ([ничего не теряется](../memory/layout/lifetime.md#74-ничего-не-теряется)) правила для такого возврата
+нет. Арена из статьи о сырой памяти поэтому выдаёт куски ссылкой на отрезок, а не владением
+([арена](../memory/pointer.md#арена)). Пул слотов одного размера записан там же выдачей и возвратом слота
+([иерархия владения](../memory/pointer.md#иерархия-владения)).
 
-```efen
-use runtime::memory
+## Выбор аллокатора
 
-class HeapAllocator {
-    conforms Constructible
+Аллокатор выбирают на двух уровнях, и оба выбора делаются при компиляции:
 
-    implements Allocator
-
-    @constructor
-    fn init(size: Size) -> Self {
-        // Инициализация не требуется для heap
-    }
-
-    mut fn allocate(size: Size) -> own Pointer {
-        return malloc(size)
-    }
-
-    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer {
-        return realloc(take ptr, size)
-    }
-
-    mut fn deallocate(ptr: own Pointer) {
-        free(take ptr)
-    }
-}
-```
-
-### Arena Allocator
-
-Arena (также известный как region/bump allocator) — быстрый аллокатор для временных данных.
-Выделяет память последовательно из большого буфера, освобождение происходит одной операцией.
-
-**Преимущества:**
-- Очень быстрое выделение (просто инкремент указателя)
-- Отличная кеш-локальность
-- Нет фрагментации
-- Идеален для временных данных с одинаковым lifetime
-
-**Недостатки:**
-- Невозможно освободить отдельные объекты
-- Может тратить память впустую
+- для типа — стратегией `AllocatorType<Type>` по обычным правилам выбора: `provide` в пакете типа, запись
+  программы, правило `Resolve<AllocatorType<let T>>`
+  ([к каким типам прилипает стратегия](../memory/allocator.md#к-каким-типам-прилипает-стратегия));
+- для области коллекции — аргументом `A` её типа.
 
 ```efen
-use runtime::memory
-
-class Arena {
-    conforms Constructible
-
-    implements ArenaAllocator, Disposable
-
-    private var buffer: Pointer
-    private var offset: Size
-    private var capacity: Size
-
-    @constructor
-    fn init(size: Size) -> Self {
-        self.buffer = malloc(size)
-        self.offset = 0
-        self.capacity = size
-    }
-
-    mut fn allocate(size: Size) -> own Pointer {
-        if self.offset + size > self.capacity {
-            error("Arena out of memory")
-        }
-
-        let ptr = self.buffer + self.offset
-        self.offset += size
-        return ptr
-    }
-
-    mut fn reallocate(ptr: own Pointer, size: Int) -> own Pointer {
-        // Arena не поддерживает realloc эффективно
-        let newPtr = allocate(size)
-        memcpy(newPtr, ptr, min(size, /* old size */))
-        return newPtr
-    }
-
-    mut fn deallocate(ptr: own Pointer) {
-        // Arena не освобождает отдельные объекты
-    }
-
-    mut fn reset {
-        // Сброс арены для повторного использования
-        self.offset = 0
-    }
-
-    mut fn clear {
-        // Полная очистка
-        free(self.buffer)
-        self.buffer = null
-        self.offset = 0
-        self.capacity = 0
-    }
-
-    fn dispose {
-        if self.buffer != null {
-            free(self.buffer)
-        }
-    }
-}
+provide NodePool for Node                       // объекты Node берут память у стратегии NodePool
+var frame = Vector<Int, FrameArena>()           // область вектора берёт память у FrameArena
+var plain = Vector<Int>()                       // A = mm
 ```
 
-**Пример использования:**
+`NodePool` — стратегия, которая соответствует `AllocatorType<Node>`; `FrameArena` — тип, который реализует
+`memory::Allocator`. `frame` и `plain` — значения двух разных типов.
 
-```efen
-@allocator(Pool)
-class Node {
-    conforms Constructible
-
-    var value: Int
-    var next: Node?
-
-    @constructor
-    fn init(value: Int) -> Self {
-        self.value = value
-        self.next = null
-    }
-}
-
-// Каждый Node выделяется из пула и возвращается в него при уничтожении
-let head = Node(value: 1)
-```
-
-### Stack Allocator
-
-Аллокатор на стеке — для очень короткоживущих данных:
-
-```efen
-use runtime::memory
-
-// alloca выделяет память в кадре вызывающей функции: из обёртки её вернуть нельзя,
-// указатель пережил бы кадр. Поэтому alloca вызывает сама функция, которая использует память
-fn processData(size: Int) {
-    // Выделение на стеке processData, автоматически освобождается при выходе из функции
-    let buffer = alloca(size) as UnsafeMutablePointer<UInt8>
-
-    // Использование buffer
-    for i in 0..<size {
-        buffer[i] = UInt8(i)
-    }
-
-    // Не нужно освобождать — стек автоматически очистится
-}
-```
-
-## Использование с классами
-
-Классы могут указывать собственные аллокаторы:
-
-```efen
-use runtime::memory
-
-@allocator(Arena)
-class TemporaryData {
-    conforms Constructible
-
-    var value: Int
-
-    @constructor
-    fn init(value: Int) -> Self {
-        self.value = value
-    }
-}
-
-// Объекты TemporaryData будут выделяться через Arena
-let data = TemporaryData(value: 42)
-```
-
-Кастомная стратегия памяти:
-
-```efen
-class MyClass {
-    conforms Constructible
-
-    // Указываем аллокатор для этого класса
-    thread let allocator = Pool(
-        objectSize: sizeOf(MyClass.self),
-        poolSize: 100
-    )
-
-    var value: Int
-
-    @constructor
-    fn init(value: Int) -> Self {
-        self.value = value
-    }
-}
-```
-
-## Composable Allocators
-
-Аллокаторы можно комбинировать:
-
-```efen
-// Fallback allocator: сначала пробует pool, потом heap
-class FallbackAllocator {
-    conforms Constructible
-
-    implements Allocator
-
-    private var primary: Allocator
-    private var fallback: Allocator
-
-    @constructor
-    fn init(primary: Allocator, fallback: Allocator) -> Self {
-        self.primary = primary
-        self.fallback = fallback
-    }
-
-    mut fn allocate(size: Size) -> own Pointer {
-        let ptr = primary.allocate(size)
-        if ptr == null {
-            return fallback.allocate(size)
-        }
-        return ptr
-    }
-
-    // ... остальные методы
-}
-
-let allocator = FallbackAllocator(
-    primary: nodePool,
-    fallback: HeapAllocator(size: 0)
-)
-```
-
-## Tracking Allocator
-
-Для отладки утечек памяти:
-
-```efen
-class TrackingAllocator {
-    implements Allocator
-
-    private var inner: Allocator
-    private var allocations: [Pointer: Size] = [:]
-
-    mut fn allocate(size: Size) -> own Pointer {
-        let ptr = inner.allocate(size)
-        allocations[ptr] = size
-        print("Allocated ${size} bytes at ${ptr}")
-        return ptr
-    }
-
-    mut fn deallocate(ptr: own Pointer) {
-        if let size = allocations[ptr] {
-            print("Deallocated ${size} bytes at ${ptr}")
-            allocations.removeValue(forKey: ptr)
-        } else {
-            error("Double free or invalid pointer: ${ptr}")
-        }
-        inner.deallocate(take ptr)
-    }
-
-    fn reportLeaks {
-        if allocations.isEmpty {
-            print("No memory leaks detected")
-        } else {
-            print("Memory leaks detected:")
-            for (ptr, size) in allocations {
-                print("  ${size} bytes at ${ptr}")
-            }
-        }
-    }
-}
-```
-
-## Лучшие практики
-
-### 1. Используйте Arena для временных данных
-
-```efen
-fn parseJSON(json: String) -> JSONValue {
-    let arena = Arena(size: json.length * 2)
-
-    // Парсинг создает много временных строк и объектов
-    let tokens = tokenize(json, allocator: arena)
-    let ast = buildAST(tokens, allocator: arena)
-
-    // Финальный результат копируется в heap
-    let result = ast.toValue()
-
-    // Вся временная память освобождается
-    arena.clear()
-
-    return result
-}
-```
-
-### 2. Используйте Pool для объектов одного типа
-
-```efen
-// Игровой движок: entity выделяются из пула
-@allocator(Pool)
-class Entity {
-    conforms Constructible
-
-    var x: Float
-    var y: Float
-
-    @constructor
-    fn init(x: Float, y: Float) -> Self {
-        self.x = x
-        self.y = y
-    }
-}
-```
-
-### 3. Используйте Stack для микрооптимизаций
-
-```efen
-fn quickSort(array: [Int]) {
-    // Малый временный буфер на стеке
-    if array.count < 100 {
-        let temp = stackAllocate<Int>(count: array.count)
-        // ... sort logic
-        // Автоматически освобождается
-    } else {
-        // Большой массив — используем heap
-        let temp = HeapAllocator().allocate(array.count * sizeOf(Int.self))
-        defer { deallocate(temp) }
-        // ... sort logic
-    }
-}
-```
+Где лежит значение — на стеке, в слоте, в элементе множества или в куче, — решает компилятор по контексту и по
+стратегиям типа ([память](../memory.md)); отдельного аллокатора стека нет.
 
 ## См. также
 
-- [index.md](index.md) — Runtime API overview
-- [../memory.md](../memory.md) — Концепция управления памятью в Efen
-- [../types/ownership.md](../types/ownership.md) — Система владения
+- [../memory/allocator.md](../memory/allocator.md) — контракты аллокатора памяти
+- [lang-roles.md](lang-roles.md) — что компилятор берёт у рантайма
+- [../memory.md](../memory.md) — управление памятью в Efen
+- [../types/ownership.md](../types/ownership.md) — система владения
