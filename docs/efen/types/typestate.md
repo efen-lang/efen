@@ -178,7 +178,7 @@ fn close state Lifecycle.Open >> Lifecycle.Closed
 
 `->` имеет обычный смысл Efen: он вводит возвращаемый результат. Если результата
 нет, `->` не пишется; `>>` при этом всё равно описывает переход состояния
-объекта-получателя:
+объекта вызова:
 
 ```efen
 fn open state Lifecycle.Closed >> Lifecycle.Open
