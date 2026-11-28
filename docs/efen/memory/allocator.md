@@ -13,13 +13,13 @@
 
 ```efen
 contract Allocator {
-    // Выделяет блок не меньше size байт с выравниванием aligned; без памяти бросает AllocationError.
+    // Выделяет блок не меньше size байт с выравниванием не меньше aligned; без памяти бросает AllocationError.
     static fn allocate(size: Int, aligned: Int = alignOf(Int)) -> own Pointer throws only AllocationError
-        ensures result.size >= size && result.alignment == aligned
+        ensures result.size >= size && result.alignment >= aligned
 
     // То же, но без памяти возвращает null.
     static fn tryAllocate(size: Int, aligned: Int = alignOf(Int)) -> own Pointer? nofail
-        ensures result == null || (result.size >= size && result.alignment == aligned)
+        ensures result == null || (result.size >= size && result.alignment >= aligned)
 
     // Расширяет блок на месте или переносит в новый и возвращает его; без памяти бросает AllocationError,
     // старый блок остаётся у вызывающего.
