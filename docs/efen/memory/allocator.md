@@ -81,34 +81,23 @@ contract ExtendableAllocator : Allocator {
 `AllocatorType<Type>` — стратегия, которая даёт память значениям одного типа. Это отдельный контракт со своим
 списком функций и строкой `for Type`, а не наследник `Allocator`: типизированная стратегия обещает размеры только
 своего типа (пул слотов одного типа), поэтому там, где ждут общий `Allocator`, она не стоит. Общий уровень служит
-типизированному через стратегию по умолчанию `Heap<Type>`, которая передаёт каждую операцию общему контракту `mm`.
+типизированному через стратегию по умолчанию `Heap<Type>`, которая передаёт каждую операцию общему контракту `mm`
+с выравниванием `alignOf(Type)`.
 
 ```efen
 contract AllocatorType<Type: Allocatable>
 {
     for Type
 
-    // Выделяет блок памяти не меньше заданного размера и с заданным выравниванием; без памяти бросает AllocationError.
-    static fn allocate(size: Int, aligned: Int) -> own Pointer throws only AllocationError
-        ensures result.size >= size && result.alignment == aligned
+    // Выделяет блок не меньше size байт с выравниванием alignOf(Type); без памяти бросает AllocationError.
+    static fn allocate(size: Int) -> own Pointer throws only AllocationError
+        requires Type is FixedSize ==> size == sizeOf(Type)
+        ensures result.size >= size && result.alignment == alignOf(Type)
 
     // То же, но без памяти возвращает null.
-    static fn tryAllocate(size: Int, aligned: Int) -> own Pointer? nofail
-        ensures result == null || (result.size >= size && result.alignment == aligned)
-
-    // Расширяет блок на месте; никогда не перемещает; если на месте нельзя, бросает AllocationError.
-    static fn extend(ptr: mut Pointer, size: Int) throws only AllocationError
-
-    // То же, но если на месте нельзя, возвращает false.
-    static fn tryExtend(ptr: mut Pointer, size: Int) -> Bool nofail
-
-    // Расширяет блок на месте или переносит в новый и возвращает его; без памяти бросает AllocationError,
-    // старый блок остаётся у вызывающего.
-    static fn reallocate(ptr: own Pointer, size: Int) -> own Pointer throws only AllocationError
-
-    // То же, но без памяти возвращает null, старый блок остаётся у вызывающего.
-    static fn tryReallocate(ptr: own Pointer?, size: Int) -> own Pointer? nofail
-        ensures taken(ptr) == (result != null)
+    static fn tryAllocate(size: Int) -> own Pointer? nofail
+        requires Type is FixedSize ==> size == sizeOf(Type)
+        ensures result == null || (result.size >= size && result.alignment == alignOf(Type))
 
     // Возвращает блок; его размер стратегия находит сама.
     static fn deallocate(ptr: own Pointer) nofail
@@ -121,14 +110,26 @@ contract AllocatorType<Type: Allocatable>
 стратегию `AllocatorType<X.Item>`, для класса — `AllocatorType<Класс>`. У множества ключом служит `X.Item`, а не
 структура: несколько видов описывают одни байты в разное время
 ([смена вида](layout/operations.md#67-смена-вида-и-замена-области)), и память, взятая под одним видом, возвращается
-под любым другим.
+под любым другим. Структура, которая задаёт свой размер сама
+([область с разным шагом](layout/declaration.md#область-с-разным-шагом)), получает память только по ключу `X.Item`.
 
-Для элемента компилятор вызывает `allocate(size: sizeOf(V(поля)), aligned: alignOf(V))` до вычисления аргументов
-формы и приводит память к виду `V`; условие `ensures` доказывает, что память вмещает вид. Когда значение `own`
-кончается, он вызывает `deallocate(ptr:)` той же стратегии
-([создание элемента](layout/operations.md#62-создание-элемента)). `tryAllocate` и функции роста служат коду, который
-работает с сырой памятью элемента сам. Каждая операция есть в двух видах: с исключением и с `null` или `false`; при
-неудаче ничего не меняется, как у общего контракта.
+Размер элемента множества — размер структуры, объявленной в строке `set` (`set Nodes: Node`). Смена вида заново
+толкует байты уже выданного слота и памяти не берёт, а вид больше слота отвергает приведение
+([приведение `as`](pointer.md#приведение-as), правило 1).
+
+Строка `requires` связывает размер с типом. У типа `FixedSize` все значения одного размера, и `size` равен
+`sizeOf(Type)` ([`FixedSize`](../runtime/built-in-contracts.md#fixedsize)). Тип динамического размера объявляет
+статический метод `sizeOf` над полями, которые задают размер, например `static fn sizeOf(length: Int) -> Int` у
+`Record`; FLOW доказывает, что метод согласован с инвариантом размера типа. Пул слотов одного размера объявляет
+параметр `<T: Allocatable & FixedSize>`: слот вмещает блок, только когда размер у типа один.
+
+Для элемента компилятор вызывает `allocate(size:)` до вычисления аргументов формы. Размер даёт тип: `sizeOf(Type)` у
+типа `FixedSize`, у типа динамического размера — его метод `sizeOf` по полям размера формы
+(`Record.sizeOf(length: n)`). Выравнивание — `alignOf(Type)`, его обещает `ensures`. Затем компилятор приводит память
+к виду; условие `ensures` доказывает, что память вмещает вид. Когда значение `own` кончается, он вызывает
+`deallocate(ptr:)` той же стратегии ([создание элемента](layout/operations.md#62-создание-элемента)). `tryAllocate`
+служит коду, который работает с сырой памятью элемента сам; такой код передаёт тот же размер: `sizeOf(Type)` или
+результат метода `sizeOf` типа. При неудаче ничего не меняется, как у общего контракта. Функций роста у контракта нет.
 
 <a id="область-не-берёт-памяти"></a>
 
@@ -193,30 +194,12 @@ private layout<T: Movable, A: Allocator = mm> {
 public strategy Heap<Type> {
     conforms AllocatorType<Type>
 
-    static fn allocate(size: Int, aligned: Int) -> own Pointer throws only AllocationError {
-        return mm.allocate(size: size, aligned: aligned)
+    static fn allocate(size: Int) -> own Pointer throws only AllocationError {
+        return mm.allocate(size: size, aligned: alignOf(Type))
     }
 
-    static fn tryAllocate(size: Int, aligned: Int) -> own Pointer? nofail {
-        return mm.tryAllocate(size: size, aligned: aligned)
-    }
-
-    static fn extend(ptr: mut Pointer, size: Int) throws only AllocationError {
-        mm.extend(ptr: ptr, size: size)
-    }
-
-    static fn tryExtend(ptr: mut Pointer, size: Int) -> Bool nofail {
-        return mm.tryExtend(ptr: ptr, size: size)
-    }
-
-    static fn reallocate(ptr: own Pointer, size: Int) -> own Pointer throws only AllocationError {
-        return mm.reallocate(ptr: take ptr, size: size)
-    }
-
-    static fn tryReallocate(ptr: own Pointer?, size: Int) -> own Pointer? nofail
-        ensures taken(ptr) == (result != null)
-    {
-        return mm.tryReallocate(ptr: ptr, size: size)
+    static fn tryAllocate(size: Int) -> own Pointer? nofail {
+        return mm.tryAllocate(size: size, aligned: alignOf(Type))
     }
 
     static fn deallocate(ptr: own Pointer) nofail {
@@ -237,15 +220,15 @@ public strategy Heap<Type> {
 public strategy ThreadHeap<Type: ThreadBound> {
     conforms AllocatorType<Type>
 
-    static fn allocate(size: Int, aligned: Int) -> own Pointer throws only AllocationError {
-        return threadheap::take(size: size, aligned: aligned)
+    static fn allocate(size: Int) -> own Pointer throws only AllocationError {
+        return threadheap::take(size: size, aligned: alignOf(Type))
     }
 
     static fn deallocate(ptr: own Pointer) nofail {
         threadheap::give(ptr: take ptr)
     }
 
-    // tryAllocate и четыре функции роста написаны так же
+    // tryAllocate написан так же
 }
 ```
 
@@ -286,6 +269,12 @@ class MyObject {
 
 provide ThreadHeap for MyObject                 // MyObject привязан к потоку: ThreadHeap к нему применим
 ```
+
+Стратегию иерархии классов выбирает её корень: `provide … for Корень` или другой выбор `AllocatorType<Корень>`.
+Объекты наследников берут память у той же стратегии, и выбор другой стратегии для наследника вызывает ошибку
+компиляции, как строки `ArcClass` и `OpenClass` у наследника ([классы](../classes.md#определение-класса)). Иерархия
+открытого класса не `FixedSize`: объекты её классов разного размера, поэтому пул слотов с ограничением `FixedSize` к
+ней не применим.
 
 <a id="ручное-выделение"></a>
 
