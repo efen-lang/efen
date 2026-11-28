@@ -8,7 +8,9 @@ private layout<T: Movable, A: Allocator = mm> {
     }
 }
 
-private fn grow<T: Movable, A: Allocator>(v: mut Vector<T, A>, to: Int) {
+private fn grow<T: Movable, A: Allocator>(v: mut Vector<T, A>, to: Int)
+    requires to >= v.count
+{
     let memory = A.allocate(size: to * sizeOf(T), aligned: alignOf(T))
     let fresh: Area<T> = memory as Area<T> { value.count == to }
 
@@ -31,6 +33,7 @@ strategy<T, A> for Vector<T, A> {
     // доводит ёмкость до той, которой достигло бы добавление по одному: те же шаги, одно выделение
     public mut fn reserve(room: Int) nothrows
         requires room >= 0
+        ensures capacity - count >= room
     {
         var next = capacity
         while next - count < room {
